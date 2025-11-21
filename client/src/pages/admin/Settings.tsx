@@ -7,9 +7,63 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { MEMBERSHIP_TIERS } from '@/lib/mockData';
 
 export default function AdminSettings() {
+  const { toast } = useToast();
+  
+  // State for membership tiers
+  const [tiers, setTiers] = useState(MEMBERSHIP_TIERS);
+  const [isAddTierOpen, setIsAddTierOpen] = useState(false);
+  const [newTier, setNewTier] = useState({
+    id: '',
+    name: '',
+    priceEtb: '',
+    priceUsd: ''
+  });
+
+  const handleUpdateTier = (id: string, field: string, value: any) => {
+    setTiers(tiers.map(t => {
+      if (t.id === id) {
+        if (field === 'priceEtb') return { ...t, price: { ...t.price, etb: parseInt(value) || 0 } };
+        if (field === 'priceUsd') return { ...t, price: { ...t.price, usd: parseInt(value) || 0 } };
+        return { ...t, [field]: value };
+      }
+      return t;
+    }));
+  };
+
+  const handleAddTier = () => {
+    const id = newTier.name.toLowerCase().replace(/\s+/g, '-');
+    const tierToAdd = {
+      id,
+      name: newTier.name,
+      price: { 
+        etb: parseInt(newTier.priceEtb) || 0, 
+        usd: parseInt(newTier.priceUsd) || 0 
+      },
+      benefits: ['Standard Benefits'],
+      color: 'bg-zinc-100 text-zinc-900',
+      recommended: false
+    };
+    
+    setTiers([...tiers, tierToAdd]);
+    setNewTier({ id: '', name: '', priceEtb: '', priceUsd: '' });
+    setIsAddTierOpen(false);
+    toast({ title: "Tier Added", description: `${tierToAdd.name} has been added.` });
+  };
+
+  const handleDeleteTier = (id: string) => {
+    if (confirm('Are you sure you want to delete this membership tier?')) {
+      setTiers(tiers.filter(t => t.id !== id));
+      toast({ title: "Tier Deleted", description: "Membership tier removed." });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -63,51 +117,102 @@ export default function AdminSettings() {
 
           <TabsContent value="membership">
             <Card>
-              <CardHeader>
-                <CardTitle>Membership Tiers & Pricing</CardTitle>
-                <CardDescription>Update pricing for annual memberships.</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Membership Tiers & Pricing</CardTitle>
+                  <CardDescription>Update pricing for annual memberships.</CardDescription>
+                </div>
+                <Dialog open={isAddTierOpen} onOpenChange={setIsAddTierOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Plus className="mr-2 h-4 w-4" /> Add Tier
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Tier</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Tier Name</Label>
+                        <Input 
+                          value={newTier.name} 
+                          onChange={(e) => setNewTier({...newTier, name: e.target.value})}
+                          placeholder="e.g. Gold" 
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Price (ETB)</Label>
+                          <Input 
+                            type="number" 
+                            value={newTier.priceEtb} 
+                            onChange={(e) => setNewTier({...newTier, priceEtb: e.target.value})}
+                            placeholder="0" 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Price (USD)</Label>
+                          <Input 
+                            type="number" 
+                            value={newTier.priceUsd} 
+                            onChange={(e) => setNewTier({...newTier, priceUsd: e.target.value})}
+                            placeholder="0" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddTierOpen(false)}>Cancel</Button>
+                      <Button onClick={handleAddTier}>Add Tier</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-4 p-4 border rounded-lg bg-zinc-50/50">
-                    <h3 className="font-bold text-lg">Regular</h3>
-                    <div className="space-y-2">
-                      <Label>Price (ETB)</Label>
-                      <Input type="number" defaultValue="500" />
+                  {tiers.map((tier) => (
+                    <div key={tier.id} className={`space-y-4 p-4 border rounded-lg relative group ${tier.id === 'premium' ? 'bg-primary/5 border-primary/20' : (tier.id === 'vip' ? 'bg-yellow-50 border-yellow-200' : 'bg-zinc-50/50')}`}>
+                      <div className="flex justify-between items-start">
+                        <Input 
+                          value={tier.name} 
+                          onChange={(e) => handleUpdateTier(tier.id, 'name', e.target.value)}
+                          className="font-bold text-lg bg-transparent border-transparent hover:border-input focus:border-input px-0 h-auto"
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteTier(tier.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Price (ETB)</Label>
+                        <Input 
+                          type="number" 
+                          value={tier.price.etb} 
+                          onChange={(e) => handleUpdateTier(tier.id, 'priceEtb', e.target.value)}
+                          className="bg-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Price (USD)</Label>
+                        <Input 
+                          type="number" 
+                          value={tier.price.usd} 
+                          onChange={(e) => handleUpdateTier(tier.id, 'priceUsd', e.target.value)}
+                          className="bg-white"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Price (USD)</Label>
-                      <Input type="number" defaultValue="15" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4 p-4 border rounded-lg bg-primary/5 border-primary/20">
-                    <h3 className="font-bold text-lg text-primary">Premium</h3>
-                    <div className="space-y-2">
-                      <Label>Price (ETB)</Label>
-                      <Input type="number" defaultValue="1500" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price (USD)</Label>
-                      <Input type="number" defaultValue="45" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4 p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <h3 className="font-bold text-lg text-yellow-700">VIP</h3>
-                    <div className="space-y-2">
-                      <Label>Price (ETB)</Label>
-                      <Input type="number" defaultValue="5000" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price (USD)</Label>
-                      <Input type="number" defaultValue="150" />
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Saved", description: "Membership settings updated." })}>
                   <Save className="mr-2 h-4 w-4" /> Update Pricing
                 </Button>
               </CardFooter>
