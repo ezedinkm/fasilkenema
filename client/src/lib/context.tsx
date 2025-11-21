@@ -6,6 +6,7 @@ interface AppContextType {
   setLanguage: (lang: string) => void;
   user: any | null;
   login: () => void;
+  adminLogin: (email: string, pass: string) => boolean;
   logout: () => void;
   t: (key: string) => string;
 }
@@ -18,6 +19,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = () => {
     setUser({ name: 'Fan User', role: 'member' });
+  };
+
+  const adminLogin = (email: string, pass: string) => {
+    if (email === 'admin@gmail.com' && pass === '112233') {
+      setUser({ name: 'Admin User', role: 'admin', email });
+      return true;
+    }
+    return false;
   };
 
   const logout = () => {
@@ -43,7 +52,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ language, setLanguage, user, login, logout, t }}>
+    <AppContext.Provider value={{ language, setLanguage, user, login, adminLogin, logout, t }}>
       {children}
     </AppContext.Provider>
   );

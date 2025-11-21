@@ -12,6 +12,9 @@ import Membership from "@/pages/Membership";
 import Donate from "@/pages/Donate";
 import DigitalCard from "@/pages/DigitalCard";
 import BlogPost from "@/pages/BlogPost";
+import AdminLogin from "@/pages/admin/Login";
+import AdminDashboard from "@/pages/admin/Dashboard";
+import AdminMembers from "@/pages/admin/Members";
 
 function Router() {
   return (
@@ -24,6 +27,12 @@ function Router() {
       <Route path="/membership" component={Membership} />
       <Route path="/donate" component={Donate} />
       <Route path="/card/:membershipId" component={DigitalCard} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/members" component={AdminMembers} />
+      
       <Route component={NotFound} />
     </Switch>
   );
