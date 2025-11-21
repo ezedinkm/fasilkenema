@@ -15,6 +15,10 @@ import BlogPost from "@/pages/BlogPost";
 import AdminLogin from "@/pages/admin/Login";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminMembers from "@/pages/admin/Members";
+import AdminPayments from "@/pages/admin/Payments";
+import AdminContent from "@/pages/admin/Content";
+import AdminSMS from "@/pages/admin/SMS";
+import AdminSettings from "@/pages/admin/Settings";
 
 function Router() {
   return (
@@ -32,6 +36,10 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/members" component={AdminMembers} />
+      <Route path="/admin/payments" component={AdminPayments} />
+      <Route path="/admin/content" component={AdminContent} />
+      <Route path="/admin/sms" component={AdminSMS} />
+      <Route path="/admin/settings" component={AdminSettings} />
       
       <Route component={NotFound} />
     </Switch>
