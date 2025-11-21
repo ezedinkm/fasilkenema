@@ -1,6 +1,5 @@
 import AdminLayout from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -12,7 +11,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Search, Download, Filter, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Search, Download, Filter, CreditCard, DollarSign, Landmark } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 const PAYMENTS = [
   { id: 'TX-9821', user: 'Abebe Kebede', amount: 1500, currency: 'ETB', type: 'Membership', status: 'SUCCESS', date: '2025-05-21' },
@@ -22,9 +22,21 @@ const PAYMENTS = [
   { id: 'TX-9825', user: 'Sara Tesfaye', amount: 500, currency: 'ETB', type: 'Membership', status: 'SUCCESS', date: '2025-05-19' },
   { id: 'TX-9826', user: 'Kebede Tadesse', amount: 1500, currency: 'ETB', type: 'Membership', status: 'SUCCESS', date: '2025-05-19' },
   { id: 'TX-9827', user: 'Hanna Yilma', amount: 50, currency: 'USD', type: 'Donation', status: 'SUCCESS', date: '2025-05-18' },
+  { id: 'TX-9828', user: 'Robel Assefa', amount: 150, currency: 'USD', type: 'Membership', status: 'SUCCESS', date: '2025-05-18' },
 ];
 
 export default function AdminPayments() {
+  // Calculate totals
+  const etbMembership = PAYMENTS.filter(p => p.currency === 'ETB' && p.type === 'Membership' && p.status === 'SUCCESS')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  const etbDonation = PAYMENTS.filter(p => p.currency === 'ETB' && p.type === 'Donation' && p.status === 'SUCCESS')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  
+  const usdMembership = PAYMENTS.filter(p => p.currency === 'USD' && p.type === 'Membership' && p.status === 'SUCCESS')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+  const usdDonation = PAYMENTS.filter(p => p.currency === 'USD' && p.type === 'Donation' && p.status === 'SUCCESS')
+    .reduce((acc, curr) => acc + curr.amount, 0);
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -40,37 +52,88 @@ export default function AdminPayments() {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">45,231.89 ETB</div>
-              <p className="text-xs text-muted-foreground">+12.5% from last month</p>
-            </CardContent>
+        {/* Detailed Revenue Breakdown */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* ETB Totals */}
+          <Card className="bg-zinc-50 border-zinc-200">
+             <CardHeader className="pb-2">
+               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                 <Landmark className="h-4 w-4" /> Total ETB Revenue
+               </CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="text-2xl font-bold">{(etbMembership + etbDonation).toLocaleString()} ETB</div>
+               <div className="mt-2 text-xs space-y-1">
+                 <div className="flex justify-between">
+                   <span className="text-muted-foreground">Membership:</span>
+                   <span className="font-medium">{etbMembership.toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between">
+                   <span className="text-muted-foreground">Donations:</span>
+                   <span className="font-medium">{etbDonation.toLocaleString()}</span>
+                 </div>
+               </div>
+             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Transactions</CardTitle>
-              <ArrowDownLeft className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">3,400.00 ETB</div>
-              <p className="text-xs text-muted-foreground">Requires attention</p>
-            </CardContent>
+
+          {/* USD Totals */}
+          <Card className="bg-zinc-50 border-zinc-200">
+             <CardHeader className="pb-2">
+               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                 <DollarSign className="h-4 w-4" /> Total USD Revenue
+               </CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="text-2xl font-bold">${(usdMembership + usdDonation).toLocaleString()}</div>
+               <div className="mt-2 text-xs space-y-1">
+                 <div className="flex justify-between">
+                   <span className="text-muted-foreground">Membership:</span>
+                   <span className="font-medium">${usdMembership.toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between">
+                   <span className="text-muted-foreground">Donations:</span>
+                   <span className="font-medium">${usdDonation.toLocaleString()}</span>
+                 </div>
+               </div>
+             </CardContent>
           </Card>
+
+          {/* Membership Breakdown */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Donations (USD)</CardTitle>
-              <ArrowUpRight className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$1,250.00</div>
-              <p className="text-xs text-muted-foreground">International support</p>
-            </CardContent>
+             <CardHeader className="pb-2">
+               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                 <CreditCard className="h-4 w-4" /> Membership Revenue
+               </CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="space-y-2">
+                 <div className="flex justify-between items-baseline">
+                   <span className="text-2xl font-bold">{etbMembership.toLocaleString()} ETB</span>
+                 </div>
+                 <div className="flex justify-between items-baseline border-t border-border pt-2">
+                   <span className="text-lg font-bold">${usdMembership.toLocaleString()}</span>
+                 </div>
+               </div>
+             </CardContent>
+          </Card>
+
+          {/* Donation Breakdown */}
+          <Card>
+             <CardHeader className="pb-2">
+               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                 <CreditCard className="h-4 w-4" /> Donation Revenue
+               </CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="space-y-2">
+                 <div className="flex justify-between items-baseline">
+                   <span className="text-2xl font-bold">{etbDonation.toLocaleString()} ETB</span>
+                 </div>
+                 <div className="flex justify-between items-baseline border-t border-border pt-2">
+                   <span className="text-lg font-bold">${usdDonation.toLocaleString()}</span>
+                 </div>
+               </div>
+             </CardContent>
           </Card>
         </div>
 
@@ -117,7 +180,7 @@ export default function AdminPayments() {
                       <TableCell>{payment.user}</TableCell>
                       <TableCell>{payment.type}</TableCell>
                       <TableCell className="font-bold">
-                        {payment.currency === 'USD' ? '$' : ''}{payment.amount} {payment.currency === 'ETB' ? 'ETB' : ''}
+                        {payment.currency === 'USD' ? '$' : ''}{payment.amount.toLocaleString()} {payment.currency === 'ETB' ? 'ETB' : ''}
                       </TableCell>
                       <TableCell>{payment.date}</TableCell>
                       <TableCell>
@@ -139,12 +202,78 @@ export default function AdminPayments() {
             </Card>
           </TabsContent>
           
-          {/* Other tabs would filter the data, keeping it simple for mockup */}
           <TabsContent value="membership" className="mt-0">
-             <Card className="p-8 text-center text-muted-foreground">Filtered view for memberships...</Card>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {PAYMENTS.filter(p => p.type === 'Membership').map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-mono font-medium">{payment.id}</TableCell>
+                      <TableCell>{payment.user}</TableCell>
+                      <TableCell className="font-bold">
+                        {payment.currency === 'USD' ? '$' : ''}{payment.amount.toLocaleString()} {payment.currency === 'ETB' ? 'ETB' : ''}
+                      </TableCell>
+                      <TableCell>{payment.date}</TableCell>
+                      <TableCell>
+                        <Badge className={`
+                          ${payment.status === 'SUCCESS' ? 'bg-green-500 hover:bg-green-600' : ''}
+                          ${payment.status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+                          ${payment.status === 'FAILED' ? 'bg-red-500 hover:bg-red-600' : ''}
+                        `}>
+                          {payment.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           </TabsContent>
+
           <TabsContent value="donation" className="mt-0">
-             <Card className="p-8 text-center text-muted-foreground">Filtered view for donations...</Card>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction ID</TableHead>
+                    <TableHead>Donor</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {PAYMENTS.filter(p => p.type === 'Donation').map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-mono font-medium">{payment.id}</TableCell>
+                      <TableCell>{payment.user}</TableCell>
+                      <TableCell className="font-bold">
+                        {payment.currency === 'USD' ? '$' : ''}{payment.amount.toLocaleString()} {payment.currency === 'ETB' ? 'ETB' : ''}
+                      </TableCell>
+                      <TableCell>{payment.date}</TableCell>
+                      <TableCell>
+                        <Badge className={`
+                          ${payment.status === 'SUCCESS' ? 'bg-green-500 hover:bg-green-600' : ''}
+                          ${payment.status === 'PENDING' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+                          ${payment.status === 'FAILED' ? 'bg-red-500 hover:bg-red-600' : ''}
+                        `}>
+                          {payment.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
