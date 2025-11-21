@@ -14,7 +14,7 @@ export default function MembershipSuccess() {
   const [memberCreated, setMemberCreated] = useState(false);
 
   useEffect(() => {
-    const verifyAndCreateMember = async () => {
+    const verifyMembership = async () => {
       try {
         const params = new URLSearchParams(window.location.search);
         const txRef = params.get('trx_ref');
@@ -29,12 +29,12 @@ export default function MembershipSuccess() {
           return;
         }
 
-        const verifyResponse = await fetch(`/api/chapa/verify/${txRef}`);
+        const verifyResponse = await fetch(`/api/memberships/verify/${txRef}`);
         const verifyData = await verifyResponse.json();
 
         if (verifyData.error) {
           toast({
-            title: 'Payment Verification Failed',
+            title: 'Membership Verification Failed',
             description: verifyData.error,
             variant: 'destructive',
           });
@@ -44,68 +44,18 @@ export default function MembershipSuccess() {
 
         if (verifyData.status === 'success') {
           setPaymentVerified(true);
-
-          const tier = params.get('tier');
-          const firstName = params.get('firstName');
-          const lastName = params.get('lastName');
-          const email = params.get('email');
-          const phone = params.get('phone');
-          const dob = params.get('dob');
-          const city = params.get('city');
-          const country = params.get('country');
-
-          if (!tier || !firstName || !lastName || !email || !phone || !dob || !city || !country) {
-            toast({
-              title: 'Error',
-              description: 'Missing member information. Please contact support.',
-              variant: 'destructive',
-            });
-            setIsVerifying(false);
-            return;
-          }
-
-          const createMemberResponse = await fetch('/api/members', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              firstName: decodeURIComponent(firstName),
-              lastName: decodeURIComponent(lastName),
-              email: decodeURIComponent(email),
-              phone: decodeURIComponent(phone),
-              dateOfBirth: decodeURIComponent(dob),
-              city: decodeURIComponent(city),
-              country: decodeURIComponent(country),
-              membershipTier: tier,
-              status: 'active',
-            }),
-          });
-
-          const memberData = await createMemberResponse.json();
-
-          if (memberData.error) {
-            toast({
-              title: 'Member Creation Failed',
-              description: memberData.error,
-              variant: 'destructive',
-            });
-            setIsVerifying(false);
-            return;
-          }
-
           setMemberCreated(true);
         } else {
           toast({
             title: 'Payment Not Completed',
-            description: 'Your payment was not successful. Please try again.',
+            description: verifyData.message || 'Your payment was not successful. Please try again.',
             variant: 'destructive',
           });
         }
       } catch (error) {
         toast({
           title: 'Error',
-          description: 'Failed to verify payment. Please contact support.',
+          description: 'Failed to verify membership. Please contact support.',
           variant: 'destructive',
         });
       } finally {
@@ -113,7 +63,7 @@ export default function MembershipSuccess() {
       }
     };
 
-    verifyAndCreateMember();
+    verifyMembership();
   }, [toast]);
 
   if (isVerifying) {

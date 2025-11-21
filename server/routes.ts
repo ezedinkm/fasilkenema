@@ -427,6 +427,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/memberships/verify/:txRef", async (req, res) => {
+    try {
+      const { txRef } = req.params;
+
+      const payment = await storage.getPaymentByTransactionId(txRef);
+      if (!payment || payment.type !== 'membership') {
+        return res.status(404).json({ error: 'Membership payment not found' });
+      }
+
+      if (payment.status === 'completed') {
+        return res.json({
+          success: true,
+          status: 'success',
+          message: 'Membership already processed'
+        });
+      }
+
+      const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${txRef}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+        }
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (verifyData.status !== 'success') {
+        return res.status(400).json({ error: 'Verification failed', status: 'failed' });
+      }
+
+      if (verifyData.data.status === 'success') {
+        const chapaAmount = Math.round(parseFloat(verifyData.data.amount));
+        const chapaCurrency = verifyData.data.currency;
+        
+        if (chapaAmount === payment.amount && chapaCurrency === payment.currency) {
+          const application = await storage.getPendingMemberApplicationByTxId(txRef);
+          
+          if (!application) {
+            return res.status(404).json({ error: 'Application not found. Please contact support.' });
+          }
+
+          const membershipNumber = `FK-${Date.now()}`;
+          const expiryDate = new Date();
+          expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+          const memberData = {
+            membershipNumber,
+            fullName: `${application.firstName} ${application.lastName}`,
+            email: application.email,
+            phone: application.phone,
+            dateOfBirth: application.dateOfBirth,
+            city: application.city,
+            country: application.country,
+            tier: application.membershipTier,
+            status: 'active',
+            expiryDate,
+          };
+
+          const member = await storage.createMember(memberData);
+
+          await storage.updateGenericPaymentStatus(payment.id, 'completed');
+
+          await storage.deletePendingMemberApplication(txRef);
+
+          res.json({
+            success: true,
+            status: 'success',
+            member: {
+              id: member.id,
+              membershipNumber: member.membershipNumber,
+              fullName: member.fullName
+            }
+          });
+        } else {
+          console.error('Amount/currency mismatch:', { chapaAmount, chapaCurrency, payment });
+          res.status(400).json({ 
+            error: 'Payment amount or currency does not match',
+            status: 'failed'
+          });
+        }
+      } else {
+        res.json({
+          success: false,
+          status: verifyData.data.status,
+          message: 'Payment not completed'
+        });
+      }
+    } catch (error) {
+      console.error('Membership verification error:', error);
+      res.status(500).json({ error: 'Failed to verify membership' });
+    }
+  });
+
   app.get("/api/chapa/verify/:txRef", async (req, res) => {
     try {
       const { txRef } = req.params;
