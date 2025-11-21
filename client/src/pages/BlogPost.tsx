@@ -1,5 +1,4 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import PublicLayout from '@/components/PublicLayout';
 import { useRoute } from 'wouter';
 import { NEWS_POSTS } from '@/lib/mockData';
 import { Calendar, User, Share2, ArrowLeft } from 'lucide-react';
@@ -12,9 +11,8 @@ export default function BlogPost() {
   const post = NEWS_POSTS.find(p => p.slug === slug) || NEWS_POSTS[0];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow bg-background">
+    <PublicLayout>
+      <div className="bg-background">
         {/* Hero Header */}
         <div className="relative h-[50vh] min-h-[400px] w-full overflow-hidden">
           <img 
@@ -85,8 +83,7 @@ export default function BlogPost() {
             </p>
           </article>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicLayout>
   );
 }

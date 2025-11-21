@@ -1,4 +1,4 @@
-import Navbar from '@/components/Navbar';
+import PublicLayout from '@/components/PublicLayout';
 import { useApp } from '@/lib/context';
 import { MOCK_MEMBER, ASSETS } from '@/lib/mockData';
 import QRCode from 'react-qr-code';
@@ -14,9 +14,8 @@ export default function DigitalCard() {
   const member = MOCK_MEMBER;
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-100">
-      <Navbar />
-      <main className="flex-grow flex items-center justify-center p-4">
+    <PublicLayout>
+      <div className="bg-zinc-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <h1 className="text-2xl font-bold text-center mb-8 text-primary font-heading uppercase tracking-wider">
             Official Member Card
@@ -89,7 +88,7 @@ export default function DigitalCard() {
             </Button>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </PublicLayout>
   );
 }

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { ASSETS } from '@/lib/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import MobileBottomNav from './MobileBottomNav';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -118,17 +119,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 min-h-screen flex flex-col">
-        <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-end px-8 sticky top-0 z-40">
+        <header className="h-16 bg-white border-b border-zinc-200 flex items-center justify-end px-8 sticky top-0 z-40 max-md:hidden">
           <div className="flex items-center gap-4">
              <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-zinc-900">
                <Bell className="h-5 w-5" />
              </Button>
           </div>
         </header>
-        <div className="p-8">
+        <div className="p-4 md:p-8 pb-20 md:pb-8">
           {children}
         </div>
       </main>
+      <MobileBottomNav />
     </div>
   );
 }

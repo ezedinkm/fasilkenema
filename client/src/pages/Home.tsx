@@ -1,5 +1,4 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import PublicLayout from '@/components/PublicLayout';
 import Hero from '@/components/Hero';
 import NewsCard from '@/components/NewsCard';
 import { NEWS_POSTS } from '@/lib/mockData';
@@ -9,9 +8,7 @@ import { Link } from 'wouter';
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow">
+    <PublicLayout>
         <Hero />
         
         {/* Latest News Section */}
@@ -97,8 +94,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-      </main>
-      <Footer />
-    </div>
+    </PublicLayout>
   );
 }

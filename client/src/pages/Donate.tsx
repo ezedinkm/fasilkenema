@@ -1,5 +1,4 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,9 +8,8 @@ export default function Donate() {
   const [amount, setAmount] = useState('');
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow bg-zinc-50">
+    <PublicLayout>
+      <div className="bg-zinc-50">
         <div className="container px-4 py-16 max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="font-heading text-5xl font-bold text-primary mb-4">Make a Donation</h1>
@@ -75,8 +73,7 @@ export default function Donate() {
             </CardContent>
           </Card>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicLayout>
   );
 }

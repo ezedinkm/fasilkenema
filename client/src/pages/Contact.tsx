@@ -1,5 +1,4 @@
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,9 +7,8 @@ import { MapPin, Phone, Mail } from 'lucide-react';
 
 export default function Contact() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-grow bg-zinc-50">
+    <PublicLayout>
+      <div className="bg-zinc-50">
         <div className="bg-primary py-12">
           <div className="container px-4 text-center text-white">
             <h1 className="font-heading text-5xl font-bold mb-4">Get In Touch</h1>
@@ -98,8 +96,7 @@ export default function Contact() {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PublicLayout>
   );
 }
