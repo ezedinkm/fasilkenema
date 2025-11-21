@@ -266,10 +266,10 @@ export class DbStorage implements IStorage {
     const payments = await db.select().from(schema.membershipPayments).where(eq(schema.membershipPayments.status, 'completed'));
     const donations = await db.select().from(schema.donations).where(eq(schema.donations.status, 'completed'));
 
-    const membershipETB = payments.filter(p => p.currency === 'ETB').reduce((sum, p) => sum + p.amount, 0);
-    const membershipUSD = payments.filter(p => p.currency === 'USD').reduce((sum, p) => sum + p.amount, 0);
-    const donationETB = donations.filter(d => d.currency === 'ETB').reduce((sum, d) => sum + d.amount, 0);
-    const donationUSD = donations.filter(d => d.currency === 'USD').reduce((sum, d) => sum + d.amount, 0);
+    const membershipETB = payments.filter((p: MembershipPayment) => p.currency === 'ETB').reduce((sum: number, p: MembershipPayment) => sum + p.amount, 0);
+    const membershipUSD = payments.filter((p: MembershipPayment) => p.currency === 'USD').reduce((sum: number, p: MembershipPayment) => sum + p.amount, 0);
+    const donationETB = donations.filter((d: Donation) => d.currency === 'ETB').reduce((sum: number, d: Donation) => sum + d.amount, 0);
+    const donationUSD = donations.filter((d: Donation) => d.currency === 'USD').reduce((sum: number, d: Donation) => sum + d.amount, 0);
 
     return { membershipETB, membershipUSD, donationETB, donationUSD };
   }
