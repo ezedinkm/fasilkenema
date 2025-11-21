@@ -20,25 +20,22 @@ export default function AdminLogin() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const success = adminLogin(email, password);
-      setIsLoading(false);
+    const success = await adminLogin(email, password);
+    setIsLoading(false);
 
-      if (success) {
-        toast({
-          title: "Welcome, Emperor",
-          description: "Access granted to the command center.",
-        });
-        setLocation('/admin/dashboard');
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "Invalid credentials. Security has been notified.",
-        });
-      }
-    }, 1000);
+    if (success) {
+      toast({
+        title: "Welcome, Emperor",
+        description: "Access granted to the command center.",
+      });
+      setLocation('/admin/dashboard');
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Invalid credentials. Please try again.",
+      });
+    }
   };
 
   return (

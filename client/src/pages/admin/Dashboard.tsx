@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, CreditCard, TrendingUp, UserCheck } from 'lucide-react';
+import { Users, CreditCard, TrendingUp, UserCheck, DollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getMembers, getRevenueStats } from '@/lib/api';
 
 const DATA = [
   { name: 'Jan', members: 400 },
@@ -14,6 +16,31 @@ const DATA = [
 ];
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState({ membershipETB: 0, membershipUSD: 0, donationETB: 0, donationUSD: 0 });
+  const [totalMembers, setTotalMembers] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [revenueData, membersData] = await Promise.all([
+          getRevenueStats(),
+          getMembers(),
+        ]);
+        setStats(revenueData);
+        setTotalMembers(membersData.length);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const totalRevenueETB = stats.membershipETB + stats.donationETB;
+  const totalRevenueUSD = stats.membershipUSD + stats.donationUSD;
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -30,18 +57,8 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12,345</div>
-              <p className="text-xs text-muted-foreground">+180 from last month</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">10,921</div>
-              <p className="text-xs text-muted-foreground">+4% retention rate</p>
+              <div className="text-2xl font-bold">{loading ? '...' : totalMembers.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Registered members</p>
             </CardContent>
           </Card>
           <Card>
@@ -50,18 +67,28 @@ export default function AdminDashboard() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">45,231.89</div>
-              <p className="text-xs text-muted-foreground">+19% from last month</p>
+              <div className="text-2xl font-bold">{loading ? '...' : totalRevenueETB.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Membership: {stats.membershipETB.toLocaleString()} | Donations: {stats.donationETB.toLocaleString()}</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Growth</CardTitle>
+              <CardTitle className="text-sm font-medium">Revenue (USD)</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{loading ? '...' : `$${totalRevenueUSD.toLocaleString()}`}</div>
+              <p className="text-xs text-muted-foreground">Membership: ${stats.membershipUSD.toLocaleString()} | Donations: ${stats.donationUSD.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Membership Fees</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">+573</div>
-              <p className="text-xs text-muted-foreground">New signups this week</p>
+              <div className="text-2xl font-bold">{loading ? '...' : stats.membershipETB.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground">Total membership revenue</p>
             </CardContent>
           </Card>
         </div>

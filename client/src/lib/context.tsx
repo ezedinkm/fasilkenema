@@ -1,14 +1,22 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LANGUAGES } from './mockData';
+
+interface Admin {
+  id: number;
+  email: string;
+  fullName: string;
+}
 
 interface AppContextType {
   language: string;
   setLanguage: (lang: string) => void;
   user: any | null;
+  admin: Admin | null;
   login: () => void;
-  adminLogin: (email: string, pass: string) => boolean;
+  adminLogin: (email: string, pass: string) => Promise<boolean>;
   logout: () => void;
   t: (key: string) => string;
+  token: string | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -16,26 +24,54 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState('en');
   const [user, setUser] = useState<any | null>(null);
+  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
+
+  useEffect(() => {
+    if (token) {
+      const storedAdmin = localStorage.getItem('admin_user');
+      if (storedAdmin) {
+        setAdmin(JSON.parse(storedAdmin));
+      }
+    }
+  }, [token]);
 
   const login = () => {
     setUser({ name: 'Fan User', role: 'member' });
   };
 
-  const adminLogin = (email: string, pass: string) => {
-    if (email === 'admin@gmail.com' && pass === '112233') {
-      setUser({ name: 'Admin User', role: 'admin', email });
-      return true;
+  const adminLogin = async (email: string, pass: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.token);
+        setAdmin(data.admin);
+        localStorage.setItem('admin_token', data.token);
+        localStorage.setItem('admin_user', JSON.stringify(data.admin));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
     setUser(null);
+    setAdmin(null);
+    setToken(null);
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
   };
 
-  // Simple mock translation function
   const t = (key: string) => {
-    // In a real app, this would look up keys in translation files
     const translations: Record<string, string> = {
       'nav.home': language === 'am' ? 'መነሻ' : 'Home',
       'nav.about': language === 'am' ? 'ስለ እኛ' : 'About',
@@ -52,7 +88,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ language, setLanguage, user, login, adminLogin, logout, t }}>
+    <AppContext.Provider value={{ language, setLanguage, user, admin, login, adminLogin, logout, t, token }}>
       {children}
     </AppContext.Provider>
   );

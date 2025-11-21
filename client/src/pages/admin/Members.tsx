@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
-import { MOCK_MEMBER } from '@/lib/mockData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,83 +11,118 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Search, Download, Filter, Plus, Save } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Download, Filter, Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-
-// Helper to generate initial mock data
-const generateMembers = () => Array.from({ length: 10 }).map((_, i) => ({
-  ...MOCK_MEMBER,
-  id: i,
-  membershipId: `FK-2025-${8832 + i}`,
-  firstName: i % 2 === 0 ? 'Abebe' : 'Tigist',
-  lastName: i % 2 === 0 ? 'Kebede' : 'Alemu',
-  status: i === 3 ? 'EXPIRED' : 'ACTIVE',
-  tier: i % 3 === 0 ? 'VIP' : (i % 2 === 0 ? 'PREMIUM' : 'REGULAR')
-}));
+import { getMembers, createMember, updateMember, deleteMember } from '@/lib/api';
+import type { Member } from '@shared/schema';
 
 export default function AdminMembers() {
   const { toast } = useToast();
-  const [members, setMembers] = useState(generateMembers());
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<any>(null);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
   
-  // Form State
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    status: 'ACTIVE',
-    tier: 'REGULAR'
+    fullName: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    country: 'Ethiopia',
+    city: '',
+    tier: 'silver',
+    status: 'active',
+    membershipNumber: '',
+    photoUrl: ''
   });
+
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const fetchMembers = async () => {
+    try {
+      const data = await getMembers();
+      setMembers(data);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to load members" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreate = () => {
     setEditingMember(null);
-    setFormData({ firstName: '', lastName: '', status: 'ACTIVE', tier: 'REGULAR' });
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (member: any) => {
-    setEditingMember(member);
     setFormData({
-      firstName: member.firstName,
-      lastName: member.lastName,
-      status: member.status,
-      tier: member.tier
+      fullName: '',
+      email: '',
+      phone: '',
+      dateOfBirth: '',
+      country: 'Ethiopia',
+      city: '',
+      tier: 'silver',
+      status: 'active',
+      membershipNumber: `FK-${Date.now()}`,
+      photoUrl: ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editingMember) {
-      // Edit
-      setMembers(members.map(m => m.id === editingMember.id ? { ...m, ...formData } : m));
-      toast({ title: "Member Updated", description: "Member details updated successfully." });
-    } else {
-      // Create
-      const newMember = {
-        ...MOCK_MEMBER, // Fallback for other fields
-        id: Date.now(),
-        membershipId: `FK-2025-${Math.floor(Math.random() * 10000)}`,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        status: formData.status,
-        tier: formData.tier,
-        expiryDate: '2026-05-21', // Default one year
-      };
-      setMembers([newMember, ...members]);
-      toast({ title: "Member Added", description: "New member has been registered." });
+  const handleEdit = (member: Member) => {
+    setEditingMember(member);
+    setFormData({
+      fullName: member.fullName,
+      email: member.email,
+      phone: member.phone,
+      dateOfBirth: member.dateOfBirth,
+      country: member.country,
+      city: member.city,
+      tier: member.tier,
+      status: member.status,
+      membershipNumber: member.membershipNumber,
+      photoUrl: member.photoUrl || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editingMember) {
+        await updateMember(editingMember.id, formData);
+        toast({ title: "Success", description: "Member updated successfully." });
+      } else {
+        await createMember({
+          ...formData,
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        });
+        toast({ title: "Success", description: "New member added successfully." });
+      }
+      fetchMembers();
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to save member" });
     }
-    setIsDialogOpen(false);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this member?')) return;
+    
+    try {
+      await deleteMember(id);
+      toast({ title: "Success", description: "Member deleted successfully." });
+      fetchMembers();
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete member" });
+    }
   };
 
   const handleExport = () => {
-    // Simulate CSV export
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "ID,Name,Tier,Status\n"
-      + members.map(m => `${m.membershipId},${m.firstName} ${m.lastName},${m.tier},${m.status}`).join("\n");
+      + "ID,Name,Email,Phone,Tier,Status,Joined\n"
+      + members.map(m => `${m.membershipNumber},${m.fullName},${m.email},${m.phone},${m.tier},${m.status},${new Date(m.joinedDate).toLocaleDateString()}`).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -109,13 +144,13 @@ export default function AdminMembers() {
             <p className="text-muted-foreground">Manage club membership and subscriptions.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
+            <Button variant="outline" size="sm" onClick={handleExport} data-testid="button-export">
               <Download className="mr-2 h-4 w-4" /> Export CSV
             </Button>
             
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleCreate}>
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleCreate} data-testid="button-add-member">
                   <Plus className="mr-2 h-4 w-4" /> Add Member
                 </Button>
               </DialogTrigger>
@@ -123,36 +158,72 @@ export default function AdminMembers() {
                 <DialogHeader>
                   <DialogTitle>{editingMember ? 'Edit Member' : 'Add New Member'}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
+                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                  <div className="space-y-2">
+                    <Label>Full Name</Label>
+                    <Input 
+                      value={formData.fullName} 
+                      onChange={(e) => setFormData({...formData, fullName: e.target.value})} 
+                      data-testid="input-fullname"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input 
+                      type="email"
+                      value={formData.email} 
+                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phone</Label>
+                    <Input 
+                      value={formData.phone} 
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                      data-testid="input-phone"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Date of Birth</Label>
+                    <Input 
+                      type="date"
+                      value={formData.dateOfBirth} 
+                      onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})} 
+                      data-testid="input-dob"
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>First Name</Label>
+                      <Label>Country</Label>
                       <Input 
-                        value={formData.firstName} 
-                        onChange={(e) => setFormData({...formData, firstName: e.target.value})} 
+                        value={formData.country} 
+                        onChange={(e) => setFormData({...formData, country: e.target.value})} 
+                        data-testid="input-country"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Last Name</Label>
+                      <Label>City</Label>
                       <Input 
-                        value={formData.lastName} 
-                        onChange={(e) => setFormData({...formData, lastName: e.target.value})} 
+                        value={formData.city} 
+                        onChange={(e) => setFormData({...formData, city: e.target.value})} 
+                        data-testid="input-city"
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Tier</Label>
+                    <Label>Membership Tier</Label>
                     <Select 
                       value={formData.tier} 
                       onValueChange={(val) => setFormData({...formData, tier: val})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="select-tier">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="REGULAR">Regular</SelectItem>
-                        <SelectItem value="PREMIUM">Premium</SelectItem>
-                        <SelectItem value="VIP">VIP</SelectItem>
+                        <SelectItem value="silver">Silver</SelectItem>
+                        <SelectItem value="gold">Gold</SelectItem>
+                        <SelectItem value="platinum">Platinum</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -162,20 +233,20 @@ export default function AdminMembers() {
                       value={formData.status} 
                       onValueChange={(val) => setFormData({...formData, status: val})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger data-testid="select-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ACTIVE">Active</SelectItem>
-                        <SelectItem value="EXPIRED">Expired</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave}>Save Changes</Button>
+                  <Button onClick={handleSave} data-testid="button-save-member">Save Changes</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -189,55 +260,74 @@ export default function AdminMembers() {
             <Input 
               placeholder="Search by name or ID..." 
               className="pl-9 bg-zinc-50 border-zinc-200"
+              data-testid="input-search"
             />
           </div>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" data-testid="button-filter">
             <Filter className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Table */}
         <div className="bg-white rounded-lg border border-zinc-200 shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-zinc-50 hover:bg-zinc-50">
-                <TableHead className="w-[120px]">ID</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Tier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="font-mono font-medium">{member.membershipId}</TableCell>
-                  <TableCell>{member.firstName} {member.lastName}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`
-                      ${member.tier === 'VIP' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' : ''}
-                      ${member.tier === 'PREMIUM' ? 'border-primary text-primary bg-primary/5' : ''}
-                    `}>
-                      {member.tier}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`
-                      ${member.status === 'ACTIVE' ? 'bg-green-500 hover:bg-green-600' : ''}
-                      ${member.status === 'EXPIRED' ? 'bg-zinc-500 hover:bg-zinc-600' : ''}
-                    `}>
-                      {member.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{member.expiryDate}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEdit(member)}>Edit</Button>
-                  </TableCell>
+          {loading ? (
+            <div className="p-8 text-center text-muted-foreground">Loading members...</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-zinc-50 hover:bg-zinc-50">
+                  <TableHead className="w-[140px]">ID</TableHead>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {members.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      No members yet. Add your first member to get started.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  members.map((member) => (
+                    <TableRow key={member.id} data-testid={`row-member-${member.id}`}>
+                      <TableCell className="font-mono font-medium">{member.membershipNumber}</TableCell>
+                      <TableCell>{member.fullName}</TableCell>
+                      <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`
+                          ${member.tier === 'platinum' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' : ''}
+                          ${member.tier === 'gold' ? 'border-primary text-primary bg-primary/5' : ''}
+                        `}>
+                          {member.tier.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={`
+                          ${member.status === 'active' ? 'bg-green-500 hover:bg-green-600' : ''}
+                          ${member.status === 'expired' ? 'bg-zinc-500 hover:bg-zinc-600' : ''}
+                          ${member.status === 'pending' ? 'bg-yellow-500 hover:bg-yellow-600' : ''}
+                        `}>
+                          {member.status.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(member.joinedDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleEdit(member)} data-testid={`button-edit-${member.id}`}>Edit</Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(member.id)} className="text-red-600 hover:text-red-700" data-testid={`button-delete-${member.id}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </div>
       </div>
     </AdminLayout>
