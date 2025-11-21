@@ -20,6 +20,10 @@ import type {
   InsertSmsLog,
   Setting,
   InsertSetting,
+  Payment,
+  InsertPayment,
+  PendingMemberApplication,
+  InsertPendingMemberApplication,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -37,6 +41,14 @@ export interface IStorage {
   getPaymentsByMember(memberId: number): Promise<MembershipPayment[]>;
   createPayment(payment: InsertMembershipPayment): Promise<MembershipPayment>;
   updatePaymentStatus(id: number, status: string): Promise<MembershipPayment | undefined>;
+  
+  createGenericPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined>;
+  updateGenericPaymentStatus(id: number, status: string): Promise<Payment | undefined>;
+  
+  createPendingMemberApplication(application: InsertPendingMemberApplication): Promise<PendingMemberApplication>;
+  getPendingMemberApplicationByTxId(transactionId: string): Promise<PendingMemberApplication | undefined>;
+  deletePendingMemberApplication(transactionId: string): Promise<boolean>;
   
   getDonations(): Promise<Donation[]>;
   getDonationByTransactionId(transactionId: string): Promise<Donation | undefined>;
@@ -133,6 +145,36 @@ export class DbStorage implements IStorage {
   async updatePaymentStatus(id: number, status: string): Promise<MembershipPayment | undefined> {
     const result = await db.update(schema.membershipPayments).set({ status }).where(eq(schema.membershipPayments.id, id)).returning();
     return result[0];
+  }
+
+  async createGenericPayment(payment: InsertPayment): Promise<Payment> {
+    const result = await db.insert(schema.payments).values(payment).returning();
+    return result[0];
+  }
+
+  async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
+    const result = await db.select().from(schema.payments).where(eq(schema.payments.transactionId, transactionId));
+    return result[0];
+  }
+
+  async updateGenericPaymentStatus(id: number, status: string): Promise<Payment | undefined> {
+    const result = await db.update(schema.payments).set({ status }).where(eq(schema.payments.id, id)).returning();
+    return result[0];
+  }
+
+  async createPendingMemberApplication(application: InsertPendingMemberApplication): Promise<PendingMemberApplication> {
+    const result = await db.insert(schema.pendingMemberApplications).values(application).returning();
+    return result[0];
+  }
+
+  async getPendingMemberApplicationByTxId(transactionId: string): Promise<PendingMemberApplication | undefined> {
+    const result = await db.select().from(schema.pendingMemberApplications).where(eq(schema.pendingMemberApplications.transactionId, transactionId));
+    return result[0];
+  }
+
+  async deletePendingMemberApplication(transactionId: string): Promise<boolean> {
+    const result = await db.delete(schema.pendingMemberApplications).where(eq(schema.pendingMemberApplications.transactionId, transactionId));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   async getDonations(): Promise<Donation[]> {

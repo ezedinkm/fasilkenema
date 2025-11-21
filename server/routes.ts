@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema } from "@shared/schema";
+import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -296,6 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const paymentData = {
         transactionId: txRef,
+        type: 'membership',
         amount: amountNum,
         currency: paymentCurrency,
         paymentMethod: 'chapa',
@@ -308,7 +309,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: fromZodError(validation.error).message });
       }
 
-      payment = await storage.createPayment(validation.data);
+      payment = await storage.createGenericPayment(validation.data);
+
+      const applicationData = {
+        transactionId: txRef,
+        firstName,
+        lastName,
+        email,
+        phone,
+        dateOfBirth,
+        city,
+        country,
+        membershipTier,
+      };
+
+      const appValidation = insertPendingMemberApplicationSchema.safeParse(applicationData);
+      if (!appValidation.success) {
+        console.error('Application validation failed:', fromZodError(appValidation.error).message);
+        await storage.updateGenericPaymentStatus(payment.id, 'failed');
+        return res.status(400).json({ error: fromZodError(appValidation.error).message });
+      }
+
+      await storage.createPendingMemberApplication(appValidation.data);
 
       const chapaPayload = {
         amount: amountNum.toString(),
@@ -319,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone_number: phone,
         tx_ref: txRef,
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
-        return_url: `${req.protocol}://${req.get('host')}/membership/success?tier=${membershipTier}&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&dob=${encodeURIComponent(dateOfBirth)}&city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`,
+        return_url: `${req.protocol}://${req.get('host')}/membership/success?trx_ref=${txRef}`,
         customization: {
           title: 'Fasil Member',
           description: 'Membership Payment'
@@ -338,7 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!chapaResponse.ok) {
         const errorText = await chapaResponse.text();
         console.error('Chapa API error:', errorText);
-        await storage.updatePaymentStatus(payment.id, 'failed');
+        await storage.updateGenericPaymentStatus(payment.id, 'failed');
+        await storage.deletePendingMemberApplication(txRef);
         return res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
       }
 
@@ -353,13 +376,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         console.error('Chapa returned non-success status:', chapaData);
-        await storage.updatePaymentStatus(payment.id, 'failed');
+        await storage.updateGenericPaymentStatus(payment.id, 'failed');
+        await storage.deletePendingMemberApplication(txRef);
         res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
       }
     } catch (error) {
       console.error('Chapa initialization error:', error);
       if (payment?.id) {
-        await storage.updatePaymentStatus(payment.id, 'failed');
+        await storage.updateGenericPaymentStatus(payment.id, 'failed');
+        await storage.deletePendingMemberApplication(payment.transactionId);
       }
       res.status(500).json({ error: 'Failed to initialize payment' });
     }
