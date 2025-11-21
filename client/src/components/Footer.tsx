@@ -1,6 +1,8 @@
 import { Link } from 'wouter';
 import { ASSETS } from '@/lib/mockData';
-import { Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Youtube, Smartphone } from 'lucide-react';
+import appStoreBadge from '@assets/generated_images/app_store_badge.png';
+import playStoreBadge from '@assets/generated_images/google_play_badge.png';
 
 export default function Footer() {
   return (
@@ -15,11 +17,27 @@ export default function Footer() {
             <p className="text-sm text-muted-foreground mb-6">
               The official home of The Emperors. Connecting fans, players, and history since 1968.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 mb-6">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-5 w-5" /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Youtube className="h-5 w-5" /></a>
+            </div>
+            
+            {/* App Download Section */}
+            <div className="pt-6 border-t border-border/50">
+              <div className="flex items-center gap-2 mb-3 text-primary font-bold text-sm uppercase tracking-wide">
+                <Smartphone className="h-4 w-4" />
+                <span>Get The App</span>
+              </div>
+              <div className="flex gap-2">
+                <a href="#" className="block transition-opacity hover:opacity-80">
+                  <img src={appStoreBadge} alt="Download on the App Store" className="h-8 w-auto" />
+                </a>
+                <a href="#" className="block transition-opacity hover:opacity-80">
+                  <img src={playStoreBadge} alt="Get it on Google Play" className="h-8 w-auto" />
+                </a>
+              </div>
             </div>
           </div>
 
