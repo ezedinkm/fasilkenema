@@ -16,10 +16,24 @@ export default function MembershipSuccess() {
   useEffect(() => {
     const verifyMembership = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const txRef = params.get('trx_ref');
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        const hashPart = window.location.hash;
+        const hashQueryStart = hashPart.indexOf('?');
+        const hashParams = hashQueryStart !== -1 
+          ? new URLSearchParams(hashPart.substring(hashQueryStart)) 
+          : new URLSearchParams();
+        
+        const txRef = searchParams.get('trx_ref') 
+          || searchParams.get('tx_ref') 
+          || hashParams.get('trx_ref') 
+          || hashParams.get('tx_ref');
         
         if (!txRef) {
+          console.error('Verification skipped: no transaction reference found in URL', {
+            search: window.location.search,
+            hash: window.location.hash
+          });
           toast({
             title: 'Error',
             description: 'Missing transaction reference',
