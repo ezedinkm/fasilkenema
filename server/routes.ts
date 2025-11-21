@@ -186,6 +186,189 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/donations/initialize-payment", async (req, res) => {
+    let donation: any = null;
+    try {
+      const { amount, currency, firstName, lastName, email, phone, isAnonymous } = req.body;
+      
+      if (!amount || !firstName || !lastName || !email) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const amountNum = Number(amount);
+      if (isNaN(amountNum) || amountNum <= 0 || !Number.isInteger(amountNum)) {
+        return res.status(400).json({ error: 'Invalid amount - must be a positive whole number' });
+      }
+
+      const txRef = `DON-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const donationCurrency = currency || 'ETB';
+      
+      const donationData = {
+        transactionId: txRef,
+        donorName: `${firstName} ${lastName}`,
+        donorEmail: email,
+        amount: amountNum,
+        currency: donationCurrency,
+        isAnonymous: isAnonymous || false,
+        paymentMethod: 'chapa',
+        status: 'pending' as const,
+      };
+
+      const validation = insertDonationSchema.safeParse(donationData);
+      if (!validation.success) {
+        console.error('Donation validation failed:', fromZodError(validation.error).message);
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      donation = await storage.createDonation(validation.data);
+
+      const chapaPayload = {
+        amount: amountNum.toString(),
+        currency: donationCurrency,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+        tx_ref: txRef,
+        callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
+        return_url: `${req.protocol}://${req.get('host')}/donate/success`,
+        customization: {
+          title: 'Fasil Kenema FC Donation',
+          description: 'Support The Emperors',
+          logo: 'https://your-logo-url.com/logo.png'
+        }
+      };
+
+      const chapaResponse = await fetch('https://api.chapa.co/v1/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(chapaPayload)
+      });
+
+      if (!chapaResponse.ok) {
+        const errorText = await chapaResponse.text();
+        console.error('Chapa API error:', errorText);
+        await storage.updateDonationStatus(donation.id, 'failed');
+        return res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
+      }
+
+      const chapaData = await chapaResponse.json();
+
+      if (chapaData.status === 'success' && chapaData.data?.checkout_url) {
+        res.json({
+          success: true,
+          checkoutUrl: chapaData.data.checkout_url,
+          donationId: donation.id,
+          txRef: txRef
+        });
+      } else {
+        console.error('Chapa returned non-success status:', chapaData);
+        await storage.updateDonationStatus(donation.id, 'failed');
+        res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
+      }
+    } catch (error) {
+      console.error('Chapa initialization error:', error);
+      if (donation?.id) {
+        await storage.updateDonationStatus(donation.id, 'failed');
+      }
+      res.status(500).json({ error: 'Failed to initialize payment' });
+    }
+  });
+
+  app.post("/api/chapa/callback", async (req, res) => {
+    try {
+      const { trx_ref, status } = req.body;
+      
+      if (status === 'success') {
+        const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${trx_ref}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+          }
+        });
+
+        const verifyData = await verifyResponse.json();
+
+        if (verifyData.status === 'success' && verifyData.data.status === 'success') {
+          const donation = await storage.getDonationByTransactionId(trx_ref);
+          
+          if (donation) {
+            const chapaAmount = Math.round(parseFloat(verifyData.data.amount));
+            const chapaCurrency = verifyData.data.currency;
+            
+            if (chapaAmount === donation.amount && chapaCurrency === donation.currency) {
+              await storage.updateDonationStatus(donation.id, 'completed');
+            } else {
+              console.error('Amount/currency mismatch:', { chapaAmount, chapaCurrency, donation });
+            }
+          }
+        }
+      }
+
+      res.json({ message: 'Callback received' });
+    } catch (error) {
+      console.error('Chapa callback error:', error);
+      res.status(500).json({ error: 'Callback processing failed' });
+    }
+  });
+
+  app.get("/api/chapa/verify/:txRef", async (req, res) => {
+    try {
+      const { txRef } = req.params;
+
+      const donation = await storage.getDonationByTransactionId(txRef);
+      if (!donation) {
+        return res.status(404).json({ error: 'Donation not found' });
+      }
+
+      const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${txRef}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+        }
+      });
+
+      const verifyData = await verifyResponse.json();
+
+      if (verifyData.status !== 'success') {
+        return res.status(400).json({ error: 'Verification failed', status: 'failed' });
+      }
+
+      if (verifyData.data.status === 'success') {
+        const chapaAmount = Math.round(parseFloat(verifyData.data.amount));
+        const chapaCurrency = verifyData.data.currency;
+        
+        if (chapaAmount === donation.amount && chapaCurrency === donation.currency) {
+          await storage.updateDonationStatus(donation.id, 'completed');
+          
+          res.json({
+            success: true,
+            status: 'success',
+            donation: donation
+          });
+        } else {
+          console.error('Amount/currency mismatch:', { chapaAmount, chapaCurrency, donation });
+          res.status(400).json({ 
+            error: 'Payment amount or currency does not match',
+            status: 'failed'
+          });
+        }
+      } else {
+        res.json({
+          success: false,
+          status: verifyData.data.status,
+          donation: donation
+        });
+      }
+    } catch (error) {
+      console.error('Chapa verification error:', error);
+      res.status(500).json({ error: 'Failed to verify payment' });
+    }
+  });
+
   app.get("/api/posts", async (req, res) => {
     try {
       const posts = await storage.getPosts();

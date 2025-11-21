@@ -10,6 +10,7 @@ import Contact from "@/pages/Contact";
 import Blog from "@/pages/Blog";
 import Membership from "@/pages/Membership";
 import Donate from "@/pages/Donate";
+import DonateSuccess from "@/pages/DonateSuccess";
 import DigitalCard from "@/pages/DigitalCard";
 import BlogPost from "@/pages/BlogPost";
 import AdminLogin from "@/pages/admin/Login";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/membership" component={Membership} />
       <Route path="/donate" component={Donate} />
+      <Route path="/donate/success" component={DonateSuccess} />
       <Route path="/card/:membershipId" component={DigitalCard} />
       
       {/* Admin Routes */}

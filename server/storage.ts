@@ -39,6 +39,7 @@ export interface IStorage {
   updatePaymentStatus(id: number, status: string): Promise<MembershipPayment | undefined>;
   
   getDonations(): Promise<Donation[]>;
+  getDonationByTransactionId(transactionId: string): Promise<Donation | undefined>;
   createDonation(donation: InsertDonation): Promise<Donation>;
   updateDonationStatus(id: number, status: string): Promise<Donation | undefined>;
   
@@ -136,6 +137,11 @@ export class DbStorage implements IStorage {
 
   async getDonations(): Promise<Donation[]> {
     return await db.select().from(schema.donations).orderBy(desc(schema.donations.createdAt));
+  }
+
+  async getDonationByTransactionId(transactionId: string): Promise<Donation | undefined> {
+    const result = await db.select().from(schema.donations).where(eq(schema.donations.transactionId, transactionId));
+    return result[0];
   }
 
   async createDonation(donation: InsertDonation): Promise<Donation> {

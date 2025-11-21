@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useState } from 'react';
-import { createDonation } from '@/lib/api';
+import { initializeDonationPayment } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Donate() {
@@ -42,18 +42,17 @@ export default function Donate() {
     setIsSubmitting(true);
     
     try {
-      const donationData = {
-        transactionId: `DON-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        donorName: `${firstName} ${lastName}`,
-        donorEmail: email,
+      const paymentData = {
         amount: amountNum,
         currency: 'ETB',
+        firstName: firstName,
+        lastName: lastName,
+        email: email,
+        phone: phone,
         isAnonymous: isAnonymous,
-        paymentMethod: 'chapa',
-        status: 'pending',
       };
 
-      const result = await createDonation(donationData);
+      const result = await initializeDonationPayment(paymentData);
       
       if (result.error) {
         toast({
@@ -61,19 +60,16 @@ export default function Donate() {
           description: result.error,
           variant: 'destructive',
         });
+        setIsSubmitting(false);
+      } else if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
       } else {
         toast({
-          title: 'Donation Submitted!',
-          description: 'Your donation has been recorded. Payment processing will be implemented soon.',
+          title: 'Error',
+          description: 'Failed to initialize payment. Please try again.',
+          variant: 'destructive',
         });
-        
-        setAmount('');
-        setCustomAmount('');
-        setFirstName('');
-        setLastName('');
-        setEmail('');
-        setPhone('');
-        setIsAnonymous(false);
+        setIsSubmitting(false);
       }
     } catch (error) {
       toast({
@@ -81,7 +77,6 @@ export default function Donate() {
         description: 'Failed to process donation. Please try again.',
         variant: 'destructive',
       });
-    } finally {
       setIsSubmitting(false);
     }
   };

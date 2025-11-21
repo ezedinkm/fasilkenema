@@ -73,6 +73,20 @@ export async function createDonation(data: any) {
   return response.json();
 }
 
+export async function initializeDonationPayment(data: any) {
+  const response = await fetch('/api/donations/initialize-payment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
+export async function verifyPayment(txRef: string) {
+  const response = await fetch(`/api/chapa/verify/${txRef}`);
+  return response.json();
+}
+
 export async function getPosts() {
   const response = await fetch('/api/posts');
   return response.json();
