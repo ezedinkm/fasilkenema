@@ -64,6 +64,15 @@ export async function getDonations() {
   return response.json();
 }
 
+export async function createDonation(data: any) {
+  const response = await fetch('/api/donations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
 export async function getPosts() {
   const response = await fetch('/api/posts');
   return response.json();
