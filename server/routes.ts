@@ -277,6 +277,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/members/initialize-payment", async (req, res) => {
+    let payment: any = null;
+    try {
+      const { amount, currency, firstName, lastName, email, phone, dateOfBirth, city, country, membershipTier } = req.body;
+      
+      if (!amount || !firstName || !lastName || !email || !phone || !dateOfBirth || !city || !country || !membershipTier) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const amountNum = Number(amount);
+      if (isNaN(amountNum) || amountNum <= 0 || !Number.isInteger(amountNum)) {
+        return res.status(400).json({ error: 'Invalid amount - must be a positive whole number' });
+      }
+
+      const txRef = `MEM-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const paymentCurrency = currency || 'ETB';
+      
+      const paymentData = {
+        transactionId: txRef,
+        amount: amountNum,
+        currency: paymentCurrency,
+        paymentMethod: 'chapa',
+        status: 'pending' as const,
+      };
+
+      const validation = insertPaymentSchema.safeParse(paymentData);
+      if (!validation.success) {
+        console.error('Payment validation failed:', fromZodError(validation.error).message);
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+
+      payment = await storage.createPayment(validation.data);
+
+      const chapaPayload = {
+        amount: amountNum.toString(),
+        currency: paymentCurrency,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: phone,
+        tx_ref: txRef,
+        callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
+        return_url: `${req.protocol}://${req.get('host')}/membership/success?tier=${membershipTier}&firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&dob=${encodeURIComponent(dateOfBirth)}&city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`,
+        customization: {
+          title: 'Fasil Member',
+          description: 'Membership Payment'
+        }
+      };
+
+      const chapaResponse = await fetch('https://api.chapa.co/v1/transaction/initialize', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(chapaPayload)
+      });
+
+      if (!chapaResponse.ok) {
+        const errorText = await chapaResponse.text();
+        console.error('Chapa API error:', errorText);
+        await storage.updatePaymentStatus(payment.id, 'failed');
+        return res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
+      }
+
+      const chapaData = await chapaResponse.json();
+
+      if (chapaData.status === 'success' && chapaData.data?.checkout_url) {
+        res.json({
+          success: true,
+          checkoutUrl: chapaData.data.checkout_url,
+          paymentId: payment.id,
+          txRef: txRef
+        });
+      } else {
+        console.error('Chapa returned non-success status:', chapaData);
+        await storage.updatePaymentStatus(payment.id, 'failed');
+        res.status(500).json({ error: 'Failed to initialize payment with Chapa' });
+      }
+    } catch (error) {
+      console.error('Chapa initialization error:', error);
+      if (payment?.id) {
+        await storage.updatePaymentStatus(payment.id, 'failed');
+      }
+      res.status(500).json({ error: 'Failed to initialize payment' });
+    }
+  });
+
   app.post("/api/chapa/callback", async (req, res) => {
     try {
       const { trx_ref, status } = req.body;

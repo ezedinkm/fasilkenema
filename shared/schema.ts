@@ -158,3 +158,38 @@ export const settings = pgTable("settings", {
 export const insertSettingSchema = createInsertSchema(settings).omit({ id: true, updatedAt: true });
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
 export type Setting = typeof settings.$inferSelect;
+
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  transactionId: text("transaction_id").notNull().unique(),
+  type: text("type").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  status: text("status").notNull().default('pending'),
+  metadata: jsonb("metadata"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true });
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export const pendingMemberApplications = pgTable("pending_member_applications", {
+  id: serial("id").primaryKey(),
+  transactionId: text("transaction_id").notNull().unique(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  dateOfBirth: text("date_of_birth").notNull(),
+  city: text("city").notNull(),
+  country: text("country").notNull(),
+  membershipTier: text("membership_tier").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPendingMemberApplicationSchema = createInsertSchema(pendingMemberApplications).omit({ id: true, createdAt: true });
+export type InsertPendingMemberApplication = z.infer<typeof insertPendingMemberApplicationSchema>;
+export type PendingMemberApplication = typeof pendingMemberApplications.$inferSelect;
