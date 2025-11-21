@@ -32,7 +32,11 @@ export const members = pgTable("members", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const insertMemberSchema = createInsertSchema(members).omit({ id: true, createdAt: true });
+export const insertMemberSchema = createInsertSchema(members).omit({ 
+  id: true, 
+  createdAt: true,
+  joinedDate: true 
+});
 export type InsertMember = z.infer<typeof insertMemberSchema>;
 export type Member = typeof members.$inferSelect;
 

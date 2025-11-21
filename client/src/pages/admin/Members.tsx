@@ -94,16 +94,24 @@ export default function AdminMembers() {
         await updateMember(editingMember.id, formData);
         toast({ title: "Success", description: "Member updated successfully." });
       } else {
+        const expiryDate = new Date();
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        
         await createMember({
           ...formData,
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          expiryDate: expiryDate.toISOString(),
         });
         toast({ title: "Success", description: "New member added successfully." });
       }
       fetchMembers();
       setIsDialogOpen(false);
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to save member" });
+    } catch (error: any) {
+      console.error('Save error:', error);
+      toast({ 
+        variant: "destructive", 
+        title: "Error", 
+        description: error.message || "Failed to save member" 
+      });
     }
   };
 
