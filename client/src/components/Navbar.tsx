@@ -10,13 +10,45 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Globe, Menu, User, LogOut } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Navbar() {
   const [location] = useLocation();
   const { language, setLanguage, user, login, logout, t } = useApp();
   const [isOpen, setIsOpen] = useState(false);
+
+  const { data: settings } = useQuery<any[]>({
+    queryKey: ['/api/settings'],
+    staleTime: Infinity,
+  });
+
+  const brandingSettings = {
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'FASIL KENEMA',
+    logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
+    favicon: Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.favicon')?.value : null,
+  };
+
+  useEffect(() => {
+    let link = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
+    
+    if (brandingSettings.favicon) {
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'icon');
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', brandingSettings.favicon);
+    } else {
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'icon');
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', '/favicon.png');
+    }
+  }, [brandingSettings.favicon]);
 
   const navLinks = [
     { href: '/', label: t('nav.home') },
@@ -33,9 +65,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-20 max-w-screen-2xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-3 mr-6">
-          <img src={ASSETS.logo} alt="Fasil Kenema FC" className="h-12 w-12 object-contain" />
+          <img src={brandingSettings.logo} alt="Logo" className="h-12 w-12 object-contain" />
           <div className="hidden md:flex flex-col">
-            <span className="font-heading text-2xl leading-none text-primary">FASIL KENEMA</span>
+            <span className="font-heading text-2xl leading-none text-primary">{brandingSettings.headerText}</span>
             <span className="text-xs font-bold tracking-widest text-muted-foreground">THE EMPERORS</span>
           </div>
         </Link>
@@ -115,8 +147,8 @@ export default function Navbar() {
             <SheetContent side="right">
               <div className="flex flex-col gap-6 mt-8">
                 <Link href="/" className="flex items-center gap-2 mb-4" onClick={() => setIsOpen(false)}>
-                  <img src={ASSETS.logo} alt="Logo" className="h-10 w-10" />
-                  <span className="font-heading text-xl text-primary">FASIL KENEMA</span>
+                  <img src={brandingSettings.logo} alt="Logo" className="h-10 w-10" />
+                  <span className="font-heading text-xl text-primary">{brandingSettings.headerText}</span>
                 </Link>
                 <nav className="flex flex-col gap-4">
                   {navLinks.map((link) => (

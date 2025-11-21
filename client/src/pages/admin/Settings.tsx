@@ -7,14 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Save, RefreshCw, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Save, RefreshCw, Plus, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MEMBERSHIP_TIERS } from '@/lib/mockData';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // State for membership tiers
   const [tiers, setTiers] = useState(MEMBERSHIP_TIERS);
@@ -24,6 +26,63 @@ export default function AdminSettings() {
     name: '',
     priceEtb: '',
     priceUsd: ''
+  });
+
+  // State for branding
+  const [headerText, setHeaderText] = useState('Fasil Kenema Fan Club');
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: settings } = useQuery<any[]>({
+    queryKey: ['/api/settings'],
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (settings && Array.isArray(settings)) {
+      const headerTextSetting = settings.find((s: any) => s.key === 'branding.headerText');
+      const logoSetting = settings.find((s: any) => s.key === 'branding.logo');
+      const faviconSetting = settings.find((s: any) => s.key === 'branding.favicon');
+      
+      if (headerTextSetting) setHeaderText(headerTextSetting.value);
+      if (logoSetting) setLogoPreview(logoSetting.value);
+      if (faviconSetting) setFaviconPreview(faviconSetting.value);
+    }
+  }, [settings]);
+
+  const saveBrandingMutation = useMutation({
+    mutationFn: async (setting: { key: string; value: any; description?: string; delete?: boolean }) => {
+      const token = localStorage.getItem('token');
+      
+      if (setting.delete) {
+        const response = await fetch(`/api/settings/${setting.key}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) throw new Error('Failed to delete setting');
+        return response.json();
+      } else {
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(setting)
+        });
+        if (!response.ok) throw new Error('Failed to save setting');
+        return response.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
+    }
   });
 
   const handleUpdateTier = (id: string, field: string, value: any) => {
@@ -64,6 +123,109 @@ export default function AdminSettings() {
     }
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 200000) {
+        toast({
+          title: "File Too Large",
+          description: "Logo must be under 200KB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFaviconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 50000) {
+        toast({
+          title: "File Too Large",
+          description: "Favicon must be under 50KB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setFaviconFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFaviconPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    try {
+      const mutations = [];
+
+      if (headerText) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.headerText',
+          value: headerText,
+          description: 'Site header text'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.headerText',
+          value: '',
+          delete: true
+        }));
+      }
+
+      if (logoPreview) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.logo',
+          value: logoPreview,
+          description: 'Site logo (base64)'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.logo',
+          value: '',
+          delete: true
+        }));
+      }
+
+      if (faviconPreview) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.favicon',
+          value: faviconPreview,
+          description: 'Site favicon (base64)'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.favicon',
+          value: '',
+          delete: true
+        }));
+      }
+
+      await Promise.all(mutations);
+
+      toast({ 
+        title: "Branding Saved", 
+        description: "Your branding settings have been updated." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save branding settings",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -75,6 +237,7 @@ export default function AdminSettings() {
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="membership">Membership Fees</TabsTrigger>
             <TabsTrigger value="payments">Payment Gateways</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
@@ -110,6 +273,127 @@ export default function AdminSettings() {
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Save className="mr-2 h-4 w-4" /> Save Changes
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="branding">
+            <Card>
+              <CardHeader>
+                <CardTitle>Branding & Appearance</CardTitle>
+                <CardDescription>Customize your site logo, favicon, and header text.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="header-text">Header Text</Label>
+                    <Input 
+                      id="header-text" 
+                      value={headerText}
+                      onChange={(e) => setHeaderText(e.target.value)}
+                      placeholder="Fasil Kenema Fan Club"
+                      data-testid="input-header-text"
+                    />
+                    <p className="text-xs text-muted-foreground">This text appears in the site header/navigation</p>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Site Logo</Label>
+                      <p className="text-xs text-muted-foreground mb-3">Upload a logo to display in the navigation (recommended: PNG, max 200KB)</p>
+                      <div className="flex items-start gap-4">
+                        <div className="w-32 h-32 border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center bg-zinc-50">
+                          {logoPreview ? (
+                            <img src={logoPreview} alt="Logo preview" className="max-w-full max-h-full object-contain p-2" />
+                          ) : (
+                            <ImageIcon className="h-12 w-12 text-zinc-400" />
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            ref={logoInputRef}
+                            onChange={handleLogoChange}
+                            accept="image/png,image/jpeg,image/svg+xml"
+                            className="hidden"
+                            data-testid="input-logo-file"
+                          />
+                          <Button 
+                            variant="outline" 
+                            onClick={() => logoInputRef.current?.click()}
+                            data-testid="button-upload-logo"
+                          >
+                            <Upload className="mr-2 h-4 w-4" /> Choose Logo
+                          </Button>
+                          {logoPreview && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setLogoPreview(null)}
+                              data-testid="button-remove-logo"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <Label>Favicon</Label>
+                      <p className="text-xs text-muted-foreground mb-3">Upload a favicon for browser tabs (recommended: 32x32px PNG or ICO, max 50KB)</p>
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 border-2 border-dashed border-zinc-300 rounded flex items-center justify-center bg-zinc-50">
+                          {faviconPreview ? (
+                            <img src={faviconPreview} alt="Favicon preview" className="max-w-full max-h-full object-contain p-1" />
+                          ) : (
+                            <div className="w-6 h-6 bg-zinc-300 rounded-sm"></div>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <input
+                            type="file"
+                            ref={faviconInputRef}
+                            onChange={handleFaviconChange}
+                            accept="image/png,image/x-icon,image/vnd.microsoft.icon"
+                            className="hidden"
+                            data-testid="input-favicon-file"
+                          />
+                          <Button 
+                            variant="outline" 
+                            onClick={() => faviconInputRef.current?.click()}
+                            data-testid="button-upload-favicon"
+                          >
+                            <Upload className="mr-2 h-4 w-4" /> Choose Favicon
+                          </Button>
+                          {faviconPreview && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setFaviconPreview(null)}
+                              data-testid="button-remove-favicon"
+                            >
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleSaveBranding}
+                  data-testid="button-save-branding"
+                >
+                  <Save className="mr-2 h-4 w-4" /> Save Branding
                 </Button>
               </CardFooter>
             </Card>
