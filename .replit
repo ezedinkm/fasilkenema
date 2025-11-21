@@ -20,7 +20,7 @@ localPort = 5001
 externalPort = 3000
 
 [[ports]]
-localPort = 37977
+localPort = 35249
 externalPort = 3001
 
 [env]
@@ -49,3 +49,8 @@ waitForPort = 5000
 
 [agent]
 mockupState = "FULLSTACK"
+
+[userenv]
+
+[userenv.shared]
+JWT_SECRET = "fasil-kenema-fc-secure-jwt-secret-key-2024-emperors"
