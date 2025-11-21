@@ -233,9 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/donate/success`,
         customization: {
-          title: 'Fasil Kenema FC Donation',
-          description: 'Support The Emperors',
-          logo: 'https://your-logo-url.com/logo.png'
+          title: 'Fasil Donation',
+          description: 'Support The Emperors'
         }
       };
 
