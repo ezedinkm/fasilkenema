@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { useLocation } from 'wouter';
 
 interface MembershipCardProps {
   tier: {
@@ -16,7 +17,12 @@ interface MembershipCardProps {
 }
 
 export default function MembershipCard({ tier, currency }: MembershipCardProps) {
+  const [, setLocation] = useLocation();
   const price = currency === 'etb' ? `${tier.price.etb} ETB` : `$${tier.price.usd}`;
+  
+  const handleSelect = () => {
+    setLocation(`/membership/register?tier=${tier.id}&currency=${currency}`);
+  };
   
   return (
     <Card className={cn(
@@ -60,10 +66,12 @@ export default function MembershipCard({ tier, currency }: MembershipCardProps) 
       
       <CardFooter className="pb-8 pt-4">
         <Button 
+          onClick={handleSelect}
           className={cn(
             "w-full uppercase font-display tracking-widest text-lg h-12", 
             tier.recommended ? "bg-primary hover:bg-primary/90" : "bg-secondary hover:bg-secondary/90 text-secondary-foreground"
           )}
+          data-testid={`button-select-${tier.id}`}
         >
           Select {tier.name}
         </Button>
