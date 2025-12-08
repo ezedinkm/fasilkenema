@@ -53,6 +53,9 @@ export default function AdminSettings() {
   // State for notifications
   const [notificationPhone, setNotificationPhone] = useState('');
   const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(true);
+  const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
+  const [newEmail, setNewEmail] = useState('');
   
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
@@ -89,9 +92,25 @@ export default function AdminSettings() {
 
       const notificationPhoneSetting = settings.find((s: any) => s.key === 'notifications.phone');
       const smsEnabledSetting = settings.find((s: any) => s.key === 'notifications.smsEnabled');
+      const notificationEmailsSetting = settings.find((s: any) => s.key === 'notifications.emails');
+      const emailEnabledSetting = settings.find((s: any) => s.key === 'notifications.emailEnabled');
       
       if (notificationPhoneSetting) setNotificationPhone(notificationPhoneSetting.value);
       if (smsEnabledSetting) setSmsNotificationsEnabled(smsEnabledSetting.value === 'true' || smsEnabledSetting.value === true);
+      
+      if (notificationEmailsSetting) {
+        try {
+          const emails = typeof notificationEmailsSetting.value === 'string' 
+            ? JSON.parse(notificationEmailsSetting.value) 
+            : notificationEmailsSetting.value;
+          if (Array.isArray(emails)) {
+            setNotificationEmails(emails);
+          }
+        } catch (e) {
+          console.error('Failed to parse notification emails:', e);
+        }
+      }
+      if (emailEnabledSetting) setEmailNotificationsEnabled(emailEnabledSetting.value === 'true' || emailEnabledSetting.value === true);
     }
   }, [settings]);
 
@@ -346,6 +365,16 @@ export default function AdminSettings() {
           key: 'notifications.smsEnabled',
           value: smsNotificationsEnabled.toString(),
           description: 'Enable/disable SMS notifications'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'notifications.emails',
+          value: JSON.stringify(notificationEmails),
+          description: 'Email addresses for payment notifications'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'notifications.emailEnabled',
+          value: emailNotificationsEnabled.toString(),
+          description: 'Enable/disable email notifications'
         })
       ]);
       toast({ 
@@ -359,6 +388,29 @@ export default function AdminSettings() {
         variant: "destructive"
       });
     }
+  };
+
+  const handleAddEmail = () => {
+    const trimmedEmail = newEmail.trim().toLowerCase();
+    if (!trimmedEmail) return;
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      toast({ title: "Invalid Email", description: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+    
+    if (notificationEmails.includes(trimmedEmail)) {
+      toast({ title: "Duplicate Email", description: "This email is already in the list", variant: "destructive" });
+      return;
+    }
+    
+    setNotificationEmails([...notificationEmails, trimmedEmail]);
+    setNewEmail('');
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setNotificationEmails(notificationEmails.filter(e => e !== email));
   };
 
   return (
@@ -797,13 +849,110 @@ export default function AdminSettings() {
                   </p>
                 </div>
               </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Email Notifications
+                </CardTitle>
+                <CardDescription>Configure email notifications for payment events using Resend.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable Email Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Send email alerts when payments are received.</p>
+                  </div>
+                  <Switch 
+                    checked={emailNotificationsEnabled}
+                    onCheckedChange={setEmailNotificationsEnabled}
+                    data-testid="switch-email-notifications"
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label className="flex items-center gap-2">
+                      Notification Email Addresses
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Add multiple email addresses to receive payment notifications.
+                    </p>
+                    
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="e.g. admin@example.com"
+                        value={newEmail}
+                        onChange={(e) => setNewEmail(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleAddEmail()}
+                        data-testid="input-notification-email"
+                      />
+                      <Button 
+                        variant="outline" 
+                        onClick={handleAddEmail}
+                        data-testid="button-add-email"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add
+                      </Button>
+                    </div>
+                    
+                    {notificationEmails.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {notificationEmails.map((email) => (
+                          <Badge 
+                            key={email} 
+                            variant="secondary"
+                            className="flex items-center gap-1 px-3 py-1"
+                          >
+                            {email}
+                            <button 
+                              onClick={() => handleRemoveEmail(email)}
+                              className="ml-1 hover:text-red-500"
+                              data-testid={`button-remove-email-${email}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {notificationEmails.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">
+                        No email addresses added yet. Add at least one email to receive notifications.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm">Email Notification Preview</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Subject: "New Donation Payment - Fasil Kenema Fan Club"
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Emails include payment details and current total revenue.
+                  </p>
+                </div>
+
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm text-purple-800">Resend Integration</h4>
+                  <p className="text-xs text-purple-700">
+                    Email notifications are sent via Resend. The integration is configured and ready to use.
+                  </p>
+                </div>
+              </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
                 <Button 
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleSaveNotifications}
                   data-testid="button-save-notifications"
                 >
-                  <Save className="mr-2 h-4 w-4" /> Save Notification Settings
+                  <Save className="mr-2 h-4 w-4" /> Save All Notification Settings
                 </Button>
               </CardFooter>
             </Card>

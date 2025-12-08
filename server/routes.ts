@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { sendPaymentNotification } from "./sms";
+import { sendPaymentNotificationEmail } from "./email";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -21,7 +22,22 @@ function parseSettingValue(value: any): any {
   return value;
 }
 
-async function sendPaymentSmsNotification(type: 'membership' | 'donation', amount: number, currency: string) {
+async function sendPaymentNotifications(type: 'membership' | 'donation', amount: number, currency: string) {
+  try {
+    const stats = await storage.getRevenueStats();
+    const totalETB = stats.membershipETB + stats.donationETB;
+    const totalUSD = stats.membershipUSD + stats.donationUSD;
+    
+    await Promise.allSettled([
+      sendSmsNotification(type, amount, currency, totalETB, totalUSD),
+      sendEmailNotification(type, amount, currency, totalETB, totalUSD)
+    ]);
+  } catch (error) {
+    console.error('Error sending payment notifications:', error);
+  }
+}
+
+async function sendSmsNotification(type: 'membership' | 'donation', amount: number, currency: string, totalETB: number, totalUSD: number) {
   try {
     const smsEnabledSetting = await storage.getSettingByKey('notifications.smsEnabled');
     const phoneSetting = await storage.getSettingByKey('notifications.phone');
@@ -33,10 +49,6 @@ async function sendPaymentSmsNotification(type: 'membership' | 'donation', amoun
     console.log('SMS notification check:', { smsEnabled, phone, type, amount, currency });
     
     if (smsEnabled && phone) {
-      const stats = await storage.getRevenueStats();
-      const totalETB = stats.membershipETB + stats.donationETB;
-      const totalUSD = stats.membershipUSD + stats.donationUSD;
-      
       const { sendPaymentNotificationWithTotal } = await import('./sms');
       const result = await sendPaymentNotificationWithTotal(type, amount, currency, phone, totalETB, totalUSD);
       
@@ -55,7 +67,41 @@ async function sendPaymentSmsNotification(type: 'membership' | 'donation', amoun
       console.log('SMS notification skipped:', { smsEnabled, hasPhone: !!phone });
     }
   } catch (error) {
-    console.error('Error sending payment SMS notification:', error);
+    console.error('Error sending SMS notification:', error);
+  }
+}
+
+async function sendEmailNotification(type: 'membership' | 'donation', amount: number, currency: string, totalETB: number, totalUSD: number) {
+  try {
+    const emailEnabledSetting = await storage.getSettingByKey('notifications.emailEnabled');
+    const emailsSetting = await storage.getSettingByKey('notifications.emails');
+    
+    const emailEnabledValue = parseSettingValue(emailEnabledSetting?.value);
+    const emailEnabled = emailEnabledValue === 'true' || emailEnabledValue === true;
+    
+    let emails: string[] = [];
+    if (emailsSetting?.value) {
+      const parsedEmails = parseSettingValue(emailsSetting.value);
+      if (Array.isArray(parsedEmails)) {
+        emails = parsedEmails;
+      }
+    }
+    
+    console.log('Email notification check:', { emailEnabled, emailCount: emails.length, type, amount, currency });
+    
+    if (emailEnabled && emails.length > 0) {
+      const result = await sendPaymentNotificationEmail(emails, type, amount, currency, totalETB, totalUSD);
+      
+      if (result.success) {
+        console.log(`Email notification sent for ${type} payment: ${amount} ${currency} to ${emails.length} recipients`);
+      } else {
+        console.error(`Failed to send email notification: ${result.error}`);
+      }
+    } else {
+      console.log('Email notification skipped:', { emailEnabled, hasEmails: emails.length > 0 });
+    }
+  } catch (error) {
+    console.error('Error sending email notification:', error);
   }
 }
 
@@ -542,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           await storage.deletePendingMemberApplication(txRef);
 
-          sendPaymentSmsNotification('membership', payment.amount, payment.currency);
+          sendPaymentNotifications('membership', payment.amount, payment.currency);
 
           res.json({
             success: true,
@@ -602,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (chapaAmount === donation.amount && chapaCurrency === donation.currency) {
           await storage.updateDonationStatus(donation.id, 'completed');
           
-          sendPaymentSmsNotification('donation', donation.amount, donation.currency);
+          sendPaymentNotifications('donation', donation.amount, donation.currency);
           
           res.json({
             success: true,

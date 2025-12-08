@@ -23,10 +23,6 @@ externalPort = 3000
 localPort = 32877
 externalPort = 3001
 
-[[ports]]
-localPort = 45277
-externalPort = 3002
-
 [env]
 PORT = "5000"
 
@@ -53,6 +49,7 @@ waitForPort = 5000
 
 [agent]
 mockupState = "FULLSTACK"
+integrations = ["resend:1.0.0"]
 
 [userenv]
 
