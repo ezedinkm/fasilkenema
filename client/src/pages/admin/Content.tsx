@@ -5,11 +5,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NEWS_POSTS } from '@/lib/mockData';
-import { Plus, Edit, Trash2, Image as ImageIcon, Globe, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Edit, Trash2, Image as ImageIcon, Globe, Save, X, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import type { Page } from '@shared/schema';
 
 interface BlogPost {
   id: number;
@@ -22,13 +25,103 @@ interface BlogPost {
   content?: string;
 }
 
+const DEFAULT_PAGES = [
+  { slug: 'home', titleEn: 'Home Page', contentEn: '' },
+  { slug: 'about', titleEn: 'About Us', contentEn: '' },
+  { slug: 'contact', titleEn: 'Contact', contentEn: '' },
+  { slug: 'membership', titleEn: 'Membership', contentEn: '' },
+];
+
 export default function AdminContent() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [posts, setPosts] = useState<BlogPost[]>(NEWS_POSTS);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  const [editingPage, setEditingPage] = useState<Page | null>(null);
+  const [isPageDialogOpen, setIsPageDialogOpen] = useState(false);
+  const [pageFormData, setPageFormData] = useState({
+    titleEn: '',
+    titleAm: '',
+    contentEn: '',
+    contentAm: '',
+  });
 
-  // Form State
+  const { data: pages = [], isLoading: pagesLoading } = useQuery<Page[]>({
+    queryKey: ['/api/pages'],
+  });
+
+  const updatePageMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Partial<Page> }) => {
+      return apiRequest('PATCH', `/api/pages/${data.id}`, data.updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/pages'] });
+      toast({ title: "Page Updated", description: "Changes saved successfully." });
+      setIsPageDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update page.", variant: "destructive" });
+    },
+  });
+
+  const createPageMutation = useMutation({
+    mutationFn: async (data: Partial<Page>) => {
+      return apiRequest('POST', '/api/pages', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/pages'] });
+      toast({ title: "Page Created", description: "New page created successfully." });
+      setIsPageDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create page.", variant: "destructive" });
+    },
+  });
+
+  const handleEditPage = (page: Page) => {
+    setEditingPage(page);
+    setPageFormData({
+      titleEn: page.titleEn || '',
+      titleAm: page.titleAm || '',
+      contentEn: page.contentEn || '',
+      contentAm: page.contentAm || '',
+    });
+    setIsPageDialogOpen(true);
+  };
+
+  const handleSavePage = () => {
+    if (editingPage) {
+      if (editingPage.id > 0) {
+        updatePageMutation.mutate({
+          id: editingPage.id,
+          updates: pageFormData,
+        });
+      } else {
+        createPageMutation.mutate({
+          slug: editingPage.slug,
+          titleEn: pageFormData.titleEn,
+          titleAm: pageFormData.titleAm || undefined,
+          contentEn: pageFormData.contentEn,
+          contentAm: pageFormData.contentAm || undefined,
+          status: 'published',
+        });
+      }
+    }
+  };
+
+  const getDisplayPages = () => {
+    const existingPages = pages || [];
+    return DEFAULT_PAGES.map(defaultPage => {
+      const existing = existingPages.find(p => p.slug === defaultPage.slug);
+      if (existing) {
+        return existing;
+      }
+      return { id: 0, slug: defaultPage.slug, titleEn: defaultPage.titleEn, contentEn: '', status: 'draft', createdAt: new Date(), updatedAt: new Date() } as Page;
+    });
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     excerpt: '',
@@ -200,26 +293,97 @@ export default function AdminContent() {
           </TabsContent>
 
           <TabsContent value="pages" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              {['Home Page', 'About Us', 'Contact', 'Membership'].map((page) => (
-                <Card key={page}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{page}</CardTitle>
-                    <CardDescription>Last updated: 2 days ago</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm">
-                        <Globe className="mr-2 h-3 w-3" /> Translate
-                      </Button>
-                      <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
-                        <Edit className="mr-2 h-3 w-3" /> Edit Content
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {pagesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {getDisplayPages().map((page) => (
+                  <Card key={page.slug} data-testid={`card-page-${page.slug}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">{page.titleEn}</CardTitle>
+                      <CardDescription>
+                        {page.id > 0 ? `Last updated: ${new Date(page.updatedAt).toLocaleDateString()}` : 'Not yet created'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-primary hover:bg-primary/90 text-white"
+                          onClick={() => handleEditPage(page)}
+                          data-testid={`button-edit-page-${page.slug}`}
+                        >
+                          <Edit className="mr-2 h-3 w-3" /> Edit Content
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit {editingPage?.titleEn || 'Page'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Title (English)</Label>
+                    <Input 
+                      value={pageFormData.titleEn} 
+                      onChange={(e) => setPageFormData({...pageFormData, titleEn: e.target.value})}
+                      placeholder="Page title in English"
+                      data-testid="input-page-title-en"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Title (Amharic)</Label>
+                    <Input 
+                      value={pageFormData.titleAm} 
+                      onChange={(e) => setPageFormData({...pageFormData, titleAm: e.target.value})}
+                      placeholder="Page title in Amharic"
+                      data-testid="input-page-title-am"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Content (English)</Label>
+                    <Textarea 
+                      value={pageFormData.contentEn} 
+                      onChange={(e) => setPageFormData({...pageFormData, contentEn: e.target.value})}
+                      placeholder="Page content in English..."
+                      className="min-h-[200px]"
+                      data-testid="input-page-content-en"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Content (Amharic)</Label>
+                    <Textarea 
+                      value={pageFormData.contentAm} 
+                      onChange={(e) => setPageFormData({...pageFormData, contentAm: e.target.value})}
+                      placeholder="Page content in Amharic..."
+                      className="min-h-[200px]"
+                      data-testid="input-page-content-am"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsPageDialogOpen(false)}>Cancel</Button>
+                  <Button 
+                    onClick={handleSavePage} 
+                    disabled={updatePageMutation.isPending || createPageMutation.isPending}
+                    data-testid="button-save-page"
+                  >
+                    {(updatePageMutation.isPending || createPageMutation.isPending) && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save Page
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
           
           <TabsContent value="translations">

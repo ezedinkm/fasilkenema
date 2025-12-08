@@ -733,6 +733,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/pages", authenticateToken, async (req, res) => {
+    try {
+      const pages = await storage.getPages();
+      res.json(pages);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch pages' });
+    }
+  });
+
   app.get("/api/pages/:slug", async (req, res) => {
     try {
       const page = await storage.getPageBySlug(req.params.slug);
@@ -742,6 +751,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(page);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch page' });
+    }
+  });
+
+  app.post("/api/pages", authenticateToken, async (req, res) => {
+    try {
+      const validation = insertPageSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: fromZodError(validation.error).message });
+      }
+      const page = await storage.createPage(validation.data);
+      res.json(page);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to create page' });
+    }
+  });
+
+  app.patch("/api/pages/:id", authenticateToken, async (req, res) => {
+    try {
+      const page = await storage.updatePage(parseInt(req.params.id), req.body);
+      if (!page) {
+        return res.status(404).json({ error: 'Page not found' });
+      }
+      res.json(page);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update page' });
     }
   });
 
