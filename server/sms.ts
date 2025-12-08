@@ -14,7 +14,7 @@ interface GeezSmsResponse {
 
 export async function sendSms(phone: string, message: string): Promise<SendSmsResult> {
   const token = process.env.GEEZ_SMS_PASSWORD;
-  const shortcodeId = process.env.GEEZ_SMS_SENDER_ID;
+  const shortcodeIdStr = process.env.GEEZ_SMS_SENDER_ID;
 
   if (!token) {
     console.error('Geez SMS token not configured');
@@ -29,11 +29,12 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
     formData.append('phone', formattedPhone);
     formData.append('msg', message);
     
-    if (shortcodeId) {
-      formData.append('shortcode_id', shortcodeId);
+    const shortcodeId = shortcodeIdStr ? parseInt(shortcodeIdStr, 10) : null;
+    if (shortcodeId && !isNaN(shortcodeId)) {
+      formData.append('shortcode_id', shortcodeId.toString());
     }
     
-    console.log('Sending SMS to Geez API:', { phone: formattedPhone, hasShortcode: !!shortcodeId });
+    console.log('Sending SMS to Geez API:', { phone: formattedPhone, shortcodeId: shortcodeId || 'default' });
     
     const response = await fetch('https://api.geezsms.com/api/v1/sms/send', {
       method: 'POST',
@@ -52,9 +53,10 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
       };
     } else {
       console.error('Geez SMS API error:', data);
+      const errorMsg = typeof data.msg === 'object' ? JSON.stringify(data.msg) : (data.msg || data.message || 'Failed to send SMS');
       return { 
         success: false, 
-        error: data.msg || data.message || 'Failed to send SMS' 
+        error: errorMsg
       };
     }
   } catch (error) {
