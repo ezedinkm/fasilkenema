@@ -1,8 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AppProvider } from "@/lib/context";
+import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
@@ -22,6 +23,16 @@ import AdminPayments from "@/pages/admin/Payments";
 import AdminContent from "@/pages/admin/Content";
 import AdminSMS from "@/pages/admin/SMS";
 import AdminSettings from "@/pages/admin/Settings";
+
+function ScrollToTop() {
+  const [location] = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location]);
+  
+  return null;
+}
 
 function Router() {
   return (
@@ -56,6 +67,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppProvider>
+        <ScrollToTop />
         <Toaster />
         <Router />
       </AppProvider>
