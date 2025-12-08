@@ -33,7 +33,12 @@ async function sendPaymentSmsNotification(type: 'membership' | 'donation', amoun
     console.log('SMS notification check:', { smsEnabled, phone, type, amount, currency });
     
     if (smsEnabled && phone) {
-      const result = await sendPaymentNotification(type, amount, currency, phone);
+      const stats = await storage.getRevenueStats();
+      const totalETB = stats.membershipETB + stats.donationETB;
+      const totalUSD = stats.membershipUSD + stats.donationUSD;
+      
+      const { sendPaymentNotificationWithTotal } = await import('./sms');
+      const result = await sendPaymentNotificationWithTotal(type, amount, currency, phone, totalETB, totalUSD);
       
       await storage.createSmsLog({
         recipient: phone,

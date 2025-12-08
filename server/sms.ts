@@ -15,7 +15,7 @@ interface GeezSmsResponse {
 export async function sendSms(phone: string, message: string): Promise<SendSmsResult> {
   const username = process.env.GEEZ_SMS_USERNAME;
   const password = process.env.GEEZ_SMS_PASSWORD;
-  const senderId = process.env.GEEZ_SMS_SENDER_ID;
+  const senderIdStr = process.env.GEEZ_SMS_SENDER_ID;
 
   if (!username || !password) {
     console.error('Geez SMS credentials not configured');
@@ -25,18 +25,27 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
   try {
     const formattedPhone = formatEthiopianPhone(phone);
     
+    const senderId = senderIdStr ? parseInt(senderIdStr, 10) : undefined;
+    
+    const requestBody: any = {
+      token: password,
+      phone: formattedPhone,
+      msg: message,
+    };
+    
+    if (senderId && !isNaN(senderId)) {
+      requestBody.sender_id = senderId;
+    }
+    
+    console.log('Sending SMS to Geez API:', { phone: formattedPhone, hasSenderId: !!senderId });
+    
     const response = await fetch('https://api.geezsms.com/api/v1/sms/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        token: password,
-        phone: formattedPhone,
-        msg: message,
-        sender_id: senderId || 'GeezSMS',
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data: GeezSmsResponse = await response.json();
@@ -85,6 +94,20 @@ export async function sendPaymentNotification(
 ): Promise<SendSmsResult> {
   const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
   const message = `New ${typeLabel} Payment Received! Amount: ${amount} ${currency}. Fasil Kenema Fan Club.`;
+  
+  return sendSms(notificationPhone, message);
+}
+
+export async function sendPaymentNotificationWithTotal(
+  type: 'membership' | 'donation',
+  amount: number,
+  currency: string,
+  notificationPhone: string,
+  totalETB: number,
+  totalUSD: number
+): Promise<SendSmsResult> {
+  const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
+  const message = `Fasil FC: New ${typeLabel} ${amount} ${currency} received! Total: ${totalETB} ETB, ${totalUSD} USD.`;
   
   return sendSms(notificationPhone, message);
 }
