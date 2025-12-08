@@ -52,7 +52,7 @@ export default function AdminSettings() {
   const [notificationPhone, setNotificationPhone] = useState('');
   const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(true);
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
   
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
@@ -97,13 +97,13 @@ export default function AdminSettings() {
 
   const saveBrandingMutation = useMutation({
     mutationFn: async (setting: { key: string; value: any; description?: string; delete?: boolean }) => {
-      const token = localStorage.getItem('token');
+      const authToken = localStorage.getItem('admin_token') || localStorage.getItem('token');
       
       if (setting.delete) {
         const response = await fetch(`/api/settings/${setting.key}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`
           }
         });
         if (!response.ok) throw new Error('Failed to delete setting');
@@ -113,7 +113,7 @@ export default function AdminSettings() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${authToken}`
           },
           body: JSON.stringify(setting)
         });
