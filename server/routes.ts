@@ -9,13 +9,28 @@ import { sendPaymentNotification } from "./sms";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
+function parseSettingValue(value: any): any {
+  if (value === null || value === undefined) return value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
 async function sendPaymentSmsNotification(type: 'membership' | 'donation', amount: number, currency: string) {
   try {
     const smsEnabledSetting = await storage.getSettingByKey('notifications.smsEnabled');
     const phoneSetting = await storage.getSettingByKey('notifications.phone');
     
-    const smsEnabled = smsEnabledSetting?.value === 'true' || smsEnabledSetting?.value === true;
-    const phone = phoneSetting?.value as string;
+    const smsEnabledValue = parseSettingValue(smsEnabledSetting?.value);
+    const smsEnabled = smsEnabledValue === 'true' || smsEnabledValue === true;
+    const phone = parseSettingValue(phoneSetting?.value) as string;
+    
+    console.log('SMS notification check:', { smsEnabled, phone, type, amount, currency });
     
     if (smsEnabled && phone) {
       const result = await sendPaymentNotification(type, amount, currency, phone);
@@ -31,6 +46,8 @@ async function sendPaymentSmsNotification(type: 'membership' | 'donation', amoun
       } else {
         console.error(`Failed to send SMS notification: ${result.error}`);
       }
+    } else {
+      console.log('SMS notification skipped:', { smsEnabled, hasPhone: !!phone });
     }
   } catch (error) {
     console.error('Error sending payment SMS notification:', error);
@@ -260,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         phone_number: phone,
         tx_ref: txRef,
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
-        return_url: `${req.protocol}://${req.get('host')}/donate/success`,
+        return_url: `${req.protocol}://${req.get('host')}/donate/success?trx_ref=${txRef}`,
         customization: {
           title: 'Fasil Donation',
           description: 'Support The Emperors'
