@@ -13,10 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from '@/hooks/use-toast';
 import { MEMBERSHIP_TIERS } from '@/lib/mockData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useApp } from '@/lib/context';
 
 export default function AdminSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { token } = useApp();
   
   // State for membership tiers
   const [tiers, setTiers] = useState(MEMBERSHIP_TIERS);
@@ -51,8 +53,6 @@ export default function AdminSettings() {
   // State for notifications
   const [notificationPhone, setNotificationPhone] = useState('');
   const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(true);
-
-  const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
   
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
@@ -99,6 +99,10 @@ export default function AdminSettings() {
     mutationFn: async (setting: { key: string; value: any; description?: string; delete?: boolean }) => {
       const authToken = localStorage.getItem('admin_token') || localStorage.getItem('token');
       
+      if (!authToken) {
+        throw new Error('Not authenticated. Please log in again.');
+      }
+      
       if (setting.delete) {
         const response = await fetch(`/api/settings/${setting.key}`, {
           method: 'DELETE',
@@ -106,7 +110,10 @@ export default function AdminSettings() {
             'Authorization': `Bearer ${authToken}`
           }
         });
-        if (!response.ok) throw new Error('Failed to delete setting');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to delete setting');
+        }
         return response.json();
       } else {
         const response = await fetch('/api/settings', {
@@ -117,7 +124,10 @@ export default function AdminSettings() {
           },
           body: JSON.stringify(setting)
         });
-        if (!response.ok) throw new Error('Failed to save setting');
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to save setting');
+        }
         return response.json();
       }
     },
@@ -258,10 +268,11 @@ export default function AdminSettings() {
         title: "Branding Saved", 
         description: "Your branding settings have been updated." 
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Branding save error:', error);
       toast({
         title: "Error",
-        description: "Failed to save branding settings",
+        description: error.message || "Failed to save branding settings",
         variant: "destructive"
       });
     }
