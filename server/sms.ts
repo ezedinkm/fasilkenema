@@ -13,54 +13,48 @@ interface GeezSmsResponse {
 }
 
 export async function sendSms(phone: string, message: string): Promise<SendSmsResult> {
-  const username = process.env.GEEZ_SMS_USERNAME;
-  const password = process.env.GEEZ_SMS_PASSWORD;
-  const senderIdStr = process.env.GEEZ_SMS_SENDER_ID;
+  const token = process.env.GEEZ_SMS_PASSWORD;
+  const shortcodeId = process.env.GEEZ_SMS_SENDER_ID;
 
-  if (!username || !password) {
-    console.error('Geez SMS credentials not configured');
+  if (!token) {
+    console.error('Geez SMS token not configured');
     return { success: false, error: 'SMS service not configured' };
   }
 
   try {
     const formattedPhone = formatEthiopianPhone(phone);
     
-    const senderId = senderIdStr ? parseInt(senderIdStr, 10) : undefined;
+    const formData = new FormData();
+    formData.append('token', token);
+    formData.append('phone', formattedPhone);
+    formData.append('msg', message);
     
-    const requestBody: any = {
-      token: password,
-      phone: formattedPhone,
-      msg: message,
-    };
-    
-    if (senderId && !isNaN(senderId)) {
-      requestBody.sender_id = senderId;
+    if (shortcodeId) {
+      formData.append('shortcode_id', shortcodeId);
     }
     
-    console.log('Sending SMS to Geez API:', { phone: formattedPhone, hasSenderId: !!senderId });
+    console.log('Sending SMS to Geez API:', { phone: formattedPhone, hasShortcode: !!shortcodeId });
     
     const response = await fetch('https://api.geezsms.com/api/v1/sms/send', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
+      body: formData,
     });
 
-    const data: GeezSmsResponse = await response.json();
+    const data = await response.json();
+    
+    console.log('Geez SMS API response:', data);
 
-    if (response.ok && data.status === 'success') {
+    if (response.ok && (data.status === 'success' || data.message_status === 'success' || !data.error)) {
       console.log(`SMS sent successfully to ${formattedPhone}`);
       return { 
         success: true, 
-        messageId: data.data?.message_id 
+        messageId: data.api_log_id?.toString() || data.log
       };
     } else {
       console.error('Geez SMS API error:', data);
       return { 
         success: false, 
-        error: data.message || 'Failed to send SMS' 
+        error: data.msg || data.message || 'Failed to send SMS' 
       };
     }
   } catch (error) {
