@@ -37,6 +37,17 @@ export default function AdminSettings() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
 
+  // State for donation tiers
+  const [donationTiers, setDonationTiers] = useState<{ id: string; amount: number; label: string }[]>([
+    { id: '1', amount: 100, label: '100 ETB' },
+    { id: '2', amount: 500, label: '500 ETB' },
+    { id: '3', amount: 1000, label: '1,000 ETB' },
+    { id: '4', amount: 5000, label: '5,000 ETB' },
+    { id: '5', amount: 10000, label: '10,000 ETB' },
+  ]);
+  const [isAddDonationTierOpen, setIsAddDonationTierOpen] = useState(false);
+  const [newDonationTier, setNewDonationTier] = useState({ amount: '', label: '' });
+
   const { data: settings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
     staleTime: Infinity,
@@ -47,10 +58,21 @@ export default function AdminSettings() {
       const headerTextSetting = settings.find((s: any) => s.key === 'branding.headerText');
       const logoSetting = settings.find((s: any) => s.key === 'branding.logo');
       const faviconSetting = settings.find((s: any) => s.key === 'branding.favicon');
+      const donationTiersSetting = settings.find((s: any) => s.key === 'donations.tiers');
       
       if (headerTextSetting) setHeaderText(headerTextSetting.value);
       if (logoSetting) setLogoPreview(logoSetting.value);
       if (faviconSetting) setFaviconPreview(faviconSetting.value);
+      if (donationTiersSetting) {
+        try {
+          const parsedTiers = JSON.parse(donationTiersSetting.value);
+          if (Array.isArray(parsedTiers) && parsedTiers.length > 0) {
+            setDonationTiers(parsedTiers);
+          }
+        } catch (e) {
+          console.error('Failed to parse donation tiers:', e);
+        }
+      }
     }
   }, [settings]);
 
@@ -226,6 +248,62 @@ export default function AdminSettings() {
     }
   };
 
+  const handleAddDonationTier = () => {
+    if (!newDonationTier.amount || !newDonationTier.label) {
+      toast({ title: "Error", description: "Please enter both amount and label", variant: "destructive" });
+      return;
+    }
+    const newTierEntry = {
+      id: Date.now().toString(),
+      amount: parseInt(newDonationTier.amount),
+      label: newDonationTier.label,
+    };
+    setDonationTiers([...donationTiers, newTierEntry]);
+    setNewDonationTier({ amount: '', label: '' });
+    setIsAddDonationTierOpen(false);
+  };
+
+  const handleUpdateDonationTier = (id: string, field: string, value: string) => {
+    setDonationTiers(donationTiers.map(tier => {
+      if (tier.id === id) {
+        if (field === 'amount') {
+          return { ...tier, amount: parseInt(value) || 0 };
+        } else if (field === 'label') {
+          return { ...tier, label: value };
+        }
+      }
+      return tier;
+    }));
+  };
+
+  const handleDeleteDonationTier = (id: string) => {
+    if (donationTiers.length <= 1) {
+      toast({ title: "Error", description: "Must have at least one donation tier", variant: "destructive" });
+      return;
+    }
+    setDonationTiers(donationTiers.filter(tier => tier.id !== id));
+  };
+
+  const handleSaveDonationTiers = async () => {
+    try {
+      await saveBrandingMutation.mutateAsync({
+        key: 'donations.tiers',
+        value: JSON.stringify(donationTiers),
+        description: 'Configurable donation amount tiers'
+      });
+      toast({ 
+        title: "Donation Tiers Saved", 
+        description: "Your donation amount options have been updated." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save donation tiers",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -239,6 +317,7 @@ export default function AdminSettings() {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="membership">Membership Fees</TabsTrigger>
+            <TabsTrigger value="donations">Donation Tiers</TabsTrigger>
             <TabsTrigger value="payments">Payment Gateways</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
@@ -498,6 +577,106 @@ export default function AdminSettings() {
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
                 <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Saved", description: "Membership settings updated." })}>
                   <Save className="mr-2 h-4 w-4" /> Update Pricing
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="donations">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Donation Amount Tiers</CardTitle>
+                  <CardDescription>Configure suggested donation amounts shown to users.</CardDescription>
+                </div>
+                <Dialog open={isAddDonationTierOpen} onOpenChange={setIsAddDonationTierOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" data-testid="button-add-donation-tier">
+                      <Plus className="mr-2 h-4 w-4" /> Add Tier
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Donation Tier</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Amount (ETB)</Label>
+                        <Input 
+                          type="number"
+                          value={newDonationTier.amount} 
+                          onChange={(e) => setNewDonationTier({...newDonationTier, amount: e.target.value})}
+                          placeholder="e.g. 2500" 
+                          data-testid="input-new-donation-amount"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Display Label</Label>
+                        <Input 
+                          value={newDonationTier.label} 
+                          onChange={(e) => setNewDonationTier({...newDonationTier, label: e.target.value})}
+                          placeholder="e.g. 2,500 ETB" 
+                          data-testid="input-new-donation-label"
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsAddDonationTierOpen(false)}>Cancel</Button>
+                      <Button onClick={handleAddDonationTier} data-testid="button-confirm-add-donation-tier">Add Tier</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {donationTiers.map((tier) => (
+                    <div key={tier.id} className="space-y-3 p-4 border rounded-lg relative group bg-zinc-50/50 hover:bg-zinc-100/50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <span className="font-bold text-lg text-primary">{tier.label}</span>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleDeleteDonationTier(tier.id)}
+                          data-testid={`button-delete-donation-tier-${tier.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label className="text-xs">Amount</Label>
+                        <Input 
+                          type="number" 
+                          value={tier.amount} 
+                          onChange={(e) => handleUpdateDonationTier(tier.id, 'amount', e.target.value)}
+                          className="bg-white h-8 text-sm"
+                          data-testid={`input-donation-amount-${tier.id}`}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Label</Label>
+                        <Input 
+                          value={tier.label} 
+                          onChange={(e) => handleUpdateDonationTier(tier.id, 'label', e.target.value)}
+                          className="bg-white h-8 text-sm"
+                          data-testid={`input-donation-label-${tier.id}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Users will see these suggested amounts plus a "Custom" option on the donation page.
+                </p>
+              </CardContent>
+              <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <Button 
+                  className="bg-primary hover:bg-primary/90" 
+                  onClick={handleSaveDonationTiers}
+                  data-testid="button-save-donation-tiers"
+                >
+                  <Save className="mr-2 h-4 w-4" /> Save Donation Tiers
                 </Button>
               </CardFooter>
             </Card>

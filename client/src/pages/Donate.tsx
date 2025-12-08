@@ -2,9 +2,18 @@ import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { initializeDonationPayment } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
+
+const DEFAULT_TIERS = [
+  { id: '1', amount: 100, label: '100 ETB' },
+  { id: '2', amount: 500, label: '500 ETB' },
+  { id: '3', amount: 1000, label: '1,000 ETB' },
+  { id: '4', amount: 5000, label: '5,000 ETB' },
+  { id: '5', amount: 10000, label: '10,000 ETB' },
+];
 
 export default function Donate() {
   const [amount, setAmount] = useState('');
@@ -15,7 +24,41 @@ export default function Donate() {
   const [phone, setPhone] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [donationTiers, setDonationTiers] = useState(DEFAULT_TIERS);
   const { toast } = useToast();
+
+  const { data: tiersSetting } = useQuery<{ key: string; value: string } | null>({
+    queryKey: ['/api/settings/donations.tiers'],
+    staleTime: 60000,
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/settings/donations.tiers');
+        if (!res.ok) {
+          if (res.status === 404) {
+            return null;
+          }
+          throw new Error('Failed to fetch donation tiers');
+        }
+        return res.json();
+      } catch (e) {
+        console.error('Error fetching donation tiers:', e);
+        return null;
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (tiersSetting && tiersSetting.value) {
+      try {
+        const parsedTiers = JSON.parse(tiersSetting.value);
+        if (Array.isArray(parsedTiers) && parsedTiers.length > 0) {
+          setDonationTiers(parsedTiers);
+        }
+      } catch (e) {
+        console.error('Failed to parse donation tiers:', e);
+      }
+    }
+  }, [tiersSetting]);
 
   const handleSubmit = async () => {
     const finalAmount = amount === 'custom' ? customAmount : amount;
@@ -98,20 +141,20 @@ export default function Donate() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-3 gap-4">
-                {['100', '500', '1000', '5000', '10000'].map((val) => (
+                {donationTiers.map((tier) => (
                   <Button 
-                    key={val} 
+                    key={tier.id} 
                     variant="outline" 
-                    className={`h-16 text-xl font-bold hover:border-primary hover:text-primary ${amount === val ? 'border-primary text-primary bg-primary/5' : ''}`}
-                    onClick={() => setAmount(val)}
-                    data-testid={`button-amount-${val}`}
+                    className={`h-16 text-lg font-bold hover:border-primary hover:text-primary ${amount === tier.amount.toString() ? 'border-primary text-primary bg-primary/5' : ''}`}
+                    onClick={() => setAmount(tier.amount.toString())}
+                    data-testid={`button-amount-${tier.amount}`}
                   >
-                    {val} ETB
+                    {tier.label}
                   </Button>
                 ))}
                 <Button 
                   variant="outline" 
-                  className={`h-16 text-xl font-bold hover:border-primary hover:text-primary ${amount === 'custom' ? 'border-primary text-primary bg-primary/5' : ''}`}
+                  className={`h-16 text-lg font-bold hover:border-primary hover:text-primary ${amount === 'custom' ? 'border-primary text-primary bg-primary/5' : ''}`}
                   onClick={() => setAmount('custom')}
                   data-testid="button-amount-custom"
                 >
