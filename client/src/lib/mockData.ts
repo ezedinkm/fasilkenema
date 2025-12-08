@@ -2,6 +2,11 @@ import logoImg from '@assets/generated_images/fasil_kenema_fc_logo_concept.png';
 import heroImg from '@assets/generated_images/red_and_white_stadium_atmosphere.png';
 import news1Img from '@assets/generated_images/football_players_celebrating.png';
 import news2Img from '@assets/generated_images/coach_on_sidelines.png';
+import stadiumFansImg from '@assets/generated_images/ethiopian_football_stadium_fans.png';
+import teamCelebrationImg from '@assets/generated_images/ethiopian_football_team_celebration.png';
+import playerAutographsImg from '@assets/generated_images/ethiopian_player_signing_autographs.png';
+import trainingSessionImg from '@assets/generated_images/ethiopian_football_training_session.png';
+import trophyCelebrationImg from '@assets/generated_images/ethiopian_football_trophy_celebration.png';
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -41,30 +46,57 @@ export const MEMBERSHIP_TIERS = [
 export const NEWS_POSTS = [
   {
     id: 1,
-    slug: 'victory-at-home',
-    title: 'Emperors Secure 3-0 Victory at Fasiledes Stadium',
-    excerpt: 'Fasil Kenema dominated the game from start to finish, with a stunning brace from our star striker.',
-    date: '2025-05-20',
-    image: news1Img,
-    category: 'Match Report',
+    slug: 'gondar-derby-victory',
+    title: 'አፄዎቹ በጎንደር ዳርቢ 3-0 አሸናፊ! | Emperors Dominate Gondar Derby',
+    excerpt: 'ፋሲል ከነማ በፋሲለደስ ስታዲየም ታሪካዊ ድል አስመዘገበ። ኮከባችን ሁለት ግቦችን አስቆጠረ። The Emperors showcased their dominance at the historic Fasiledes Stadium.',
+    date: '2025-12-05',
+    image: teamCelebrationImg,
+    category: 'ግጥሚያ | Match Report',
   },
   {
     id: 2,
-    slug: 'new-signing',
-    title: 'Official: New Midfield Maestro Joins The Emperors',
-    excerpt: 'We are delighted to announce the signing of one of the league\'s top talents to bolster our squad.',
-    date: '2025-05-18',
-    image: news2Img,
-    category: 'Transfer News',
+    slug: 'ethiopian-premier-league-top',
+    title: 'Fasil Kenema Leads Ethiopian Premier League Table',
+    excerpt: 'With 8 consecutive wins, The Emperors sit proudly at the top of the Betking Ethiopian Premier League, bringing glory to Gondar and the Amhara region.',
+    date: '2025-12-03',
+    image: stadiumFansImg,
+    category: 'ሊግ | League News',
   },
   {
     id: 3,
-    slug: 'season-tickets',
-    title: '2025/26 Season Ticket Sales Open Now',
-    excerpt: 'Secure your seat at the castle! Season tickets are now available for purchase online and at the stadium.',
-    date: '2025-05-15',
+    slug: 'community-youth-program',
+    title: 'አፄዎቹ ለወጣቶች | Emperors Youth Academy Expands',
+    excerpt: 'Fasil Kenema launches new youth development centers across Gondar, nurturing the next generation of Ethiopian football talent. ለወጣቶች የእግር ኳስ ስልጠና ማዕከል ተከፈተ።',
+    date: '2025-11-28',
+    image: playerAutographsImg,
+    category: 'ማህበረሰብ | Community',
+  },
+  {
+    id: 4,
+    slug: 'pre-season-training-camp',
+    title: 'Emperors Complete Intensive Pre-Season Camp in Bahir Dar',
+    excerpt: 'The squad returns fit and ready after a successful training camp at Lake Tana, focusing on fitness, tactics, and team bonding ahead of the new season.',
+    date: '2025-11-20',
+    image: trainingSessionImg,
+    category: 'ስልጠና | Training',
+  },
+  {
+    id: 5,
+    slug: 'ethiopian-cup-champions',
+    title: 'ፋሲል ከነማ የኢትዮጵያ ዋንጫ ሻምፒዮን! | Ethiopian Cup Champions 2025',
+    excerpt: 'Historic moment at Addis Ababa Stadium as Fasil Kenema lifts the Ethiopian Cup trophy! Captain Amanuel hoists the cup as thousands of Gondar fans celebrate.',
+    date: '2025-11-15',
+    image: trophyCelebrationImg,
+    category: 'ዋንጫ | Trophy',
+  },
+  {
+    id: 6,
+    slug: 'new-stadium-announcement',
+    title: 'Fasiledes Stadium Renovation Project Announced',
+    excerpt: 'Major upgrades coming to our beloved home ground! The historic Fasiledes Stadium will receive modern facilities while preserving its connection to Gondarine heritage.',
+    date: '2025-11-10',
     image: heroImg,
-    category: 'Club News',
+    category: 'ክለብ | Club News',
   },
 ];
 
