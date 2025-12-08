@@ -52,10 +52,19 @@ export default function AdminSettings() {
   const [notificationPhone, setNotificationPhone] = useState('');
   const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(true);
 
-  const { data: settings } = useQuery<any[]>({
+  const token = localStorage.getItem('token');
+  
+  const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
-    staleTime: Infinity,
+    staleTime: 0,
+    enabled: !!token,
   });
+
+  useEffect(() => {
+    if (token) {
+      refetchSettings();
+    }
+  }, [token, refetchSettings]);
 
   useEffect(() => {
     if (settings && Array.isArray(settings)) {
