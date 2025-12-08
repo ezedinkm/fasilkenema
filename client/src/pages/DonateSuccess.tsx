@@ -12,8 +12,18 @@ export default function DonateSuccess() {
   const [paymentStatus, setPaymentStatus] = useState<'success' | 'failed' | 'pending'>('pending');
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const txRef = urlParams.get('trx_ref') || urlParams.get('tx_ref');
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    const hashPart = window.location.hash;
+    const hashQueryStart = hashPart.indexOf('?');
+    const hashParams = hashQueryStart !== -1 
+      ? new URLSearchParams(hashPart.substring(hashQueryStart)) 
+      : new URLSearchParams();
+    
+    const txRef = searchParams.get('trx_ref') 
+      || searchParams.get('tx_ref') 
+      || hashParams.get('trx_ref') 
+      || hashParams.get('tx_ref');
 
     if (txRef) {
       verifyPayment(txRef)
@@ -31,6 +41,10 @@ export default function DonateSuccess() {
           setIsVerifying(false);
         });
     } else {
+      console.error('Donation verification skipped: no transaction reference found', {
+        search: window.location.search,
+        hash: window.location.hash
+      });
       setPaymentStatus('failed');
       setIsVerifying(false);
     }
