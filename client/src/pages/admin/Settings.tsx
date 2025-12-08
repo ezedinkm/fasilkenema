@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Save, RefreshCw, Plus, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Save, RefreshCw, Plus, Trash2, Upload, Image as ImageIcon, Phone, Bell } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +48,10 @@ export default function AdminSettings() {
   const [isAddDonationTierOpen, setIsAddDonationTierOpen] = useState(false);
   const [newDonationTier, setNewDonationTier] = useState({ amount: '', label: '' });
 
+  // State for notifications
+  const [notificationPhone, setNotificationPhone] = useState('');
+  const [smsNotificationsEnabled, setSmsNotificationsEnabled] = useState(true);
+
   const { data: settings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
     staleTime: Infinity,
@@ -73,6 +77,12 @@ export default function AdminSettings() {
           console.error('Failed to parse donation tiers:', e);
         }
       }
+
+      const notificationPhoneSetting = settings.find((s: any) => s.key === 'notifications.phone');
+      const smsEnabledSetting = settings.find((s: any) => s.key === 'notifications.smsEnabled');
+      
+      if (notificationPhoneSetting) setNotificationPhone(notificationPhoneSetting.value);
+      if (smsEnabledSetting) setSmsNotificationsEnabled(smsEnabledSetting.value === 'true' || smsEnabledSetting.value === true);
     }
   }, [settings]);
 
@@ -304,6 +314,33 @@ export default function AdminSettings() {
     }
   };
 
+  const handleSaveNotifications = async () => {
+    try {
+      await Promise.all([
+        saveBrandingMutation.mutateAsync({
+          key: 'notifications.phone',
+          value: notificationPhone,
+          description: 'Phone number for payment notifications'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'notifications.smsEnabled',
+          value: smsNotificationsEnabled.toString(),
+          description: 'Enable/disable SMS notifications'
+        })
+      ]);
+      toast({ 
+        title: "Notifications Saved", 
+        description: "Your notification settings have been updated." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save notification settings",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -313,11 +350,12 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="membership">Membership Fees</TabsTrigger>
             <TabsTrigger value="donations">Donation Tiers</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="payments">Payment Gateways</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
@@ -677,6 +715,75 @@ export default function AdminSettings() {
                   data-testid="button-save-donation-tiers"
                 >
                   <Save className="mr-2 h-4 w-4" /> Save Donation Tiers
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  SMS Notifications
+                </CardTitle>
+                <CardDescription>Configure SMS notifications for payment events.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Enable SMS Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Send SMS alerts when payments are received.</p>
+                  </div>
+                  <Switch 
+                    checked={smsNotificationsEnabled}
+                    onCheckedChange={setSmsNotificationsEnabled}
+                    data-testid="switch-sms-notifications"
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="notification-phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Notification Phone Number
+                    </Label>
+                    <Input 
+                      id="notification-phone"
+                      placeholder="e.g. +251912345678 or 0912345678"
+                      value={notificationPhone}
+                      onChange={(e) => setNotificationPhone(e.target.value)}
+                      data-testid="input-notification-phone"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This number will receive SMS notifications for all membership and donation payments.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm">SMS Notification Preview</h4>
+                  <p className="text-sm text-muted-foreground">
+                    "New Membership Payment Received! Amount: 500 ETB. Fasil Kenema Fan Club."
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                  <h4 className="font-semibold text-sm text-blue-800">Geez SMS Integration</h4>
+                  <p className="text-xs text-blue-700">
+                    SMS notifications are sent via Geez SMS. Ensure your API credentials are configured in the environment.
+                  </p>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleSaveNotifications}
+                  data-testid="button-save-notifications"
+                >
+                  <Save className="mr-2 h-4 w-4" /> Save Notification Settings
                 </Button>
               </CardFooter>
             </Card>

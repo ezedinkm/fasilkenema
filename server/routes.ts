@@ -5,8 +5,37 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
+import { sendPaymentNotification } from "./sms";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+
+async function sendPaymentSmsNotification(type: 'membership' | 'donation', amount: number, currency: string) {
+  try {
+    const smsEnabledSetting = await storage.getSettingByKey('notifications.smsEnabled');
+    const phoneSetting = await storage.getSettingByKey('notifications.phone');
+    
+    const smsEnabled = smsEnabledSetting?.value === 'true' || smsEnabledSetting?.value === true;
+    const phone = phoneSetting?.value as string;
+    
+    if (smsEnabled && phone) {
+      const result = await sendPaymentNotification(type, amount, currency, phone);
+      
+      await storage.createSmsLog({
+        recipient: phone,
+        message: `New ${type} payment: ${amount} ${currency}`,
+        status: result.success ? 'sent' : 'failed',
+      });
+      
+      if (result.success) {
+        console.log(`SMS notification sent for ${type} payment: ${amount} ${currency}`);
+      } else {
+        console.error(`Failed to send SMS notification: ${result.error}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error sending payment SMS notification:', error);
+  }
+}
 
 function authenticateToken(req: any, res: any, next: any) {
   const authHeader = req.headers['authorization'];
@@ -491,6 +520,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           await storage.deletePendingMemberApplication(txRef);
 
+          sendPaymentSmsNotification('membership', payment.amount, payment.currency);
+
           res.json({
             success: true,
             status: 'success',
@@ -548,6 +579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (chapaAmount === donation.amount && chapaCurrency === donation.currency) {
           await storage.updateDonationStatus(donation.id, 'completed');
+          
+          sendPaymentSmsNotification('donation', donation.amount, donation.currency);
           
           res.json({
             success: true,
