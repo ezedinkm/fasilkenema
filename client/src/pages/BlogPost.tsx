@@ -68,7 +68,7 @@ export default function BlogPost() {
             </p>
             
             <blockquote>
-              "We played with the heart of Emperors today. The fans were incredible." — Head Coach
+              "We played with the heart of The Browns today. The fans were incredible." — Head Coach
             </blockquote>
             
             <p>

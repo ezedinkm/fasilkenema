@@ -13,30 +13,30 @@ export default function Blog() {
 
   return (
     <PublicLayout>
-      <div className="bg-gradient-to-br from-primary via-red-700 to-red-900 py-16 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-primary via-amber-800 to-amber-900 py-16 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white/20 rounded-full" />
           <div className="absolute bottom-10 right-10 w-48 h-48 border-4 border-white/20 rounded-full" />
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 border-2 border-yellow-400/30 rotate-45" />
+          <div className="absolute top-1/2 left-1/4 w-24 h-24 border-2 border-amber-400/30 rotate-45" />
         </div>
         <div className="container px-4 relative z-10">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-12 bg-yellow-400 rounded-full" />
-            <span className="text-yellow-400 font-bold uppercase tracking-widest text-sm">ዜና | News</span>
+            <div className="w-1 h-12 bg-amber-400 rounded-full" />
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-sm">ዜና | News</span>
           </div>
           <h1 className="font-heading text-5xl md:text-6xl font-bold text-white mb-4">
-            የአፄዎቹ ዜና
+            የቡናማዎቹ ዜና
           </h1>
           <p className="text-xl text-white/80 max-w-2xl">
-            Emperors News - Latest updates from Fasil Kenema FC, match reports, transfer news, and community events.
+            Browns News - Latest updates from Ethiopian Bunna FC, match reports, transfer news, and community events.
           </p>
           
           <div className="flex flex-wrap gap-4 mt-8">
             {categories.map((cat, i) => (
               <div key={i} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                <cat.icon className="h-4 w-4 text-yellow-400" />
+                <cat.icon className="h-4 w-4 text-amber-400" />
                 <span className="text-white text-sm font-medium">{cat.label}</span>
-                <span className="text-yellow-400 text-xs font-bold">({cat.count})</span>
+                <span className="text-amber-400 text-xs font-bold">({cat.count})</span>
               </div>
             ))}
           </div>
@@ -50,7 +50,7 @@ export default function Blog() {
           </h2>
           <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            Live from Gondar
+            Live from Addis Ababa
           </div>
         </div>
 
@@ -62,7 +62,7 @@ export default function Blog() {
 
         <div className="mt-16 bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-8 text-center">
           <h3 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
-            ከአፄዎቹ ጋር ይቀላቀሉ | Join The Emperors Family
+            ከቡናማዎቹ ጋር ይቀላቀሉ | Join The Browns Family
           </h3>
           <p className="text-zinc-400 mb-6 max-w-xl mx-auto">
             Become a member and get exclusive access to news, match tickets, and community events.
