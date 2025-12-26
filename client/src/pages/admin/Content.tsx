@@ -4,26 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NEWS_POSTS } from '@/lib/mockData';
 import { Plus, Edit, Trash2, Image as ImageIcon, Globe, Save, X, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import type { Page } from '@shared/schema';
-
-interface BlogPost {
-  id: number;
-  slug: string;
-  title: string;
-  excerpt: string;
-  date: string;
-  image: string;
-  category: string;
-  content?: string;
-}
+import type { Page, Post } from '@shared/schema';
 
 const DEFAULT_PAGES = [
   { slug: 'home', titleEn: 'Home Page', contentEn: '' },
@@ -35,8 +23,7 @@ const DEFAULT_PAGES = [
 export default function AdminContent() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [posts, setPosts] = useState<BlogPost[]>(NEWS_POSTS);
-  const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const [editingPage, setEditingPage] = useState<Page | null>(null);
@@ -46,6 +33,51 @@ export default function AdminContent() {
     titleAm: '',
     contentEn: '',
     contentAm: '',
+  });
+
+  const { data: posts = [], isLoading: postsLoading } = useQuery<Post[]>({
+    queryKey: ['/api/posts'],
+  });
+
+  const createPostMutation = useMutation({
+    mutationFn: async (data: Partial<Post>) => {
+      return apiRequest('POST', '/api/posts', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      toast({ title: "Post Created", description: "New content has been published." });
+      setIsDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create post.", variant: "destructive" });
+    },
+  });
+
+  const updatePostMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Partial<Post> }) => {
+      return apiRequest('PATCH', `/api/posts/${data.id}`, data.updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      toast({ title: "Post Updated", description: "Changes have been saved successfully." });
+      setIsDialogOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update post.", variant: "destructive" });
+    },
+  });
+
+  const deletePostMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest('DELETE', `/api/posts/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
+      toast({ title: "Post Deleted", description: "The content has been removed successfully." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+    },
   });
 
   const { data: pages = [], isLoading: pagesLoading } = useQuery<Page[]>({
@@ -123,63 +155,58 @@ export default function AdminContent() {
   };
 
   const [formData, setFormData] = useState({
-    title: '',
-    excerpt: '',
+    titleEn: '',
+    contentEn: '',
     category: '',
-    content: ''
+    imageUrl: ''
   });
 
-  const handleEdit = (post: BlogPost) => {
+  const handleEdit = (post: Post) => {
     setEditingPost(post);
     setFormData({
-      title: post.title,
-      excerpt: post.excerpt,
-      category: post.category,
-      content: post.content || 'Lorem ipsum dolor sit amet...'
+      titleEn: post.titleEn || '',
+      contentEn: post.contentEn || '',
+      category: post.category || '',
+      imageUrl: post.imageUrl || ''
     });
     setIsDialogOpen(true);
   };
 
   const handleCreate = () => {
     setEditingPost(null);
-    setFormData({ title: '', excerpt: '', category: '', content: '' });
+    setFormData({ titleEn: '', contentEn: '', category: '', imageUrl: '' });
     setIsDialogOpen(true);
   };
 
   const handleDelete = (id: number) => {
     if (confirm('Are you sure you want to delete this post?')) {
-      setPosts(posts.filter(p => p.id !== id));
-      toast({
-        title: "Post Deleted",
-        description: "The content has been removed successfully."
-      });
+      deletePostMutation.mutate(id);
     }
   };
 
   const handleSave = () => {
+    const slug = formData.titleEn.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
     if (editingPost) {
-      // Update existing
-      setPosts(posts.map(p => p.id === editingPost.id ? { ...p, ...formData } : p));
-      toast({
-        title: "Post Updated",
-        description: "Changes have been saved successfully."
+      updatePostMutation.mutate({
+        id: editingPost.id,
+        updates: {
+          titleEn: formData.titleEn,
+          contentEn: formData.contentEn,
+          category: formData.category,
+          imageUrl: formData.imageUrl || undefined,
+        },
       });
     } else {
-      // Create new
-      const newPost: BlogPost = {
-        id: Date.now(),
-        slug: formData.title.toLowerCase().replace(/\s+/g, '-'),
-        date: new Date().toISOString().split('T')[0],
-        image: 'https://via.placeholder.com/800x400', // Placeholder for new posts
-        ...formData
-      };
-      setPosts([newPost, ...posts]);
-      toast({
-        title: "Post Created",
-        description: "New content has been published."
+      createPostMutation.mutate({
+        slug,
+        titleEn: formData.titleEn,
+        contentEn: formData.contentEn,
+        category: formData.category,
+        imageUrl: formData.imageUrl || undefined,
+        status: 'published',
       });
     }
-    setIsDialogOpen(false);
   };
 
   return (
@@ -205,9 +232,10 @@ export default function AdminContent() {
                 <div className="space-y-2">
                   <Label>Title</Label>
                   <Input 
-                    value={formData.title} 
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    value={formData.titleEn} 
+                    onChange={(e) => setFormData({...formData, titleEn: e.target.value})}
                     placeholder="Enter post title"
+                    data-testid="input-post-title"
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,29 +244,41 @@ export default function AdminContent() {
                     value={formData.category} 
                     onChange={(e) => setFormData({...formData, category: e.target.value})}
                     placeholder="e.g. Match Report, Club News"
+                    data-testid="input-post-category"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Excerpt</Label>
-                  <Textarea 
-                    value={formData.excerpt} 
-                    onChange={(e) => setFormData({...formData, excerpt: e.target.value})}
-                    placeholder="Short summary for list view"
+                  <Label>Image URL</Label>
+                  <Input 
+                    value={formData.imageUrl} 
+                    onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                    placeholder="https://example.com/image.jpg"
+                    data-testid="input-post-image"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Full Content</Label>
+                  <Label>Content</Label>
                   <Textarea 
-                    value={formData.content} 
-                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    value={formData.contentEn} 
+                    onChange={(e) => setFormData({...formData, contentEn: e.target.value})}
                     placeholder="Main article content..."
                     className="min-h-[200px]"
+                    data-testid="input-post-content"
                   />
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSave}>Save Post</Button>
+                <Button 
+                  onClick={handleSave} 
+                  disabled={createPostMutation.isPending || updatePostMutation.isPending}
+                  data-testid="button-save-post"
+                >
+                  {(createPostMutation.isPending || updatePostMutation.isPending) && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Save Post
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -252,27 +292,39 @@ export default function AdminContent() {
           </TabsList>
 
           <TabsContent value="news" className="space-y-4">
-            {posts.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">No posts found.</div>
+            {postsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No posts found. Click "Create New Post" to add one.</div>
             ) : (
               posts.map((post) => (
-                <Card key={post.id} className="overflow-hidden">
+                <Card key={post.id} className="overflow-hidden" data-testid={`card-post-${post.id}`}>
                   <div className="flex flex-col md:flex-row">
                     <div className="w-full md:w-48 h-32 bg-zinc-100 relative">
-                      <img src={post.image} alt={post.title} className="absolute inset-0 w-full h-full object-cover" />
+                      {post.imageUrl ? (
+                        <img src={post.imageUrl} alt={post.titleEn} className="absolute inset-0 w-full h-full object-cover" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <ImageIcon className="h-12 w-12 text-zinc-300" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex-1 p-4 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-lg line-clamp-1">{post.title}</h3>
+                          <h3 className="font-bold text-lg line-clamp-1">{post.titleEn}</h3>
                           <span className="text-xs bg-zinc-100 px-2 py-1 rounded font-medium uppercase">{post.category}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.excerpt}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.contentEn?.substring(0, 150)}...</p>
                       </div>
                       <div className="flex justify-between items-center mt-2">
-                        <span className="text-xs text-muted-foreground">Published: {post.date}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {post.publishedAt ? `Published: ${new Date(post.publishedAt).toLocaleDateString()}` : `Created: ${new Date(post.createdAt).toLocaleDateString()}`}
+                        </span>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="h-8" onClick={() => handleEdit(post)}>
+                          <Button variant="outline" size="sm" className="h-8" onClick={() => handleEdit(post)} data-testid={`button-edit-post-${post.id}`}>
                             <Edit className="mr-2 h-3 w-3" /> Edit
                           </Button>
                           <Button 
@@ -280,6 +332,7 @@ export default function AdminContent() {
                             size="sm" 
                             className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => handleDelete(post.id)}
+                            data-testid={`button-delete-post-${post.id}`}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

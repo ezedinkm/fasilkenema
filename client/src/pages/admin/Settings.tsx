@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { Save, RefreshCw, Plus, Trash2, Upload, Image as ImageIcon, Phone, Bell } from 'lucide-react';
+import { Save, RefreshCw, Plus, Trash2, Upload, Image as ImageIcon, Phone, Bell, Palette } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -15,10 +15,16 @@ import { MEMBERSHIP_TIERS } from '@/lib/mockData';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '@/lib/context';
 
+const DEFAULT_THEME = {
+  primaryColor: '#E31E24',
+  secondaryColor: '#D4AF37',
+  accentColor: '#1a1a2e',
+};
+
 export default function AdminSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { token } = useApp();
+  const { token, refreshTheme } = useApp();
   
   // State for membership tiers
   const [tiers, setTiers] = useState(MEMBERSHIP_TIERS);
@@ -56,6 +62,15 @@ export default function AdminSettings() {
   const [notificationEmails, setNotificationEmails] = useState<string[]>([]);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [newEmail, setNewEmail] = useState('');
+
+  // State for theme
+  const [themeColors, setThemeColors] = useState(DEFAULT_THEME);
+  
+  // State for general settings
+  const [siteName, setSiteName] = useState('Fasil Kenema Fan Club');
+  const [siteUrl, setSiteUrl] = useState('https://fasilkenema.com');
+  const [supportEmail, setSupportEmail] = useState('support@fasilkenema.com');
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
   
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
@@ -111,6 +126,28 @@ export default function AdminSettings() {
         }
       }
       if (emailEnabledSetting) setEmailNotificationsEnabled(emailEnabledSetting.value === 'true' || emailEnabledSetting.value === true);
+
+      // Load theme settings
+      const primaryColorSetting = settings.find((s: any) => s.key === 'theme.primaryColor');
+      const secondaryColorSetting = settings.find((s: any) => s.key === 'theme.secondaryColor');
+      const accentColorSetting = settings.find((s: any) => s.key === 'theme.accentColor');
+      
+      setThemeColors({
+        primaryColor: primaryColorSetting?.value || DEFAULT_THEME.primaryColor,
+        secondaryColor: secondaryColorSetting?.value || DEFAULT_THEME.secondaryColor,
+        accentColor: accentColorSetting?.value || DEFAULT_THEME.accentColor,
+      });
+
+      // Load general settings
+      const siteNameSetting = settings.find((s: any) => s.key === 'general.siteName');
+      const siteUrlSetting = settings.find((s: any) => s.key === 'general.siteUrl');
+      const supportEmailSetting = settings.find((s: any) => s.key === 'general.supportEmail');
+      const maintenanceModeSetting = settings.find((s: any) => s.key === 'general.maintenanceMode');
+      
+      if (siteNameSetting) setSiteName(siteNameSetting.value);
+      if (siteUrlSetting) setSiteUrl(siteUrlSetting.value);
+      if (supportEmailSetting) setSupportEmail(supportEmailSetting.value);
+      if (maintenanceModeSetting) setMaintenanceMode(maintenanceModeSetting.value === 'true' || maintenanceModeSetting.value === true);
     }
   }, [settings]);
 
@@ -413,6 +450,79 @@ export default function AdminSettings() {
     setNotificationEmails(notificationEmails.filter(e => e !== email));
   };
 
+  const handleSaveTheme = async () => {
+    try {
+      await Promise.all([
+        saveBrandingMutation.mutateAsync({
+          key: 'theme.primaryColor',
+          value: themeColors.primaryColor,
+          description: 'Primary theme color'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'theme.secondaryColor',
+          value: themeColors.secondaryColor,
+          description: 'Secondary theme color'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'theme.accentColor',
+          value: themeColors.accentColor,
+          description: 'Accent theme color'
+        })
+      ]);
+      
+      // Apply theme immediately across all pages
+      refreshTheme();
+      
+      toast({ 
+        title: "Theme Saved", 
+        description: "Your theme colors have been updated across all pages." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save theme settings",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSaveGeneral = async () => {
+    try {
+      await Promise.all([
+        saveBrandingMutation.mutateAsync({
+          key: 'general.siteName',
+          value: siteName,
+          description: 'Site name'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'general.siteUrl',
+          value: siteUrl,
+          description: 'Site URL'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'general.supportEmail',
+          value: supportEmail,
+          description: 'Support email'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'general.maintenanceMode',
+          value: maintenanceMode.toString(),
+          description: 'Maintenance mode'
+        })
+      ]);
+      toast({ 
+        title: "Settings Saved", 
+        description: "Your general settings have been updated." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save general settings",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -424,6 +534,7 @@ export default function AdminSettings() {
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="theme">Theme</TabsTrigger>
             <TabsTrigger value="branding">Branding</TabsTrigger>
             <TabsTrigger value="membership">Membership Fees</TabsTrigger>
             <TabsTrigger value="donations">Donation Tiers</TabsTrigger>
@@ -441,27 +552,164 @@ export default function AdminSettings() {
               <CardContent className="space-y-4">
                 <div className="grid gap-2">
                   <Label htmlFor="site-name">Site Name</Label>
-                  <Input id="site-name" defaultValue="Fasil Kenema Fan Club" />
+                  <Input 
+                    id="site-name" 
+                    value={siteName}
+                    onChange={(e) => setSiteName(e.target.value)}
+                    data-testid="input-site-name"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="site-url">Site URL</Label>
-                  <Input id="site-url" defaultValue="https://fasilkenema.com" />
+                  <Input 
+                    id="site-url" 
+                    value={siteUrl}
+                    onChange={(e) => setSiteUrl(e.target.value)}
+                    data-testid="input-site-url"
+                  />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="support-email">Support Email</Label>
-                  <Input id="support-email" defaultValue="support@fasilkenema.com" />
+                  <Input 
+                    id="support-email" 
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    data-testid="input-support-email"
+                  />
                 </div>
                 <div className="flex items-center justify-between pt-4">
                   <div className="space-y-0.5">
                     <Label>Maintenance Mode</Label>
                     <p className="text-xs text-muted-foreground">Disable public access to the site.</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={maintenanceMode} 
+                    onCheckedChange={setMaintenanceMode}
+                    data-testid="switch-maintenance-mode"
+                  />
                 </div>
               </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button className="bg-primary hover:bg-primary/90" onClick={handleSaveGeneral} data-testid="button-save-general">
                   <Save className="mr-2 h-4 w-4" /> Save Changes
+                </Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="theme">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="h-5 w-5" />
+                  Color Theme
+                </CardTitle>
+                <CardDescription>Customize the color scheme across your entire website.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-3">
+                  <div className="space-y-3">
+                    <Label>Primary Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={themeColors.primaryColor}
+                        onChange={(e) => setThemeColors({ ...themeColors, primaryColor: e.target.value })}
+                        className="w-12 h-12 rounded-lg border-2 border-zinc-200 cursor-pointer"
+                        data-testid="input-primary-color"
+                      />
+                      <div className="flex-1">
+                        <Input
+                          value={themeColors.primaryColor}
+                          onChange={(e) => setThemeColors({ ...themeColors, primaryColor: e.target.value })}
+                          placeholder="#E31E24"
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Used for buttons, links, and accents</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Secondary Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={themeColors.secondaryColor}
+                        onChange={(e) => setThemeColors({ ...themeColors, secondaryColor: e.target.value })}
+                        className="w-12 h-12 rounded-lg border-2 border-zinc-200 cursor-pointer"
+                        data-testid="input-secondary-color"
+                      />
+                      <div className="flex-1">
+                        <Input
+                          value={themeColors.secondaryColor}
+                          onChange={(e) => setThemeColors({ ...themeColors, secondaryColor: e.target.value })}
+                          placeholder="#D4AF37"
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Used for highlights and badges</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label>Accent Color</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={themeColors.accentColor}
+                        onChange={(e) => setThemeColors({ ...themeColors, accentColor: e.target.value })}
+                        className="w-12 h-12 rounded-lg border-2 border-zinc-200 cursor-pointer"
+                        data-testid="input-accent-color"
+                      />
+                      <div className="flex-1">
+                        <Input
+                          value={themeColors.accentColor}
+                          onChange={(e) => setThemeColors({ ...themeColors, accentColor: e.target.value })}
+                          placeholder="#1a1a2e"
+                          className="font-mono"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Used for dark backgrounds</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <Label>Preview</Label>
+                  <div className="p-6 rounded-lg border bg-zinc-50">
+                    <div className="flex flex-wrap gap-3">
+                      <Button style={{ backgroundColor: themeColors.primaryColor, color: 'white' }}>
+                        Primary Button
+                      </Button>
+                      <Button style={{ backgroundColor: themeColors.secondaryColor, color: 'black' }}>
+                        Secondary Button
+                      </Button>
+                      <div 
+                        className="px-4 py-2 rounded-lg text-white font-medium"
+                        style={{ backgroundColor: themeColors.accentColor }}
+                      >
+                        Accent Background
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setThemeColors(DEFAULT_THEME)}
+                    data-testid="button-reset-theme"
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" /> Reset to Default
+                  </Button>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <Button className="bg-primary hover:bg-primary/90" onClick={handleSaveTheme} data-testid="button-save-theme">
+                  <Save className="mr-2 h-4 w-4" /> Save Theme
                 </Button>
               </CardFooter>
             </Card>
