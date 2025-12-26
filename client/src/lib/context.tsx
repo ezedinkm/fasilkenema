@@ -14,8 +14,8 @@ interface ThemeColors {
 }
 
 const DEFAULT_THEME: ThemeColors = {
-  primaryColor: '#E31E24',
-  secondaryColor: '#D4AF37',
+  primaryColor: '#722F37',
+  secondaryColor: '#D4A017',
   accentColor: '#1a1a2e',
 };
 
@@ -155,8 +155,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'nav.blog': language === 'am' ? 'ብሎግ' : 'News',
       'nav.membership': language === 'am' ? 'አባልነት' : 'Membership',
       'nav.donate': language === 'am' ? 'ድጋፍ' : 'Donate',
-      'hero.title': language === 'am' ? 'የአፄዎቹ ቤት' : 'The Home of The Emperors',
-      'hero.subtitle': language === 'am' ? 'ፋሲል ከነማ የስፖርት ክለብ ኦፊሴላዊ የደጋፊዎች መድረክ' : 'Official Fan Club Platform of Fasil Kenema Sport Club',
+      'hero.title': language === 'am' ? 'የቡናማዎቹ ቤት' : 'The Home of The Browns',
+      'hero.subtitle': language === 'am' ? 'ኢትዮጵያ ቡና የስፖርት ክለብ ኦፊሴላዊ የደጋፊዎች መድረክ' : 'Official Fan Club Platform of Ethiopian Coffee Sport Club',
       'hero.cta': language === 'am' ? 'አባል ይሁኑ' : 'Join the Club',
       'hero.secondary': language === 'am' ? 'ጨዋታዎችን ይመልከቱ' : 'View Matches',
     };

@@ -9,16 +9,13 @@ export default function Hero() {
 
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-black">
-      {/* Background Image */}
       <div 
         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-60"
         style={{ backgroundImage: `url(${ASSETS.hero})` }}
       />
       
-      {/* Overlay Gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
       
-      {/* Content */}
       <div className="relative h-full container flex flex-col justify-center items-start px-4 pt-20">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
@@ -27,14 +24,14 @@ export default function Hero() {
           className="max-w-3xl"
         >
           <span className="inline-block py-1 px-3 mb-4 rounded bg-primary/90 text-white text-xs font-bold tracking-widest uppercase border border-primary-foreground/20">
-            Est. 1968
+            Est. 1976
           </span>
           <h1 className="font-heading text-6xl md:text-8xl lg:text-9xl font-bold text-white leading-[0.85] mb-6 uppercase tracking-tighter">
             We Are <br />
-            <span className="text-primary drop-shadow-lg">The Emperors</span>
+            <span className="text-primary drop-shadow-lg">The Browns</span>
           </h1>
           <p className="text-lg md:text-2xl text-gray-200 mb-8 max-w-2xl font-light border-l-4 border-primary pl-6">
-            {t('hero.subtitle')}
+            Ethiopia's pride, coffee's legacy. Join the official Ethiopian Bunna FC fan community and be part of our historic journey.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -52,7 +49,6 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      {/* Decorative Elements */}
       <div className="absolute bottom-0 left-0 w-full h-24 bg-gradient-to-t from-background to-transparent" />
     </div>
   );

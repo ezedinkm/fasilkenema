@@ -125,7 +125,7 @@ export default function MembershipSuccess() {
           </CardHeader>
           <CardContent className="space-y-6 text-center">
             <p className="text-xl">
-              Your membership registration was successful. You are now an official member of the Fasil Kenema Fan Club!
+              Your membership registration was successful. You are now an official member of the Ethiopian Bunna FC Fan Club!
             </p>
             
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-2">

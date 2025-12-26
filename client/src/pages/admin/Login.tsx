@@ -25,7 +25,7 @@ export default function AdminLogin() {
 
     if (success) {
       toast({
-        title: "Welcome, Emperor",
+        title: "Welcome, Admin",
         description: "Access granted to the command center.",
       });
       setLocation('/admin/dashboard');
@@ -95,7 +95,7 @@ export default function AdminLogin() {
           </form>
         </CardContent>
         <CardFooter className="text-center text-xs text-zinc-500 justify-center">
-          Authorized Personnel Only • Fasil Kenema SC
+          Authorized Personnel Only • Ethiopian Bunna FC
         </CardFooter>
       </Card>
     </div>

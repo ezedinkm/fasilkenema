@@ -3,28 +3,44 @@ import { ASSETS } from '@/lib/mockData';
 import { Facebook, Twitter, Instagram, Youtube, Smartphone } from 'lucide-react';
 import appStoreBadge from '@assets/generated_images/app_store_badge.png';
 import playStoreBadge from '@assets/generated_images/google_play_badge.png';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Footer() {
+  const { data: settings } = useQuery<any[]>({
+    queryKey: ['/api/settings'],
+    staleTime: Infinity,
+  });
+
+  const brandingSettings = {
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
+    logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
+    footerTagline: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.footerTagline')?.value : null) || "The official home of The Browns. Connecting fans, players, and Ethiopia's coffee heritage since 1976.",
+    copyrightText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.copyrightText')?.value : null) || 'Ethiopian Coffee Sport Club',
+    facebookUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.facebook')?.value : null) || '#',
+    twitterUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.twitter')?.value : null) || '#',
+    instagramUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.instagram')?.value : null) || '#',
+    youtubeUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.youtube')?.value : null) || '#',
+  };
+
   return (
     <footer className="bg-sidebar text-sidebar-foreground border-t border-border">
       <div className="container px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <img src={ASSETS.logo} alt="Fasil Kenema" className="h-12 w-12" />
-              <span className="font-heading text-2xl text-primary">FASIL KENEMA</span>
+              <img src={brandingSettings.logo} alt="Ethiopian Bunna" className="h-12 w-12" />
+              <span className="font-heading text-2xl text-primary">{brandingSettings.headerText}</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-6">
-              The official home of The Emperors. Connecting fans, players, and history since 1968.
+              {brandingSettings.footerTagline}
             </p>
             <div className="flex gap-4 mb-6">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-5 w-5" /></a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors"><Youtube className="h-5 w-5" /></a>
+              <a href={brandingSettings.facebookUrl} className="text-muted-foreground hover:text-primary transition-colors"><Facebook className="h-5 w-5" /></a>
+              <a href={brandingSettings.twitterUrl} className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="h-5 w-5" /></a>
+              <a href={brandingSettings.instagramUrl} className="text-muted-foreground hover:text-primary transition-colors"><Instagram className="h-5 w-5" /></a>
+              <a href={brandingSettings.youtubeUrl} className="text-muted-foreground hover:text-primary transition-colors"><Youtube className="h-5 w-5" /></a>
             </div>
             
-            {/* App Download Section */}
             <div className="pt-6 border-t border-border/50">
               <div className="flex items-center gap-2 mb-3 text-primary font-bold text-sm uppercase tracking-wide">
                 <Smartphone className="h-4 w-4" />
@@ -64,7 +80,7 @@ export default function Footer() {
           <div>
             <h3 className="font-display text-lg font-semibold mb-4">Newsletter</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Subscribe to get the latest news and updates from the castle.
+              Subscribe to get the latest news and updates from Ethiopian Coffee SC.
             </p>
             <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
               <input 
@@ -79,7 +95,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-border/50 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Fasil Kenema Sport Club. All rights reserved.
+          &copy; {new Date().getFullYear()} {brandingSettings.copyrightText}. All rights reserved.
         </div>
       </div>
     </footer>

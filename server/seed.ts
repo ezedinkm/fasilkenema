@@ -34,13 +34,31 @@ async function seed() {
     if (smsTemplates.length === 0) {
       await storage.createSmsTemplate({
         name: "Welcome",
-        message: "Welcome to Fasil Kenema Fan Club! Your membership number is {{membershipNumber}}. Thank you for your support!"
+        message: "Welcome to Ethiopian Bunna FC Fan Club! Your membership number is {{membershipNumber}}. Thank you for your support!"
       });
       await storage.createSmsTemplate({
         name: "Renewal Reminder",
-        message: "Dear {{name}}, your Fasil Kenema membership expires on {{expiryDate}}. Renew now to continue enjoying exclusive benefits!"
+        message: "Dear {{name}}, your Ethiopian Bunna FC membership expires on {{expiryDate}}. Renew now to continue enjoying exclusive benefits!"
       });
       console.log("Created default SMS templates");
+    }
+
+    const brandingHeaderText = await storage.getSettingByKey("branding.headerText");
+    if (!brandingHeaderText) {
+      await storage.upsertSetting({
+        key: "branding.headerText",
+        value: "ETHIOPIAN BUNNA",
+        description: "Header text displayed in navbar"
+      });
+    }
+
+    const brandingHeaderSubtext = await storage.getSettingByKey("branding.headerSubtext");
+    if (!brandingHeaderSubtext) {
+      await storage.upsertSetting({
+        key: "branding.headerSubtext",
+        value: "THE BROWNS",
+        description: "Subtext displayed below header in navbar"
+      });
     }
 
     console.log("Database seeding completed!");

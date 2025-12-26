@@ -36,7 +36,7 @@ async function getCredentials(): Promise<{ apiKey: string; fromEmail: string }> 
   
   return {
     apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email || 'noreply@fasilkenema.com'
+    fromEmail: connectionSettings.settings.from_email || 'noreply@ethiopianbunna.com'
   };
 }
 
@@ -93,7 +93,7 @@ export async function sendPaymentNotificationEmail(
 ): Promise<SendEmailResult> {
   const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
   
-  const subject = `New ${typeLabel} Payment - Fasil Kenema Fan Club`;
+  const subject = `New ${typeLabel} Payment - Ethiopian Bunna FC Fan Club`;
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -102,9 +102,9 @@ export async function sendPaymentNotificationEmail(
       <style>
         body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #C41E3A 0%, #8B0000 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header { background: linear-gradient(135deg, #722F37 0%, #4A1E23 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
         .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
-        .amount { font-size: 32px; font-weight: bold; color: #C41E3A; }
+        .amount { font-size: 32px; font-weight: bold; color: #722F37; }
         .total-section { background: white; padding: 15px; border-radius: 8px; margin-top: 15px; }
         .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
       </style>
@@ -112,8 +112,8 @@ export async function sendPaymentNotificationEmail(
     <body>
       <div class="container">
         <div class="header">
-          <h1>Fasil Kenema Fan Club</h1>
-          <p>The Emperors</p>
+          <h1>Ethiopian Bunna FC Fan Club</h1>
+          <p>The Browns</p>
         </div>
         <div class="content">
           <h2>New ${typeLabel} Payment Received!</h2>
@@ -128,7 +128,7 @@ export async function sendPaymentNotificationEmail(
           </div>
         </div>
         <div class="footer">
-          <p>This is an automated notification from the Fasil Kenema Fan Club platform.</p>
+          <p>This is an automated notification from the Ethiopian Bunna FC Fan Club platform.</p>
         </div>
       </div>
     </body>

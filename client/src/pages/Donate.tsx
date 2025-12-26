@@ -131,7 +131,7 @@ export default function Donate() {
           <div className="text-center mb-12">
             <h1 className="font-heading text-5xl font-bold text-primary mb-4">Make a Donation</h1>
             <p className="text-xl text-muted-foreground">
-              Your voluntary contributions help us improve facilities, youth academies, and community programs in Gondar.
+              Your voluntary contributions help us improve facilities, youth academies, and community programs in Addis Ababa.
             </p>
           </div>
 

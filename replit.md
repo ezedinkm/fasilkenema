@@ -1,8 +1,8 @@
-# Fasil Kenema Fan Club Platform
+# Ethiopian Bunna FC Fan Club Platform
 
 ## Overview
 
-This is a full-stack web application for the Fasil Kenema Football Club (The Emperors) fan community. The platform serves as the official fan club management system, enabling membership registration, payment processing, donation management, content publishing, and fan engagement through SMS communications. The application provides both a public-facing website for fans and an administrative dashboard for club management.
+This is a full-stack web application for the Ethiopian Coffee Sport Club (The Browns) fan community. The platform serves as the official fan club management system, enabling membership registration, payment processing, donation management, content publishing, and fan engagement through SMS communications. The application provides both a public-facing website for fans and an administrative dashboard for club management.
 
 ## User Preferences
 
@@ -80,6 +80,7 @@ Preferred communication style: Simple, everyday language.
 - Key-value settings storage using JSONB
 - Membership tier configuration stored as settings
 - Flexible configuration system for runtime adjustments
+- Admin dashboard allows editing header, footer, and home page content
 
 ### Authentication & Authorization
 

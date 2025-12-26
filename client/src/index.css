@@ -85,12 +85,12 @@
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 10%;
 
-  /* Fasil Kenema Red #E31E24 -> HSL ~358 80% 50% */
-  --primary: 358 76% 50%;
+  /* Ethiopian Bunna Maroon #722F37 -> HSL ~352 42% 32% */
+  --primary: 352 42% 32%;
   --primary-foreground: 0 0% 100%;
 
-  /* Gold/Yellow Accent #D4AF37 -> HSL ~46 65% 52% */
-  --secondary: 46 65% 52%;
+  /* Gold Accent #D4A017 -> HSL ~43 80% 46% */
+  --secondary: 43 80% 46%;
   --secondary-foreground: 0 0% 10%;
 
   --muted: 240 4.8% 95.9%;
@@ -104,11 +104,11 @@
 
   --border: 240 5.9% 90%;
   --input: 240 5.9% 90%;
-  --ring: 358 76% 50%;
+  --ring: 352 42% 32%;
 
-  --chart-1: 358 76% 50%;
-  --chart-2: 46 65% 52%;
-  --chart-3: 197 37% 24%;
+  --chart-1: 352 42% 32%;
+  --chart-2: 43 80% 46%;
+  --chart-3: 30 40% 30%;
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
 
@@ -191,10 +191,10 @@
   --popover: 240 10% 3.9%;
   --popover-foreground: 0 0% 98%;
 
-  --primary: 358 76% 50%;
+  --primary: 352 42% 38%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 46 65% 52%;
+  --secondary: 43 80% 46%;
   --secondary-foreground: 0 0% 10%;
 
   --muted: 240 3.7% 15.9%;
@@ -208,11 +208,11 @@
 
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --ring: 358 76% 50%;
+  --ring: 352 42% 38%;
 
-  --chart-1: 358 76% 50%;
-  --chart-2: 46 65% 52%;
-  --chart-3: 217 91% 60%;
+  --chart-1: 352 42% 38%;
+  --chart-2: 43 80% 46%;
+  --chart-3: 30 40% 35%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
   

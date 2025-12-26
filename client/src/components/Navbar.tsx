@@ -25,7 +25,8 @@ export default function Navbar() {
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'FASIL KENEMA',
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
+    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'THE BROWNS',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     favicon: Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.favicon')?.value : null,
   };
@@ -68,11 +69,10 @@ export default function Navbar() {
           <img src={brandingSettings.logo} alt="Logo" className="h-12 w-12 object-contain" />
           <div className="hidden md:flex flex-col">
             <span className="font-heading text-2xl leading-none text-primary">{brandingSettings.headerText}</span>
-            <span className="text-xs font-bold tracking-widest text-muted-foreground">THE EMPERORS</span>
+            <span className="text-xs font-bold tracking-widest text-muted-foreground">{brandingSettings.headerSubtext}</span>
           </div>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => (
             <Link 
@@ -89,7 +89,6 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Language Switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
@@ -111,7 +110,6 @@ export default function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Auth Buttons */}
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -122,7 +120,7 @@ export default function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href="/card/FK-2025-8832" className="cursor-pointer">My Digital Card</Link>
+                  <Link href="/card/EC-2025-8832" className="cursor-pointer">My Digital Card</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -136,7 +134,6 @@ export default function Navbar() {
             </Button>
           )}
 
-          {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">

@@ -4,8 +4,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Phone, Mail } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Contact() {
+  const { data: settings } = useQuery<any[]>({
+    queryKey: ['/api/settings'],
+    staleTime: Infinity,
+  });
+
+  const contactInfo = {
+    clubName: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.clubName')?.value : null) || 'Ethiopian Coffee Sport Club',
+    address1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.address1')?.value : null) || 'Near Addis Ababa Stadium',
+    address2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.address2')?.value : null) || 'Addis Ababa, Ethiopia',
+    phone1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone1')?.value : null) || '+251 11 555 1234',
+    phone2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone2')?.value : null) || '+251 11 555 5678',
+    email1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email1')?.value : null) || 'info@ethiopianbunna.com',
+    email2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email2')?.value : null) || 'press@ethiopianbunna.com',
+  };
+
   return (
     <PublicLayout>
       <div className="bg-zinc-50">
@@ -18,7 +34,6 @@ export default function Contact() {
 
         <div className="container px-4 py-16">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {/* Contact Info */}
             <div className="lg:col-span-1 space-y-6">
               <Card>
                 <CardHeader>
@@ -30,9 +45,9 @@ export default function Contact() {
                     <div>
                       <h4 className="font-bold mb-1">Headquarters</h4>
                       <p className="text-sm text-muted-foreground">
-                        Fasil Kenema Sport Club<br />
-                        Piasa Area, Near Fasil Ghebbi<br />
-                        Gondar, Ethiopia
+                        {contactInfo.clubName}<br />
+                        {contactInfo.address1}<br />
+                        {contactInfo.address2}
                       </p>
                     </div>
                   </div>
@@ -41,8 +56,8 @@ export default function Contact() {
                     <Phone className="h-6 w-6 text-primary shrink-0 mt-1" />
                     <div>
                       <h4 className="font-bold mb-1">Phone</h4>
-                      <p className="text-sm text-muted-foreground">+251 58 111 2222</p>
-                      <p className="text-sm text-muted-foreground">+251 58 111 3333</p>
+                      <p className="text-sm text-muted-foreground">{contactInfo.phone1}</p>
+                      <p className="text-sm text-muted-foreground">{contactInfo.phone2}</p>
                     </div>
                   </div>
 
@@ -50,15 +65,14 @@ export default function Contact() {
                     <Mail className="h-6 w-6 text-primary shrink-0 mt-1" />
                     <div>
                       <h4 className="font-bold mb-1">Email</h4>
-                      <p className="text-sm text-muted-foreground">info@fasilkenemasc.com</p>
-                      <p className="text-sm text-muted-foreground">press@fasilkenemasc.com</p>
+                      <p className="text-sm text-muted-foreground">{contactInfo.email1}</p>
+                      <p className="text-sm text-muted-foreground">{contactInfo.email2}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Contact Form */}
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
