@@ -330,8 +330,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/donate/success?trx_ref=${txRef}`,
         customization: {
-          title: 'Fasil Donation',
-          description: 'Support The Emperors'
+          title: 'Bunna FC Donation',
+          description: 'Support The Browns'
         }
       };
 
@@ -440,8 +440,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/membership/success?trx_ref=${txRef}`,
         customization: {
-          title: 'Fasil Member',
-          description: 'Membership Payment'
+          title: 'Bunna FC Membership',
+          description: 'Join The Browns'
         }
       };
 
