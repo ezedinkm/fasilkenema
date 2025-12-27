@@ -66,38 +66,44 @@ export default function DigitalCard() {
             Official Member Card
           </h1>
           
-          <div ref={cardRef} className="relative aspect-[1.586/1] w-full rounded-xl overflow-hidden shadow-2xl transform transition-transform hover:scale-[1.02] duration-300">
-            <div className="absolute inset-0 bg-gradient-to-br from-amber-900 via-amber-800 to-black">
-               <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+          <div 
+            ref={cardRef} 
+            className="relative aspect-[1.586/1] w-full rounded-xl overflow-hidden shadow-2xl transform transition-transform hover:scale-[1.02] duration-300"
+            style={{ backgroundColor: '#78350f' }}
+          >
+            <div 
+              className="absolute inset-0"
+              style={{ background: 'linear-gradient(to bottom right, #78350f, #92400e, #1a1a1a)' }}
+            >
             </div>
             
-            <div className="absolute inset-0 p-6 flex flex-col justify-between text-white">
+            <div className="absolute inset-0 p-6 flex flex-col justify-between" style={{ color: '#ffffff' }}>
               <div className="flex justify-between items-start">
-                <img src={ASSETS.logo} alt="Logo" className="h-16 w-16 object-contain drop-shadow-md" />
+                <img src={ASSETS.logo} alt="Logo" className="h-16 w-16 object-contain" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
                 <div className="text-right">
-                  <h2 className="font-heading text-2xl font-bold leading-none">{brandingSettings.headerText}</h2>
-                  <p className="text-xs opacity-80 tracking-widest uppercase">{brandingSettings.headerSubtext}</p>
+                  <h2 className="font-heading text-2xl font-bold leading-none" style={{ color: '#ffffff' }}>{brandingSettings.headerText}</h2>
+                  <p className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.8)' }}>{brandingSettings.headerSubtext}</p>
                 </div>
               </div>
               
               <div className="flex justify-between items-end mt-4">
                 <div>
-                  <p className="text-[10px] uppercase opacity-70 tracking-wider mb-1">Member Name</p>
-                  <p className="font-display text-xl tracking-wide uppercase">{member.firstName} {member.lastName}</p>
+                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Member Name</p>
+                  <p className="font-display text-xl tracking-wide uppercase" style={{ color: '#ffffff' }}>{member.firstName} {member.lastName}</p>
                   
                   <div className="flex gap-6 mt-4">
                     <div>
-                      <p className="text-[10px] uppercase opacity-70 tracking-wider mb-1">ID Number</p>
-                      <p className="font-mono text-sm">{member.membershipId}</p>
+                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>ID Number</p>
+                      <p className="font-mono text-sm" style={{ color: '#ffffff' }}>{member.membershipId}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase opacity-70 tracking-wider mb-1">Valid Thru</p>
-                      <p className="font-mono text-sm">{member.expiryDate}</p>
+                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Valid Thru</p>
+                      <p className="font-mono text-sm" style={{ color: '#ffffff' }}>{member.expiryDate}</p>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-white p-2 rounded">
+                <div className="p-2 rounded" style={{ backgroundColor: '#ffffff' }}>
                   <QRCode 
                     value={`https://ethiopianbunna.com/verify/${member.membershipId}`} 
                     size={80}
@@ -105,12 +111,15 @@ export default function DigitalCard() {
                 </div>
               </div>
               
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-10">
-                <img src={ASSETS.logo} className="w-64 h-64 grayscale invert" />
+              <div className="absolute top-1/2 left-1/2 pointer-events-none" style={{ transform: 'translate(-50%, -50%)', opacity: 0.1 }}>
+                <img src={ASSETS.logo} className="w-64 h-64" style={{ filter: 'grayscale(1) invert(1)' }} />
               </div>
               
-               <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-                 <span className="bg-yellow-500/90 text-black px-3 py-1 rounded text-xs font-bold uppercase tracking-widest shadow-sm border border-yellow-300/50">
+               <div className="absolute bottom-6 left-1/2" style={{ transform: 'translateX(-50%)' }}>
+                 <span 
+                   className="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest"
+                   style={{ backgroundColor: 'rgba(234, 179, 8, 0.9)', color: '#000000', border: '1px solid rgba(253, 224, 71, 0.5)' }}
+                 >
                    {member.tier} Member
                  </span>
                </div>
