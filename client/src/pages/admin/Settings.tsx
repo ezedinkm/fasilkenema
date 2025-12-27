@@ -72,7 +72,9 @@ export default function AdminSettings() {
   const [supportEmail, setSupportEmail] = useState('support@ethiopianbunna.com');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
-  // State for payment settings (only non-sensitive data)
+  // State for payment settings
+  const [chapaPublicKey, setChapaPublicKey] = useState('');
+  const [chapaSecretKey, setChapaSecretKey] = useState('');
   const [chapaWebhookUrl, setChapaWebhookUrl] = useState('');
   const [chapaSandboxMode, setChapaSandboxMode] = useState(true);
   const [chapaKeysConfigured, setChapaKeysConfigured] = useState(false);
@@ -155,13 +157,18 @@ export default function AdminSettings() {
       if (maintenanceModeSetting) setMaintenanceMode(maintenanceModeSetting.value === 'true' || maintenanceModeSetting.value === true);
 
       // Load payment settings
+      const chapaPublicKeySetting = settings.find((s: any) => s.key === 'payments.chapa.publicKey');
+      const chapaSecretKeySetting = settings.find((s: any) => s.key === 'payments.chapa.secretKey');
       const chapaWebhookSetting = settings.find((s: any) => s.key === 'payments.chapa.webhookUrl');
       const chapaSandboxSetting = settings.find((s: any) => s.key === 'payments.chapa.sandboxMode');
-      const chapaConfiguredSetting = settings.find((s: any) => s.key === 'payments.chapa.configured');
       
+      if (chapaPublicKeySetting) setChapaPublicKey(chapaPublicKeySetting.value);
+      if (chapaSecretKeySetting) setChapaSecretKey(chapaSecretKeySetting.value);
       if (chapaWebhookSetting) setChapaWebhookUrl(chapaWebhookSetting.value);
       if (chapaSandboxSetting) setChapaSandboxMode(chapaSandboxSetting.value === 'true' || chapaSandboxSetting.value === true);
-      if (chapaConfiguredSetting) setChapaKeysConfigured(chapaConfiguredSetting.value === 'true' || chapaConfiguredSetting.value === true);
+      
+      // Mark as configured if keys are present
+      setChapaKeysConfigured(!!(chapaPublicKeySetting?.value || chapaSecretKeySetting?.value));
     }
   }, [settings]);
 
@@ -443,7 +450,7 @@ export default function AdminSettings() {
 
   const handleSavePaymentSettings = async () => {
     try {
-      await Promise.all([
+      const promises = [
         saveBrandingMutation.mutateAsync({
           key: 'payments.chapa.webhookUrl',
           value: chapaWebhookUrl,
@@ -453,14 +460,27 @@ export default function AdminSettings() {
           key: 'payments.chapa.sandboxMode',
           value: chapaSandboxMode.toString(),
           description: 'Enable/disable Chapa sandbox mode'
-        }),
-        saveBrandingMutation.mutateAsync({
-          key: 'payments.chapa.configured',
-          value: 'true',
-          description: 'Indicates Chapa is configured'
         })
-      ]);
-      setChapaKeysConfigured(true);
+      ];
+      
+      if (chapaPublicKey) {
+        promises.push(saveBrandingMutation.mutateAsync({
+          key: 'payments.chapa.publicKey',
+          value: chapaPublicKey,
+          description: 'Chapa public key'
+        }));
+      }
+      
+      if (chapaSecretKey) {
+        promises.push(saveBrandingMutation.mutateAsync({
+          key: 'payments.chapa.secretKey',
+          value: chapaSecretKey,
+          description: 'Chapa secret key'
+        }));
+      }
+      
+      await Promise.all(promises);
+      setChapaKeysConfigured(!!(chapaPublicKey || chapaSecretKey));
       toast({ 
         title: "Payment Settings Saved", 
         description: "Your Chapa payment settings have been updated." 
@@ -1276,31 +1296,27 @@ export default function AdminSettings() {
                   
                   <div className="grid gap-2 ml-10">
                     <Label>Public Key</Label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        type="password" 
-                        value="••••••••••••••••••••" 
-                        readOnly 
-                        className="font-mono bg-zinc-50" 
-                        data-testid="input-chapa-public-key"
-                      />
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">Set in Secrets</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Manage via CHAPA_PUBLIC_KEY in Replit Secrets</p>
+                    <Input 
+                      type="text" 
+                      value={chapaPublicKey}
+                      onChange={(e) => setChapaPublicKey(e.target.value)}
+                      placeholder="CHAPUBK-xxxxxxxxxxxxxxxx"
+                      className="font-mono" 
+                      data-testid="input-chapa-public-key"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter your Chapa public key from your dashboard</p>
                   </div>
                   <div className="grid gap-2 ml-10">
                     <Label>Secret Key</Label>
-                    <div className="flex items-center gap-2">
-                      <Input 
-                        type="password" 
-                        value="••••••••••••••••••••" 
-                        readOnly 
-                        className="font-mono bg-zinc-50" 
-                        data-testid="input-chapa-secret-key"
-                      />
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">Set in Secrets</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Manage via CHAPA_SECRET_KEY in Replit Secrets</p>
+                    <Input 
+                      type="password" 
+                      value={chapaSecretKey}
+                      onChange={(e) => setChapaSecretKey(e.target.value)}
+                      placeholder="CHASECK-xxxxxxxxxxxxxxxx"
+                      className="font-mono" 
+                      data-testid="input-chapa-secret-key"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter your Chapa secret key from your dashboard</p>
                   </div>
                   <div className="grid gap-2 ml-10">
                     <Label>Webhook URL</Label>

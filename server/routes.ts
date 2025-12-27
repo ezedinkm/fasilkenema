@@ -10,6 +10,19 @@ import { sendPaymentNotificationEmail } from "./email";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
+async function getChapaSecretKey(): Promise<string> {
+  // First check environment variable
+  if (process.env.CHAPA_SECRET_KEY) {
+    return process.env.CHAPA_SECRET_KEY;
+  }
+  // Fall back to settings database
+  const setting = await storage.getSettingByKey('payments.chapa.secretKey');
+  if (setting?.value) {
+    return parseSettingValue(setting.value) as string;
+  }
+  return '';
+}
+
 function parseSettingValue(value: any): any {
   if (value === null || value === undefined) return value;
   if (typeof value === 'string') {
@@ -335,10 +348,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
+      const chapaSecretKey = await getChapaSecretKey();
+      if (!chapaSecretKey) {
+        await storage.updateDonationStatus(donation.id, 'failed');
+        return res.status(500).json({ error: 'Chapa secret key not configured' });
+      }
+
       const chapaResponse = await fetch('https://api.chapa.co/v1/transaction/initialize', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+          'Authorization': `Bearer ${chapaSecretKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(chapaPayload)
@@ -445,10 +464,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
+      const membershipChapaKey = await getChapaSecretKey();
+      if (!membershipChapaKey) {
+        await storage.updateGenericPaymentStatus(payment.id, 'failed');
+        await storage.deletePendingMemberApplication(txRef);
+        return res.status(500).json({ error: 'Chapa secret key not configured' });
+      }
+
       const chapaResponse = await fetch('https://api.chapa.co/v1/transaction/initialize', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`,
+          'Authorization': `Bearer ${membershipChapaKey}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(chapaPayload)
@@ -492,10 +518,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { trx_ref, status } = req.body;
       
       if (status === 'success') {
+        const callbackChapaKey = await getChapaSecretKey();
         const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${trx_ref}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+            'Authorization': `Bearer ${callbackChapaKey}`
           }
         });
 
@@ -541,10 +568,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const memberVerifyChapaKey = await getChapaSecretKey();
       const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${txRef}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+          'Authorization': `Bearer ${memberVerifyChapaKey}`
         }
       });
 
@@ -628,10 +656,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Donation not found' });
       }
 
+      const donationVerifyChapaKey = await getChapaSecretKey();
       const verifyResponse = await fetch(`https://api.chapa.co/v1/transaction/verify/${txRef}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.CHAPA_SECRET_KEY}`
+          'Authorization': `Bearer ${donationVerifyChapaKey}`
         }
       });
 
