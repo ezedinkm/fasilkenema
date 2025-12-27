@@ -67,10 +67,15 @@ export default function AdminSettings() {
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME);
   
   // State for general settings
-  const [siteName, setSiteName] = useState('Fasil Kenema Fan Club');
-  const [siteUrl, setSiteUrl] = useState('https://fasilkenema.com');
-  const [supportEmail, setSupportEmail] = useState('support@fasilkenema.com');
+  const [siteName, setSiteName] = useState('Ethiopian Bunna FC Fan Club');
+  const [siteUrl, setSiteUrl] = useState('https://ethiopianbunna.com');
+  const [supportEmail, setSupportEmail] = useState('support@ethiopianbunna.com');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  // State for payment settings (only non-sensitive data)
+  const [chapaWebhookUrl, setChapaWebhookUrl] = useState('');
+  const [chapaSandboxMode, setChapaSandboxMode] = useState(true);
+  const [chapaKeysConfigured, setChapaKeysConfigured] = useState(false);
   
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
     queryKey: ['/api/settings'],
@@ -148,6 +153,15 @@ export default function AdminSettings() {
       if (siteUrlSetting) setSiteUrl(siteUrlSetting.value);
       if (supportEmailSetting) setSupportEmail(supportEmailSetting.value);
       if (maintenanceModeSetting) setMaintenanceMode(maintenanceModeSetting.value === 'true' || maintenanceModeSetting.value === true);
+
+      // Load payment settings
+      const chapaWebhookSetting = settings.find((s: any) => s.key === 'payments.chapa.webhookUrl');
+      const chapaSandboxSetting = settings.find((s: any) => s.key === 'payments.chapa.sandboxMode');
+      const chapaConfiguredSetting = settings.find((s: any) => s.key === 'payments.chapa.configured');
+      
+      if (chapaWebhookSetting) setChapaWebhookUrl(chapaWebhookSetting.value);
+      if (chapaSandboxSetting) setChapaSandboxMode(chapaSandboxSetting.value === 'true' || chapaSandboxSetting.value === true);
+      if (chapaConfiguredSetting) setChapaKeysConfigured(chapaConfiguredSetting.value === 'true' || chapaConfiguredSetting.value === true);
     }
   }, [settings]);
 
@@ -422,6 +436,39 @@ export default function AdminSettings() {
       toast({
         title: "Error",
         description: "Failed to save notification settings",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSavePaymentSettings = async () => {
+    try {
+      await Promise.all([
+        saveBrandingMutation.mutateAsync({
+          key: 'payments.chapa.webhookUrl',
+          value: chapaWebhookUrl,
+          description: 'Chapa webhook URL for payment callbacks'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'payments.chapa.sandboxMode',
+          value: chapaSandboxMode.toString(),
+          description: 'Enable/disable Chapa sandbox mode'
+        }),
+        saveBrandingMutation.mutateAsync({
+          key: 'payments.chapa.configured',
+          value: 'true',
+          description: 'Indicates Chapa is configured'
+        })
+      ]);
+      setChapaKeysConfigured(true);
+      toast({ 
+        title: "Payment Settings Saved", 
+        description: "Your Chapa payment settings have been updated." 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save payment settings",
         variant: "destructive"
       });
     }
@@ -1180,7 +1227,7 @@ export default function AdminSettings() {
                 <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 space-y-2">
                   <h4 className="font-semibold text-sm">Email Notification Preview</h4>
                   <p className="text-sm text-muted-foreground">
-                    Subject: "New Donation Payment - Fasil Kenema Fan Club"
+                    Subject: "New Donation Payment - Ethiopian Bunna FC Fan Club"
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Emails include payment details and current total revenue.
@@ -1222,20 +1269,59 @@ export default function AdminSettings() {
                         <p className="text-xs text-muted-foreground">Primary gateway for ETB/USD</p>
                       </div>
                     </div>
-                    <Badge className="bg-green-500">Active</Badge>
+                    <Badge className={chapaKeysConfigured ? "bg-green-500" : "bg-yellow-500"}>
+                      {chapaKeysConfigured ? "Active" : "Not Configured"}
+                    </Badge>
                   </div>
                   
                   <div className="grid gap-2 ml-10">
                     <Label>Public Key</Label>
-                    <Input type="password" value="CHAPAPUBK-xxxxxxxxxxxxxxxx" readOnly className="font-mono bg-zinc-50" />
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="password" 
+                        value="••••••••••••••••••••" 
+                        readOnly 
+                        className="font-mono bg-zinc-50" 
+                        data-testid="input-chapa-public-key"
+                      />
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">Set in Secrets</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Manage via CHAPA_PUBLIC_KEY in Replit Secrets</p>
                   </div>
                   <div className="grid gap-2 ml-10">
                     <Label>Secret Key</Label>
-                    <Input type="password" value="CHAPASECK-xxxxxxxxxxxxxxxx" readOnly className="font-mono bg-zinc-50" />
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        type="password" 
+                        value="••••••••••••••••••••" 
+                        readOnly 
+                        className="font-mono bg-zinc-50" 
+                        data-testid="input-chapa-secret-key"
+                      />
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">Set in Secrets</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Manage via CHAPA_SECRET_KEY in Replit Secrets</p>
+                  </div>
+                  <div className="grid gap-2 ml-10">
+                    <Label>Webhook URL</Label>
+                    <Input 
+                      type="text" 
+                      value={chapaWebhookUrl}
+                      onChange={(e) => setChapaWebhookUrl(e.target.value)}
+                      placeholder="https://yoursite.com/api/chapa/callback"
+                      className="font-mono" 
+                      data-testid="input-chapa-webhook-url"
+                    />
+                    <p className="text-xs text-muted-foreground">Enter this URL in your Chapa dashboard webhook settings</p>
                   </div>
                   
                   <div className="ml-10 flex items-center gap-2">
-                    <Switch id="sandbox" defaultChecked />
+                    <Switch 
+                      id="sandbox" 
+                      checked={chapaSandboxMode}
+                      onCheckedChange={setChapaSandboxMode}
+                      data-testid="switch-chapa-sandbox"
+                    />
                     <Label htmlFor="sandbox">Sandbox Mode</Label>
                   </div>
                 </div>
@@ -1248,13 +1334,22 @@ export default function AdminSettings() {
                       <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">PP</div>
                       <div>
                         <h4 className="font-bold">PayPal</h4>
-                        <p className="text-xs text-muted-foreground">International donations</p>
+                        <p className="text-xs text-muted-foreground">International donations (Coming Soon)</p>
                       </div>
                     </div>
                     <Switch disabled />
                   </div>
                 </div>
               </CardContent>
+              <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={handleSavePaymentSettings}
+                  data-testid="button-save-payments"
+                >
+                  <Save className="mr-2 h-4 w-4" /> Save Payment Settings
+                </Button>
+              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>
