@@ -1,12 +1,11 @@
 import logoImg from '@assets/generated_images/ethiopian_bunna_fc_logo.png';
 import heroImg from '@assets/generated_images/maroon_brown_stadium_atmosphere.png';
-import news1Img from '@assets/generated_images/football_players_celebrating.png';
-import news2Img from '@assets/generated_images/coach_on_sidelines.png';
-import stadiumFansImg from '@assets/generated_images/ethiopian_football_stadium_fans.png';
-import teamCelebrationImg from '@assets/generated_images/ethiopian_football_team_celebration.png';
-import playerAutographsImg from '@assets/generated_images/ethiopian_player_signing_autographs.png';
-import trainingSessionImg from '@assets/generated_images/ethiopian_football_training_session.png';
-import trophyCelebrationImg from '@assets/generated_images/ethiopian_football_trophy_celebration.png';
+import teamCelebrationImg from '@assets/generated_images/bunna_fc_goal_celebration.png';
+import coachSidelinesImg from '@assets/generated_images/bunna_fc_coach_sidelines.png';
+import stadiumFansImg from '@assets/generated_images/bunna_fc_stadium_fans.png';
+import trophyCelebrationImg from '@assets/generated_images/bunna_fc_trophy_celebration.png';
+import playerAutographsImg from '@assets/generated_images/bunna_fc_player_autographs.png';
+import trainingSessionImg from '@assets/generated_images/bunna_fc_training_session.png';
 
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
