@@ -46,14 +46,14 @@ export default function DigitalCard() {
     pdf.save(`membership-card-${MOCK_MEMBER.membershipId}.pdf`);
   };
   
-  const { data: settings } = useQuery<any[]>({
-    queryKey: ['/api/settings'],
+  const { data: branding } = useQuery<any[]>({
+    queryKey: ['/api/public/branding'],
     staleTime: Infinity,
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
-    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'Sport Club',
+    headerText: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
+    headerSubtext: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
   };
   
   const member = MOCK_MEMBER;
