@@ -85,13 +85,13 @@
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 10%;
 
-  /* Ethiopian Bunna Maroon #722F37 -> HSL ~352 42% 32% */
-  --primary: 352 42% 32%;
-  --primary-foreground: 0 0% 100%;
+  /* St George Yellow #FFD700 -> HSL ~51 100% 50% */
+  --primary: 51 100% 50%;
+  --primary-foreground: 0 0% 10%;
 
-  /* Gold Accent #D4A017 -> HSL ~43 80% 46% */
-  --secondary: 43 80% 46%;
-  --secondary-foreground: 0 0% 10%;
+  /* St George Red #DC143C -> HSL ~348 83% 47% */
+  --secondary: 348 83% 47%;
+  --secondary-foreground: 0 0% 100%;
 
   --muted: 240 4.8% 95.9%;
   --muted-foreground: 240 3.8% 46.1%;
@@ -104,13 +104,13 @@
 
   --border: 240 5.9% 90%;
   --input: 240 5.9% 90%;
-  --ring: 352 42% 32%;
+  --ring: 51 100% 50%;
 
-  --chart-1: 352 42% 32%;
-  --chart-2: 43 80% 46%;
+  --chart-1: 51 100% 50%;
+  --chart-2: 348 83% 47%;
   --chart-3: 30 40% 30%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  --chart-4: 51 90% 70%;
+  --chart-5: 348 70% 60%;
 
   --sidebar: 0 0% 98%;
   --sidebar-foreground: 240 5.3% 26.1%;
@@ -191,11 +191,11 @@
   --popover: 240 10% 3.9%;
   --popover-foreground: 0 0% 98%;
 
-  --primary: 352 42% 38%;
-  --primary-foreground: 0 0% 100%;
+  --primary: 51 100% 50%;
+  --primary-foreground: 0 0% 10%;
 
-  --secondary: 43 80% 46%;
-  --secondary-foreground: 0 0% 10%;
+  --secondary: 348 83% 47%;
+  --secondary-foreground: 0 0% 100%;
 
   --muted: 240 3.7% 15.9%;
   --muted-foreground: 240 5% 64.9%;
@@ -208,13 +208,13 @@
 
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
-  --ring: 352 42% 38%;
+  --ring: 51 100% 50%;
 
-  --chart-1: 352 42% 38%;
-  --chart-2: 43 80% 46%;
+  --chart-1: 51 100% 50%;
+  --chart-2: 348 83% 47%;
   --chart-3: 30 40% 35%;
-  --chart-4: 280 65% 60%;
-  --chart-5: 340 75% 55%;
+  --chart-4: 51 90% 70%;
+  --chart-5: 348 70% 60%;
   
   --sidebar: 240 5.9% 10%;
   --sidebar-foreground: 240 4.8% 95.9%;

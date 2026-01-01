@@ -1,12 +1,3 @@
-import logoImg from '@assets/generated_images/ethiopian_bunna_fc_logo.png';
-import heroImg from '@assets/generated_images/maroon_brown_stadium_atmosphere.png';
-import teamCelebrationImg from '@assets/generated_images/bunna_fc_goal_celebration.png';
-import coachSidelinesImg from '@assets/generated_images/bunna_fc_coach_sidelines.png';
-import stadiumFansImg from '@assets/generated_images/bunna_fc_stadium_fans.png';
-import trophyCelebrationImg from '@assets/generated_images/bunna_fc_trophy_celebration.png';
-import playerAutographsImg from '@assets/generated_images/bunna_fc_player_autographs.png';
-import trainingSessionImg from '@assets/generated_images/bunna_fc_training_session.png';
-
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'am', label: 'አማርኛ', flag: '🇪🇹' },
@@ -29,7 +20,7 @@ export const MEMBERSHIP_TIERS = [
     name: 'Premium',
     price: { etb: 1500, usd: 45 },
     benefits: ['All Regular Benefits', 'Priority Ticket Booking', '10% Store Discount', 'Vote on Club Matters'],
-    color: 'bg-primary text-white',
+    color: 'bg-primary text-black',
     recommended: true,
   },
   {
@@ -37,7 +28,7 @@ export const MEMBERSHIP_TIERS = [
     name: 'VIP',
     price: { etb: 5000, usd: 150 },
     benefits: ['All Premium Benefits', 'VIP Stadium Seating', 'Meet & Greet Players', 'Exclusive Merchandise'],
-    color: 'bg-yellow-500 text-black',
+    color: 'bg-secondary text-white',
     recommended: false,
   },
 ];
@@ -45,69 +36,69 @@ export const MEMBERSHIP_TIERS = [
 export const NEWS_POSTS = [
   {
     id: 1,
-    slug: 'sheger-derby-victory',
-    title: 'ቡናማዎቹ በሸገር ደርቢ 3-1 አሸናፊ! | The Browns Dominate Sheger Derby',
-    excerpt: 'Ethiopian Coffee secured a historic victory at Addis Ababa Stadium against fierce rivals Saint George. ኢትዮጵያ ቡና በአዲስ አበባ ስታዲየም ታሪካዊ ድል አስመዘገበ።',
+    slug: 'addis-derby-victory',
+    title: 'ቅዱስ ጊዮርጊስ በአዲስ ደርቢ 2-0 አሸናፊ! | St George Dominates Addis Derby',
+    excerpt: 'Saint George secured another historic derby victory at Addis Ababa Stadium. ቅዱስ ጊዮርጊስ በታላቁ የአዲስ ደርቢ ተጨዋቾች ታሪካዊ ድል አስመዘገበ።',
     date: '2025-12-05',
-    image: teamCelebrationImg,
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80',
     category: 'ግጥሚያ | Match Report',
   },
   {
     id: 2,
-    slug: 'ethiopian-premier-league-top',
-    title: 'Ethiopian Coffee Leads Premier League Table',
-    excerpt: 'With 8 consecutive wins, The Browns sit proudly at the top of the Betking Ethiopian Premier League, bringing glory to their passionate coffee-loving fans.',
+    slug: 'premier-league-champions',
+    title: 'St George Crowned 2025 Premier League Champions',
+    excerpt: 'The Horsemen clinch their 16th Ethiopian Premier League title, further cementing their legacy as the most successful club in Ethiopian football history.',
     date: '2025-12-03',
-    image: stadiumFansImg,
+    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80',
     category: 'ሊግ | League News',
   },
   {
     id: 3,
-    slug: 'community-youth-program',
-    title: 'ቡናማዎቹ ለወጣቶች | Browns Youth Academy Expands',
-    excerpt: 'Ethiopian Coffee launches new youth development centers across Addis Ababa, nurturing the next generation of Ethiopian football talent. ለወጣቶች የእግር ኳስ ስልጠና ማዕከል ተከፈተ።',
+    slug: 'youth-academy-expansion',
+    title: 'ቅዱስ ጊዮርጊስ አካዳሚ | Saint George Youth Academy Grows',
+    excerpt: 'The Yidnekachew Tessema Youth Academy in Bishoftu continues to develop Ethiopia\'s next generation of football stars. ለወጣቶች የእግር ኳስ ስልጠና ማዕከል ተስፋፋ።',
     date: '2025-11-28',
-    image: playerAutographsImg,
+    image: 'https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&q=80',
     category: 'ማህበረሰብ | Community',
   },
   {
     id: 4,
     slug: 'pre-season-training-camp',
-    title: 'The Browns Complete Intensive Pre-Season Camp',
-    excerpt: 'The squad returns fit and ready after a successful training camp, focusing on fitness, tactics, and team bonding ahead of the new season.',
+    title: 'The Horsemen Complete Intensive Pre-Season Camp',
+    excerpt: 'Saint George squad returns fit and ready after a successful training camp, focusing on fitness, tactics, and team bonding ahead of the new season.',
     date: '2025-11-20',
-    image: trainingSessionImg,
+    image: 'https://images.unsplash.com/photo-1526232761682-d26e03ac148e?w=800&q=80',
     category: 'ስልጠና | Training',
   },
   {
     id: 5,
-    slug: 'ethiopian-cup-champions',
-    title: 'ኢትዮጵያ ቡና የኢትዮጵያ ዋንጫ ሻምፒዮን! | Ethiopian Cup Champions 2025',
-    excerpt: 'Historic moment at Addis Ababa Stadium as Ethiopian Coffee lifts the Ethiopian Cup trophy! Captain hoists the cup as thousands of fans celebrate.',
+    slug: 'ethiopian-cup-champions-2025',
+    title: 'ቅዱስ ጊዮርጊስ የኢትዮጵያ ዋንጫ ሻምፒዮን! | Ethiopian Cup Champions 2025',
+    excerpt: 'Historic 8th Ethiopian Cup victory! Captain lifts the trophy as thousands of passionate fans celebrate at Addis Ababa Stadium.',
     date: '2025-11-15',
-    image: trophyCelebrationImg,
+    image: 'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=800&q=80',
     category: 'ዋንጫ | Trophy',
   },
   {
     id: 6,
-    slug: 'stadium-renovation-announcement',
-    title: 'Addis Ababa Stadium Renovation Project Announced',
-    excerpt: 'Major upgrades coming to our beloved home ground! The historic Addis Ababa Stadium will receive modern facilities while preserving its connection to Ethiopian football heritage.',
+    slug: 'new-stadium-construction',
+    title: 'New St George Stadium Construction Update',
+    excerpt: 'The 312 million Birr stadium project funded by Sheikh Hussein Ali Alamuddin and supporters is progressing on schedule. A new home for The Horsemen!',
     date: '2025-11-10',
-    image: heroImg,
+    image: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=800&q=80',
     category: 'ክለብ | Club News',
   },
 ];
 
 export const ASSETS = {
-  logo: logoImg,
-  hero: heroImg,
+  logo: 'https://upload.wikimedia.org/wikipedia/en/5/5d/Saint_George_S.C._logo.png',
+  hero: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80',
 };
 
 export const MOCK_MEMBER = {
-  firstName: 'Abebe',
-  lastName: 'Kebede',
-  membershipId: 'EC-2025-8832',
+  firstName: 'Dawit',
+  lastName: 'Tadesse',
+  membershipId: 'SG-2025-1935',
   tier: 'PREMIUM',
   status: 'ACTIVE',
   expiryDate: '2026-05-21',
