@@ -36,7 +36,7 @@ async function getCredentials(): Promise<{ apiKey: string; fromEmail: string }> 
   
   return {
     apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email || 'noreply@ethiopianbunna.com'
+    fromEmail: connectionSettings.settings.from_email || 'noreply@stgeorgefc.com'
   };
 }
 
@@ -93,7 +93,7 @@ export async function sendPaymentNotificationEmail(
 ): Promise<SendEmailResult> {
   const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
   
-  const subject = `New ${typeLabel} Payment - Ethiopian Bunna FC Fan Club`;
+  const subject = `New ${typeLabel} Payment - St George FC Fan Club`;
   
   const htmlContent = `
     <!DOCTYPE html>
@@ -112,8 +112,8 @@ export async function sendPaymentNotificationEmail(
     <body>
       <div class="container">
         <div class="header">
-          <h1>Ethiopian Bunna FC Fan Club</h1>
-          <p>The Browns</p>
+          <h1>St George FC Fan Club</h1>
+          <p>The Horsemen</p>
         </div>
         <div class="content">
           <h2>New ${typeLabel} Payment Received!</h2>
@@ -128,7 +128,7 @@ export async function sendPaymentNotificationEmail(
           </div>
         </div>
         <div class="footer">
-          <p>This is an automated notification from the Ethiopian Bunna FC Fan Club platform.</p>
+          <p>This is an automated notification from the St George FC Fan Club platform.</p>
         </div>
       </div>
     </body>

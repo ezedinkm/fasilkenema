@@ -52,7 +52,7 @@ export default function DigitalCard() {
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
+    headerText: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ST GEORGE',
     headerSubtext: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
   };
   
@@ -105,7 +105,7 @@ export default function DigitalCard() {
                 
                 <div className="p-2 rounded" style={{ backgroundColor: '#ffffff' }}>
                   <QRCode 
-                    value={`https://ethiopianbunna.com/verify/${member.membershipId}`} 
+                    value={`https://stgeorgefc.com/verify/${member.membershipId}`} 
                     size={80}
                   />
                 </div>

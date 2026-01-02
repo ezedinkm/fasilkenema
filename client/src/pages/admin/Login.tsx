@@ -95,7 +95,7 @@ export default function AdminLogin() {
           </form>
         </CardContent>
         <CardFooter className="text-center text-xs text-zinc-500 justify-center">
-          Authorized Personnel Only • Ethiopian Bunna FC
+          Authorized Personnel Only • St George FC
         </CardFooter>
       </Card>
     </div>
