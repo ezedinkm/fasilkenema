@@ -75,28 +75,16 @@ export default function Navbar() {
 
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
           {navLinks.map((link) => (
-            link.external ? (
-              <a 
-                key={link.href} 
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-primary uppercase tracking-wide text-foreground/80"
-              >
-                {link.label}
-              </a>
-            ) : (
-              <Link 
-                key={link.href} 
-                href={link.href}
-                className={cn(
-                  "transition-colors hover:text-primary uppercase tracking-wide",
-                  location === link.href ? "text-primary font-bold" : "text-foreground/80"
-                )}
-              >
-                {link.label}
-              </Link>
-            )
+            <Link 
+              key={link.href} 
+              href={link.href}
+              className={cn(
+                "transition-colors hover:text-primary uppercase tracking-wide",
+                location === link.href ? "text-primary font-bold" : "text-foreground/80"
+              )}
+            >
+              {link.label}
+            </Link>
           ))}
         </nav>
 
@@ -161,30 +149,17 @@ export default function Navbar() {
                 </Link>
                 <nav className="flex flex-col gap-4">
                   {navLinks.map((link) => (
-                    link.external ? (
-                      <a 
-                        key={link.href} 
-                        href={link.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-lg font-medium transition-colors hover:text-primary uppercase text-foreground/80"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {link.label}
-                      </a>
-                    ) : (
-                      <Link 
-                        key={link.href} 
-                        href={link.href}
-                        className={cn(
-                          "text-lg font-medium transition-colors hover:text-primary uppercase",
-                          location === link.href ? "text-primary" : "text-foreground/80"
-                        )}
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {link.label}
-                      </Link>
-                    )
+                    <Link 
+                      key={link.href} 
+                      href={link.href}
+                      className={cn(
+                        "text-lg font-medium transition-colors hover:text-primary uppercase",
+                        location === link.href ? "text-primary" : "text-foreground/80"
+                      )}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      {link.label}
+                    </Link>
                   ))}
                 </nav>
                 {!user && (

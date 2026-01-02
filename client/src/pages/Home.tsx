@@ -3,7 +3,7 @@ import Hero from '@/components/Hero';
 import NewsCard from '@/components/NewsCard';
 import { NEWS_POSTS } from '@/lib/mockData';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Trophy, Users, Heart, Award } from 'lucide-react';
+import { ArrowRight, Trophy, Users, Award, ShoppingBag } from 'lucide-react';
 import { Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 
@@ -79,6 +79,25 @@ export default function Home() {
                 <span className="text-5xl font-heading font-bold mb-2">{homeContent.stat3Value}</span>
                 <span className="text-sm uppercase tracking-widest opacity-80">{homeContent.stat3Label}</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-16 bg-secondary text-white relative overflow-hidden">
+          <div className="container px-4 relative z-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="flex items-center gap-6">
+                <ShoppingBag className="h-16 w-16 text-primary" />
+                <div>
+                  <h2 className="font-heading text-3xl md:text-4xl font-bold mb-2">Shop Our Merchandise</h2>
+                  <p className="text-lg opacity-90">Show your support with official St George gear and apparel!</p>
+                </div>
+              </div>
+              <a href="https://tinamart.com/products?banner_id=20" target="_blank" rel="noopener noreferrer">
+                <Button size="lg" className="bg-primary text-black hover:bg-primary/90 font-display uppercase tracking-wider h-14 px-8 text-lg">
+                  Shop Now <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </a>
             </div>
           </div>
         </section>
