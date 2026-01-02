@@ -305,6 +305,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
+      // Trim and validate email
+      const cleanEmail = String(email).trim().toLowerCase();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(cleanEmail)) {
+        return res.status(400).json({ error: 'Invalid email address format' });
+      }
+
+      // Trim other fields
+      const cleanFirstName = String(firstName).trim();
+      const cleanLastName = String(lastName).trim();
+      const cleanPhone = phone ? String(phone).trim() : '';
+
       const amountNum = Number(amount);
       if (isNaN(amountNum) || amountNum <= 0 || !Number.isInteger(amountNum)) {
         return res.status(400).json({ error: 'Invalid amount - must be a positive whole number' });
@@ -315,8 +327,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const donationData = {
         transactionId: txRef,
-        donorName: `${firstName} ${lastName}`,
-        donorEmail: email,
+        donorName: `${cleanFirstName} ${cleanLastName}`,
+        donorEmail: cleanEmail,
         amount: amountNum,
         currency: donationCurrency,
         isAnonymous: isAnonymous || false,
@@ -335,10 +347,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: donationCurrency,
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phone,
+        email: cleanEmail,
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
+        phone_number: cleanPhone,
         tx_ref: txRef,
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/donate/success?trx_ref=${txRef}`,
@@ -347,6 +359,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: 'Support The Horsemen'
         }
       };
+      
+      console.log('Chapa payload:', JSON.stringify(chapaPayload, null, 2));
 
       const chapaSecretKey = await getChapaSecretKey();
       if (!chapaSecretKey) {
