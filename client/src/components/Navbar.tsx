@@ -58,7 +58,6 @@ export default function Navbar() {
     { href: '/membership', label: t('nav.membership') },
     { href: '/donate', label: t('nav.donate') },
     { href: '/contact', label: t('nav.contact') },
-    { href: 'http://saintgeorgefc.com/', label: 'Official Site', external: true },
   ];
 
   const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
