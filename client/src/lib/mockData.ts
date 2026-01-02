@@ -1,3 +1,5 @@
+import stGeorgeLogo from '@assets/st_george_logo.png';
+
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'am', label: 'አማርኛ', flag: '🇪🇹' },
@@ -91,7 +93,7 @@ export const NEWS_POSTS = [
 ];
 
 export const ASSETS = {
-  logo: 'https://upload.wikimedia.org/wikipedia/en/5/5d/Saint_George_S.C._logo.png',
+  logo: stGeorgeLogo,
   hero: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80',
 };
 
