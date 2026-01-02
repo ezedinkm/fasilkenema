@@ -82,16 +82,26 @@ export default function Donate() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
       const paymentData = {
         amount: amountNum,
         currency: 'ETB',
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
-        phone: phone,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
         isAnonymous: isAnonymous,
       };
 
