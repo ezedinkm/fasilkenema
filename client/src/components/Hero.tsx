@@ -36,7 +36,7 @@ export default function Hero() {
           
           <div className="flex flex-col sm:flex-row gap-4">
             <Link href="/membership">
-              <Button size="lg" className="h-14 px-8 text-lg font-display uppercase tracking-wider bg-primary hover:bg-primary/90 text-white rounded-none border-2 border-transparent hover:border-primary hover:bg-transparent hover:text-primary transition-all duration-300">
+              <Button size="lg" className="h-14 px-8 text-lg font-display uppercase tracking-wider bg-primary hover:bg-primary/90 text-black rounded-none border-2 border-transparent hover:border-primary hover:bg-transparent hover:text-primary transition-all duration-300">
                 {t('hero.cta')}
               </Button>
             </Link>

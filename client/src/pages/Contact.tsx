@@ -13,20 +13,20 @@ export default function Contact() {
   });
 
   const contactInfo = {
-    clubName: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.clubName')?.value : null) || 'Ethiopian Coffee Sport Club',
-    address1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.address1')?.value : null) || 'Near Addis Ababa Stadium',
+    clubName: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.clubName')?.value : null) || 'Saint George Sport Association',
+    address1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.address1')?.value : null) || 'P.O. Box 737, Near Addis Ababa Stadium',
     address2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.address2')?.value : null) || 'Addis Ababa, Ethiopia',
-    phone1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone1')?.value : null) || '+251 11 555 1234',
-    phone2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone2')?.value : null) || '+251 11 555 5678',
-    email1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email1')?.value : null) || 'info@ethiopianbunna.com',
-    email2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email2')?.value : null) || 'press@ethiopianbunna.com',
+    phone1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone1')?.value : null) || '+251 114 663679',
+    phone2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.phone2')?.value : null) || '+251 114 168317',
+    email1: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email1')?.value : null) || 'info@stgeorgefc.com',
+    email2: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'contact.email2')?.value : null) || 'press@stgeorgefc.com',
   };
 
   return (
     <PublicLayout>
       <div className="bg-zinc-50">
         <div className="bg-primary py-12">
-          <div className="container px-4 text-center text-white">
+          <div className="container px-4 text-center text-black">
             <h1 className="font-heading text-5xl font-bold mb-4">Get In Touch</h1>
             <p className="text-xl opacity-90">We want to hear from you.</p>
           </div>

@@ -25,8 +25,8 @@ export default function Navbar() {
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ETHIOPIAN BUNNA',
-    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'THE BROWNS',
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ST GEORGE FC',
+    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'THE HORSEMEN',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     favicon: Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.favicon')?.value : null,
   };
@@ -58,7 +58,7 @@ export default function Navbar() {
     { href: '/membership', label: t('nav.membership') },
     { href: '/donate', label: t('nav.donate') },
     { href: '/contact', label: t('nav.contact') },
-    { href: 'https://tinamart.com/', label: 'Shop with Us', external: true },
+    { href: 'http://saintgeorgefc.com/', label: 'Official Site', external: true },
   ];
 
   const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
@@ -133,7 +133,7 @@ export default function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <Link href="/card/EC-2025-8832" className="cursor-pointer">My Digital Card</Link>
+                  <Link href="/card/SG-2025-1935" className="cursor-pointer">My Digital Card</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
