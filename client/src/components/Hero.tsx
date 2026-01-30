@@ -23,20 +23,20 @@ export default function Hero() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="max-w-3xl"
         >
-          <span className="inline-block py-1 px-3 mb-4 rounded bg-primary/90 text-black text-xs font-bold tracking-widest uppercase border border-primary-foreground/20">
-            Est. 1935
+          <span className="inline-block py-1 px-3 mb-4 rounded bg-primary/90 text-white text-xs font-bold tracking-widest uppercase border border-primary-foreground/20">
+            Mechal Sport Club
           </span>
           <h1 className="font-heading text-6xl md:text-8xl lg:text-9xl font-bold text-white leading-[0.85] mb-6 uppercase tracking-tighter">
             We Are <br />
-            <span className="text-primary drop-shadow-lg">The Horsemen</span>
+            <span className="text-primary drop-shadow-lg">Mechal FC</span>
           </h1>
           <p className="text-lg md:text-2xl text-gray-200 mb-8 max-w-2xl font-light border-l-4 border-primary pl-6">
-            Ethiopia's most decorated club. Join the official Saint George FC fan community and be part of 90 years of glory.
+            Join the official Mechal FC fan community and be part of Ethiopian football excellence.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
             <Link href="/membership">
-              <Button size="lg" className="h-14 px-8 text-lg font-display uppercase tracking-wider bg-primary hover:bg-primary/90 text-black rounded-none border-2 border-transparent hover:border-primary hover:bg-transparent hover:text-primary transition-all duration-300">
+              <Button size="lg" className="h-14 px-8 text-lg font-display uppercase tracking-wider bg-primary hover:bg-primary/90 text-white rounded-none border-2 border-transparent hover:border-primary hover:bg-transparent hover:text-primary transition-all duration-300">
                 {t('hero.cta')}
               </Button>
             </Link>

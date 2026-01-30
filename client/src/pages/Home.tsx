@@ -14,7 +14,7 @@ export default function Home() {
   });
 
   const homeContent = {
-    newsTitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.newsTitle')?.value : null) || 'Latest From The Horsemen',
+    newsTitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.newsTitle')?.value : null) || 'Latest From Mechal FC',
     newsSubtitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.newsSubtitle')?.value : null) || 'Stay updated with match reports, club announcements, and exclusive interviews.',
     stat1Value: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.stat1Value')?.value : null) || '16',
     stat1Label: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.stat1Label')?.value : null) || 'Premier League Titles',
@@ -22,7 +22,7 @@ export default function Home() {
     stat2Label: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.stat2Label')?.value : null) || 'Ethiopian Cup Victories',
     stat3Value: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.stat3Value')?.value : null) || '1935',
     stat3Label: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.stat3Label')?.value : null) || 'Club Founded',
-    ctaTitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.ctaTitle')?.value : null) || 'Become A Horseman',
+    ctaTitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.ctaTitle')?.value : null) || 'Join Mechal FC',
     ctaSubtitle: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'home.ctaSubtitle')?.value : null) || "Join the official fan club today. Get exclusive access, voting rights, and digital membership cards. Your support builds our future.",
   };
 
@@ -90,11 +90,11 @@ export default function Home() {
                 <ShoppingBag className="h-16 w-16 text-primary" />
                 <div>
                   <h2 className="font-heading text-3xl md:text-4xl font-bold mb-2">Shop Our Merchandise</h2>
-                  <p className="text-lg opacity-90">Show your support with official St George gear and apparel!</p>
+                  <p className="text-lg opacity-90">Show your support with official Mechal FC gear and apparel!</p>
                 </div>
               </div>
               <a href="https://tinamart.com/products?banner_id=20" target="_blank" rel="noopener noreferrer">
-                <Button size="lg" className="bg-primary text-black hover:bg-primary/90 font-display uppercase tracking-wider h-14 px-8 text-lg">
+                <Button size="lg" className="bg-primary text-white hover:bg-primary/90 font-display uppercase tracking-wider h-14 px-8 text-lg">
                   Shop Now <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </a>

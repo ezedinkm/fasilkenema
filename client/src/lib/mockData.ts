@@ -1,5 +1,3 @@
-import stGeorgeLogo from '@assets/st_george_logo.png';
-
 export const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
   { code: 'am', label: 'አማርኛ', flag: '🇪🇹' },
@@ -93,7 +91,7 @@ export const NEWS_POSTS = [
 ];
 
 export const ASSETS = {
-  logo: stGeorgeLogo,
+  logo: '/mechal-logo.jpg',
   hero: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80',
 };
 

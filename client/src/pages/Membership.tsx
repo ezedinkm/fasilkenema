@@ -14,7 +14,7 @@ export default function Membership() {
         <div className="container px-4">
           <h1 className="font-heading text-5xl md:text-7xl font-bold mb-6">Join The Family</h1>
           <p className="text-xl max-w-2xl mx-auto opacity-90">
-            Support St George FC directly and enjoy exclusive benefits. Your membership fuels our success on the pitch.
+            Support Mechal FC directly and enjoy exclusive benefits. Your membership fuels our success on the pitch.
           </p>
         </div>
       </div>
