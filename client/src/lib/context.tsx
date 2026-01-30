@@ -155,8 +155,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'nav.blog': language === 'am' ? 'ብሎግ' : 'News',
       'nav.membership': language === 'am' ? 'አባልነት' : 'Membership',
       'nav.donate': language === 'am' ? 'ድጋፍ' : 'Donate',
-      'hero.title': language === 'am' ? 'የፈረሰኞቹ ቤት' : 'The Home of The Horsemen',
-      'hero.subtitle': language === 'am' ? 'ቅዱስ ጊዮርጊስ የስፖርት ማህበር ኦፊሴላዊ የደጋፊዎች መድረክ' : 'Official Fan Club Platform of St George Sport Association',
+      'hero.title': language === 'am' ? 'የመቻል ቤት' : 'The Home of Mechal FC',
+      'hero.subtitle': language === 'am' ? 'መቻል የስፖርት ማህበር ኦፊሴላዊ የደጋፊዎች መድረክ' : 'Official Fan Club Platform of Mechal Sport Club',
       'hero.cta': language === 'am' ? 'አባል ይሁኑ' : 'Join the Club',
       'hero.secondary': language === 'am' ? 'ጨዋታዎችን ይመልከቱ' : 'View Matches',
     };

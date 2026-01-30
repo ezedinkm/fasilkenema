@@ -25,8 +25,8 @@ export default function Navbar() {
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ST GEORGE FC',
-    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'THE HORSEMEN',
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'MECHAL FC',
+    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     favicon: Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.favicon')?.value : null,
   };

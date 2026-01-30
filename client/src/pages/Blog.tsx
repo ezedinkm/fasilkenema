@@ -25,10 +25,10 @@ export default function Blog() {
             <span className="text-amber-400 font-bold uppercase tracking-widest text-sm">ዜና | News</span>
           </div>
           <h1 className="font-heading text-5xl md:text-6xl font-bold text-white mb-4">
-            የቅዱስ ጊዮርጊስ ዜና
+            የመቻል ዜና
           </h1>
           <p className="text-xl text-white/80 max-w-2xl">
-            St George News - Latest updates from St George FC, match reports, transfer news, and community events.
+            Mechal FC News - Latest updates from Mechal FC, match reports, transfer news, and community events.
           </p>
           
           <div className="flex flex-wrap gap-4 mt-8">
@@ -62,7 +62,7 @@ export default function Blog() {
 
         <div className="mt-16 bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-8 text-center">
           <h3 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
-            ከቅዱስ ጊዮርጊስ ጋር ይቀላቀሉ | Join The Horsemen Family
+            ከመቻል ጋር ይቀላቀሉ | Join the Mechal FC Family
           </h3>
           <p className="text-zinc-400 mb-6 max-w-xl mx-auto">
             Become a member and get exclusive access to news, match tickets, and community events.

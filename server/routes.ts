@@ -355,8 +355,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/donate/success?trx_ref=${txRef}`,
         customization: {
-          title: 'St George FC',
-          description: 'Support The Horsemen'
+          title: 'Mechal FC',
+          description: 'Support Mechal FC'
         }
       };
       
@@ -473,8 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
         return_url: `${req.protocol}://${req.get('host')}/membership/success?trx_ref=${txRef}`,
         customization: {
-          title: 'St George FC',
-          description: 'Join The Horsemen'
+          title: 'Mechal FC',
+          description: 'Join Mechal FC'
         }
       };
 

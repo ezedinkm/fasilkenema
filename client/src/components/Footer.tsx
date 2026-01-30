@@ -12,10 +12,10 @@ export default function Footer() {
   });
 
   const brandingSettings = {
-    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'ST GEORGE FC',
+    headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'MECHAL FC',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
-    footerTagline: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.footerTagline')?.value : null) || "The official home of The Horsemen. Ethiopia's most decorated football club since 1935.",
-    copyrightText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.copyrightText')?.value : null) || 'Saint George Sport Association',
+    footerTagline: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.footerTagline')?.value : null) || "The official home of Mechal FC. Ethiopian football excellence.",
+    copyrightText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.copyrightText')?.value : null) || 'Mechal Sport Club',
     facebookUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.facebook')?.value : null) || '#',
     twitterUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.twitter')?.value : null) || '#',
     instagramUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.instagram')?.value : null) || '#',
@@ -28,7 +28,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <img src={brandingSettings.logo} alt="Saint George FC" className="h-12 w-12" />
+              <img src={brandingSettings.logo} alt="Mechal FC" className="h-12 w-12" />
               <span className="font-heading text-2xl text-primary">{brandingSettings.headerText}</span>
             </Link>
             <p className="text-sm text-muted-foreground mb-6">
@@ -80,7 +80,7 @@ export default function Footer() {
           <div>
             <h3 className="font-display text-lg font-semibold mb-4">Newsletter</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Subscribe to get the latest news and updates from Saint George FC.
+              Subscribe to get the latest news and updates from Mechal FC.
             </p>
             <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
               <input 

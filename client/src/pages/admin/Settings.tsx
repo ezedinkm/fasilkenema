@@ -67,9 +67,9 @@ export default function AdminSettings() {
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME);
   
   // State for general settings
-  const [siteName, setSiteName] = useState('St George FC Fan Club');
-  const [siteUrl, setSiteUrl] = useState('https://stgeorgefc.com');
-  const [supportEmail, setSupportEmail] = useState('info@stgeorgefc.com');
+  const [siteName, setSiteName] = useState('Mechal FC Fan Club');
+  const [siteUrl, setSiteUrl] = useState('https://mechalfc.com');
+  const [supportEmail, setSupportEmail] = useState('info@mechalfc.com');
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
   // State for payment settings

@@ -72,7 +72,7 @@ export default function DonateSuccess() {
                   <h1 className="text-4xl font-heading font-bold text-green-700 mb-4">Thank You!</h1>
                   <p className="text-xl text-muted-foreground mb-2">Your donation has been received successfully.</p>
                   <p className="text-muted-foreground">
-                    Your support helps St George FC continue to excel on and off the pitch. The Horsemen thank you!
+                    Your support helps Mechal FC continue to excel on and off the pitch. Thank you!
                   </p>
                 </div>
                 <div className="flex items-center justify-center gap-2 text-primary">
