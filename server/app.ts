@@ -1,7 +1,9 @@
 import { type Server } from "node:http";
 
 import express, { type Express, type Request, Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
 import { registerRoutes } from "./routes";
+import { storage } from "./storage";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -58,9 +60,48 @@ app.use((req, res, next) => {
   next();
 });
 
+async function ensureAdminExists() {
+  try {
+    const existingAdmin = await storage.getAdminByEmail("admin@gmail.com");
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash("112233", 10);
+      await storage.createAdmin({
+        email: "admin@gmail.com",
+        password: hashedPassword,
+        fullName: "Admin User"
+      });
+      log("Created default admin user (admin@gmail.com)");
+    }
+    
+    // Also ensure default branding settings exist
+    const brandingHeaderText = await storage.getSettingByKey("branding.headerText");
+    if (!brandingHeaderText) {
+      await storage.upsertSetting({
+        key: "branding.headerText",
+        value: "MECHAL FC",
+        description: "Header text displayed in navbar"
+      });
+    }
+    
+    const brandingHeaderSubtext = await storage.getSettingByKey("branding.headerSubtext");
+    if (!brandingHeaderSubtext) {
+      await storage.upsertSetting({
+        key: "branding.headerSubtext",
+        value: "SPORT CLUB",
+        description: "Subtext displayed below header in navbar"
+      });
+    }
+  } catch (error) {
+    log(`Auto-seed error: ${error}`, "seed");
+  }
+}
+
 export default async function runApp(
   setup: (app: Express, server: Server) => Promise<void>,
 ) {
+  // Auto-seed admin user and settings on startup
+  await ensureAdminExists();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
