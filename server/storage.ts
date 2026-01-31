@@ -33,6 +33,8 @@ export interface IStorage {
   getMembers(): Promise<Member[]>;
   getMemberById(id: number): Promise<Member | undefined>;
   getMemberByNumber(membershipNumber: string): Promise<Member | undefined>;
+  getMemberByEmail(email: string): Promise<Member | undefined>;
+  getMemberByPhone(phone: string): Promise<Member | undefined>;
   createMember(member: InsertMember): Promise<Member>;
   updateMember(id: number, member: Partial<InsertMember>): Promise<Member | undefined>;
   deleteMember(id: number): Promise<boolean>;
@@ -111,6 +113,16 @@ export class DbStorage implements IStorage {
 
   async getMemberByNumber(membershipNumber: string): Promise<Member | undefined> {
     const result = await db.select().from(schema.members).where(eq(schema.members.membershipNumber, membershipNumber));
+    return result[0];
+  }
+
+  async getMemberByEmail(email: string): Promise<Member | undefined> {
+    const result = await db.select().from(schema.members).where(eq(schema.members.email, email));
+    return result[0];
+  }
+
+  async getMemberByPhone(phone: string): Promise<Member | undefined> {
+    const result = await db.select().from(schema.members).where(eq(schema.members.phone, phone));
     return result[0];
   }
 

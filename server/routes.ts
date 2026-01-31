@@ -202,6 +202,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/member/login", async (req, res) => {
+    try {
+      const { identifier, password } = req.body;
+      
+      if (!identifier || !password) {
+        return res.status(400).json({ error: 'Email/phone and password are required' });
+      }
+      
+      let member = await storage.getMemberByEmail(identifier);
+      if (!member) {
+        member = await storage.getMemberByPhone(identifier);
+      }
+
+      if (!member) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (!member.password) {
+        return res.status(401).json({ error: 'Account not set up. Please complete registration.' });
+      }
+
+      const validPassword = await bcrypt.compare(password, member.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (member.status !== 'active') {
+        return res.status(403).json({ error: 'Membership is not active' });
+      }
+
+      const token = jwt.sign({ 
+        id: member.id, 
+        membershipNumber: member.membershipNumber,
+        type: 'member' 
+      }, JWT_SECRET, { expiresIn: '30d' });
+      
+      res.json({ 
+        token, 
+        member: { 
+          id: member.id, 
+          membershipNumber: member.membershipNumber, 
+          fullName: member.fullName,
+          email: member.email,
+          phone: member.phone,
+          tier: member.tier,
+          photoUrl: member.photoUrl,
+          expiryDate: member.expiryDate,
+          status: member.status
+        } 
+      });
+    } catch (error) {
+      console.error('Member login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, fullName } = req.body;
@@ -487,13 +543,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       payment = await storage.createGenericPayment(validation.data);
 
-      const { photoUrl } = req.body;
+      const { photoUrl, password } = req.body;
+      
+      if (!password || password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+      
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
       const applicationData = {
         transactionId: txRef,
         firstName,
         lastName,
         email,
         phone,
+        password: hashedPassword,
         dateOfBirth,
         city,
         country,
@@ -665,6 +729,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             fullName: `${application.firstName} ${application.lastName}`,
             email: application.email,
             phone: application.phone,
+            password: application.password || null,
             dateOfBirth: application.dateOfBirth,
             city: application.city,
             country: application.country,
