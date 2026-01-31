@@ -8,7 +8,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Globe, Menu, User, LogOut } from 'lucide-react';
+import { Globe, Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 
 export default function Navbar() {
   const [location] = useLocation();
-  const { language, setLanguage, user, login, logout, t } = useApp();
+  const { language, setLanguage, t } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   const { data: settings } = useQuery<any[]>({
@@ -110,29 +110,11 @@ export default function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">{user.name}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/card/SG-2025-1935" className="cursor-pointer">My Digital Card</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button size="sm" onClick={login} className="font-display uppercase tracking-wider hidden sm:flex">
+          <Link href="/member/login">
+            <Button size="sm" className="font-display uppercase tracking-wider hidden sm:flex" data-testid="button-member-login">
               Member Login
             </Button>
-          )}
+          </Link>
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
@@ -162,11 +144,11 @@ export default function Navbar() {
                     </Link>
                   ))}
                 </nav>
-                {!user && (
-                  <Button onClick={() => { login(); setIsOpen(false); }} className="w-full font-display uppercase">
+                <Link href="/member/login" onClick={() => setIsOpen(false)}>
+                  <Button className="w-full font-display uppercase">
                     Member Login
                   </Button>
-                )}
+                </Link>
               </div>
             </SheetContent>
           </Sheet>
