@@ -6,11 +6,21 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { MEMBERSHIP_TIERS } from '@/lib/mockData';
+import { getSettingByKey } from '@/lib/api';
+
+interface MembershipTier {
+  id: string;
+  name: string;
+  price: { etb: number; usd: number };
+  benefits: string[];
+  color: string;
+  recommended: boolean;
+}
 
 export default function MembershipRegister() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [selectedTier, setSelectedTier] = useState<typeof MEMBERSHIP_TIERS[0] | null>(null);
+  const [selectedTier, setSelectedTier] = useState<MembershipTier | null>(null);
   const [currency, setCurrency] = useState<'etb' | 'usd'>('etb');
   
   const [firstName, setFirstName] = useState('');
@@ -21,25 +31,63 @@ export default function MembershipRegister() {
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tierId = params.get('tier');
-    const currencyParam = params.get('currency') as 'etb' | 'usd';
-    
-    if (tierId) {
-      const tier = MEMBERSHIP_TIERS.find(t => t.id === tierId);
-      if (tier) {
-        setSelectedTier(tier);
-        if (currencyParam) {
-          setCurrency(currencyParam);
-        }
-      } else {
+    async function fetchTiersAndSelect() {
+      const params = new URLSearchParams(window.location.search);
+      const tierId = params.get('tier');
+      const currencyParam = params.get('currency') as 'etb' | 'usd';
+
+      if (!tierId) {
         setLocation('/membership');
+        return;
       }
-    } else {
-      setLocation('/membership');
+
+      try {
+        const result = await getSettingByKey('membership_tiers');
+        let tiers: MembershipTier[] = MEMBERSHIP_TIERS;
+        
+        if (result?.value && Array.isArray(result.value)) {
+          tiers = result.value.map((tier: any, index: number) => ({
+            id: tier.id || tier.name?.toLowerCase() || `tier-${index}`,
+            name: tier.name,
+            price: { 
+              etb: tier.priceETB || tier.price?.etb || 0, 
+              usd: tier.priceUSD || tier.price?.usd || 0 
+            },
+            benefits: tier.benefits || [],
+            color: tier.color || 'bg-gray-100 text-gray-900',
+            recommended: tier.recommended || false,
+          }));
+        }
+
+        const tier = tiers.find(t => t.id === tierId);
+        if (tier) {
+          setSelectedTier(tier);
+          if (currencyParam) {
+            setCurrency(currencyParam);
+          }
+        } else {
+          setLocation('/membership');
+        }
+      } catch (error) {
+        console.error('Failed to fetch membership tiers:', error);
+        const tier = MEMBERSHIP_TIERS.find(t => t.id === tierId);
+        if (tier) {
+          setSelectedTier(tier);
+          if (currencyParam) {
+            setCurrency(currencyParam);
+          }
+        } else {
+          setLocation('/membership');
+        }
+      } finally {
+        setLoading(false);
+      }
     }
+    
+    fetchTiersAndSelect();
   }, [setLocation]);
 
   const handleSubmit = async () => {
@@ -115,6 +163,14 @@ export default function MembershipRegister() {
       setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <PublicLayout>
+        <div className="container px-4 py-16 text-center">Loading...</div>
+      </PublicLayout>
+    );
+  }
 
   if (!selectedTier) {
     return null;

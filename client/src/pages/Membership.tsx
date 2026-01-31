@@ -1,12 +1,51 @@
 import PublicLayout from '@/components/PublicLayout';
 import MembershipCard from '@/components/MembershipCard';
 import { MEMBERSHIP_TIERS } from '@/lib/mockData';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { getSettingByKey } from '@/lib/api';
+
+interface MembershipTier {
+  id: string;
+  name: string;
+  price: { etb: number; usd: number };
+  benefits: string[];
+  color: string;
+  recommended: boolean;
+}
 
 export default function Membership() {
   const [currency, setCurrency] = useState<'etb' | 'usd'>('etb');
+  const [tiers, setTiers] = useState<MembershipTier[]>(MEMBERSHIP_TIERS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchTiers() {
+      try {
+        const result = await getSettingByKey('membership_tiers');
+        if (result?.value && Array.isArray(result.value)) {
+          const dbTiers = result.value.map((tier: any, index: number) => ({
+            id: tier.id || tier.name?.toLowerCase() || `tier-${index}`,
+            name: tier.name,
+            price: { 
+              etb: tier.priceETB || tier.price?.etb || 0, 
+              usd: tier.priceUSD || tier.price?.usd || 0 
+            },
+            benefits: tier.benefits || [],
+            color: tier.color || (index === 1 ? 'bg-primary text-black' : index === 2 ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-900'),
+            recommended: tier.recommended || index === 1,
+          }));
+          setTiers(dbTiers);
+        }
+      } catch (error) {
+        console.error('Failed to fetch membership tiers:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchTiers();
+  }, []);
 
   return (
     <PublicLayout>
@@ -31,11 +70,15 @@ export default function Membership() {
           <Label htmlFor="currency-mode" className={`text-lg font-bold ${currency === 'usd' ? 'text-primary' : 'text-muted-foreground'}`}>USD</Label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {MEMBERSHIP_TIERS.map(tier => (
-            <MembershipCard key={tier.id} tier={tier} currency={currency} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="text-center py-12">Loading membership options...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {tiers.map(tier => (
+              <MembershipCard key={tier.id} tier={tier} currency={currency} />
+            ))}
+          </div>
+        )}
       </div>
     </PublicLayout>
   );
