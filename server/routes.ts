@@ -344,6 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       donation = await storage.createDonation(validation.data);
 
+      const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: donationCurrency,
@@ -352,8 +353,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         last_name: cleanLastName,
         phone_number: cleanPhone,
         tx_ref: txRef,
-        callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
-        return_url: `${req.protocol}://${req.get('host')}/donate/success?trx_ref=${txRef}`,
+        callback_url: `${baseUrl}/api/chapa/callback`,
+        return_url: `${baseUrl}/donate/success?trx_ref=${txRef}`,
         customization: {
           title: 'Mechal FC',
           description: 'Support Mechal FC'
@@ -462,6 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.createPendingMemberApplication(appValidation.data);
 
+      const membershipBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get('host')}`;
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: paymentCurrency,
@@ -470,8 +472,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         last_name: lastName,
         phone_number: phone,
         tx_ref: txRef,
-        callback_url: `${req.protocol}://${req.get('host')}/api/chapa/callback`,
-        return_url: `${req.protocol}://${req.get('host')}/membership/success?trx_ref=${txRef}`,
+        callback_url: `${membershipBaseUrl}/api/chapa/callback`,
+        return_url: `${membershipBaseUrl}/membership/success?trx_ref=${txRef}`,
         customization: {
           title: 'Mechal FC',
           description: 'Join Mechal FC'

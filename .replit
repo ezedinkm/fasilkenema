@@ -50,3 +50,6 @@ integrations = ["resend:1.0.0"]
 
 [userenv.shared]
 JWT_SECRET = "fasil-kenema-fc-secure-jwt-secret-key-2024-emperors"
+
+[userenv.production]
+APP_BASE_URL = "https://mechalfc.com"
