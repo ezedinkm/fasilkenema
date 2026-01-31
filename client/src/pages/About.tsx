@@ -50,6 +50,15 @@ export default function About() {
             {aboutContent.historyContent2}
           </p>
 
+          <div className="my-12 not-prose">
+            <img 
+              src="/images/about-stadium.jpg" 
+              alt="Mechal Sport Club Stadium" 
+              className="w-full rounded-lg shadow-lg"
+            />
+            <p className="text-center text-muted-foreground mt-4 text-sm">Mechal Sport Club - Ethiopian Football Excellence</p>
+          </div>
+
           <h3>{aboutContent.missionTitle}</h3>
           <ul className="list-disc pl-6 space-y-2">
             <li>To represent Ethiopia with pride and excellence on all football stages.</li>
