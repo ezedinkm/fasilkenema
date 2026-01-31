@@ -13,10 +13,10 @@ const HERO_SLIDES = [
     subtitle: 'Join the official Mechal FC fan community and be part of Ethiopian football excellence.',
   },
   {
-    image: '/images/slider-clubhouse.jpg',
+    image: '/images/slider-stadium.jpg',
     title: 'Welcome To',
     highlight: 'Our Home',
-    subtitle: 'Experience world-class facilities at the Mechal Sport Club headquarters.',
+    subtitle: 'Experience the passion and excitement of Ethiopian football at its finest.',
   },
 ];
 
