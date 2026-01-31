@@ -25,22 +25,45 @@ export default function MemberDashboard() {
   const [member, setMember] = useState<MemberData | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('memberToken');
-    const memberData = localStorage.getItem('memberData');
-    
-    if (!token || !memberData) {
-      setLocation('/member/login');
-      return;
-    }
+    const fetchMemberData = async () => {
+      const token = localStorage.getItem('memberToken');
+      
+      if (!token) {
+        setLocation('/member/login');
+        return;
+      }
 
-    try {
-      setMember(JSON.parse(memberData));
-    } catch {
-      localStorage.removeItem('memberToken');
-      localStorage.removeItem('memberData');
-      setLocation('/member/login');
-    }
-  }, [setLocation]);
+      try {
+        const response = await fetch('/api/member/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem('memberToken');
+          localStorage.removeItem('memberData');
+          toast({
+            title: 'Session Expired',
+            description: 'Please log in again',
+            variant: 'destructive',
+          });
+          setLocation('/member/login');
+          return;
+        }
+
+        const data = await response.json();
+        setMember(data);
+        localStorage.setItem('memberData', JSON.stringify(data));
+      } catch {
+        localStorage.removeItem('memberToken');
+        localStorage.removeItem('memberData');
+        setLocation('/member/login');
+      }
+    };
+
+    fetchMemberData();
+  }, [setLocation, toast]);
 
   const handleLogout = () => {
     localStorage.removeItem('memberToken');

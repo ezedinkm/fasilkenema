@@ -258,6 +258,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/member/me", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'No token provided' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { id: number; membershipNumber: string; type: string };
+        
+        if (decoded.type !== 'member') {
+          return res.status(403).json({ error: 'Invalid token type' });
+        }
+
+        const member = await storage.getMemberById(decoded.id);
+        
+        if (!member) {
+          return res.status(404).json({ error: 'Member not found' });
+        }
+
+        res.json({
+          id: member.id,
+          membershipNumber: member.membershipNumber,
+          fullName: member.fullName,
+          email: member.email,
+          phone: member.phone,
+          tier: member.tier,
+          photoUrl: member.photoUrl,
+          expiryDate: member.expiryDate,
+          status: member.status
+        });
+      } catch (jwtError) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+      }
+    } catch (error) {
+      console.error('Get member error:', error);
+      res.status(500).json({ error: 'Failed to get member data' });
+    }
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, fullName } = req.body;
