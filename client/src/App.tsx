@@ -47,7 +47,7 @@ function Router() {
       <Route path="/membership/success" component={MembershipSuccess} />
       <Route path="/donate" component={Donate} />
       <Route path="/donate/success" component={DonateSuccess} />
-      <Route path="/card/:membershipId" component={DigitalCard} />
+      <Route path="/card/:membershipNumber" component={DigitalCard} />
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
