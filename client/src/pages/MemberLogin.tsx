@@ -1,0 +1,126 @@
+import PublicLayout from '@/components/PublicLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import { Link } from 'wouter';
+
+export default function MemberLogin() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!identifier || !password) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please enter your email/phone and password',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/member/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, password }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast({
+          title: 'Login Failed',
+          description: result.error || 'Invalid credentials',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      localStorage.setItem('memberToken', result.token);
+      localStorage.setItem('memberData', JSON.stringify(result.member));
+      
+      toast({
+        title: 'Welcome Back!',
+        description: `Logged in as ${result.member.fullName}`,
+      });
+      
+      setLocation('/member/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to login. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <PublicLayout>
+      <div className="container px-4 py-16 max-w-md mx-auto">
+        <Card className="border-2">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-primary">Member Login</CardTitle>
+            <p className="text-muted-foreground mt-2">
+              Access your digital membership card
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Email or Phone Number</label>
+                <Input
+                  type="text"
+                  placeholder="Enter email or phone"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  data-testid="input-identifier"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Password</label>
+                <Input
+                  type="password"
+                  placeholder="Enter password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  data-testid="input-password"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90"
+                disabled={isLoading}
+                data-testid="button-login"
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
+            </form>
+            
+            <div className="mt-6 text-center text-sm">
+              <p className="text-muted-foreground">
+                Not a member yet?{' '}
+                <Link href="/membership" className="text-primary hover:underline">
+                  Join Now
+                </Link>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </PublicLayout>
+  );
+}

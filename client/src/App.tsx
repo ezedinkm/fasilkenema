@@ -23,6 +23,8 @@ import AdminPayments from "@/pages/admin/Payments";
 import AdminContent from "@/pages/admin/Content";
 import AdminSMS from "@/pages/admin/SMS";
 import AdminSettings from "@/pages/admin/Settings";
+import MemberLogin from "@/pages/MemberLogin";
+import MemberDashboard from "@/pages/MemberDashboard";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -48,6 +50,10 @@ function Router() {
       <Route path="/donate" component={Donate} />
       <Route path="/donate/success" component={DonateSuccess} />
       <Route path="/card/:membershipNumber" component={DigitalCard} />
+      
+      {/* Member Routes */}
+      <Route path="/member/login" component={MemberLogin} />
+      <Route path="/member/dashboard" component={MemberDashboard} />
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />

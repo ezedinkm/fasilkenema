@@ -31,6 +31,8 @@ export default function MembershipRegister() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -115,10 +117,28 @@ export default function MembershipRegister() {
   }, [setLocation]);
 
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !city || !country) {
+    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !city || !country || !password) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: 'Password Too Short',
+        description: 'Password must be at least 6 characters',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Password Mismatch',
+        description: 'Passwords do not match',
         variant: 'destructive',
       });
       return;
@@ -168,6 +188,7 @@ export default function MembershipRegister() {
         lastName,
         email,
         phone,
+        password,
         dateOfBirth,
         city,
         country,
@@ -344,6 +365,32 @@ export default function MembershipRegister() {
                     onChange={(e) => setCountry(e.target.value)}
                     data-testid="input-country"
                   />
+                </div>
+              </div>
+
+              <div className="border-b border-border pb-4">
+                <h3 className="font-bold mb-4">Create Account Password</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Create a password to access your digital membership card after registration.
+                </p>
+                <div className="space-y-4">
+                  <Input 
+                    placeholder="Password *"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    data-testid="input-password"
+                  />
+                  <Input 
+                    placeholder="Confirm Password *"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    data-testid="input-confirm-password"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 6 characters. You can login with your email or phone number.
+                  </p>
                 </div>
               </div>
 
