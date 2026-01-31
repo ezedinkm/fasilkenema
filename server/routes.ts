@@ -3,10 +3,40 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { sendPaymentNotification } from "./sms";
 import { sendPaymentNotificationEmail } from "./email";
+
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage_upload = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage_upload,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
@@ -136,6 +166,21 @@ function authenticateToken(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const express = await import('express');
+  app.use('/uploads', express.default.static(uploadsDir));
+
+  app.post("/api/upload", upload.single('photo'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const photoUrl = `/uploads/${req.file.filename}`;
+      res.json({ photoUrl });
+    } catch (error) {
+      res.status(500).json({ error: 'Upload failed' });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -955,6 +1000,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch revenue stats' });
+    }
+  });
+
+  app.get("/api/public/member/:membershipNumber", async (req, res) => {
+    try {
+      const member = await storage.getMemberByNumber(req.params.membershipNumber);
+      if (!member) {
+        return res.status(404).json({ error: 'Member not found' });
+      }
+      if (member.status !== 'active') {
+        return res.status(403).json({ error: 'Membership is not active' });
+      }
+      res.json({
+        membershipNumber: member.membershipNumber,
+        fullName: member.fullName,
+        tier: member.tier,
+        photoUrl: member.photoUrl,
+        joinedDate: member.joinedDate,
+        expiryDate: member.expiryDate,
+        status: member.status
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch member' });
     }
   });
 
