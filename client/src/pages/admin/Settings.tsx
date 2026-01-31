@@ -112,6 +112,32 @@ export default function AdminSettings() {
         }
       }
 
+      // Load membership tiers from settings
+      const membershipTiersSetting = settings.find((s: any) => s.key === 'membership_tiers');
+      if (membershipTiersSetting && membershipTiersSetting.value) {
+        try {
+          const dbTiers = Array.isArray(membershipTiersSetting.value) 
+            ? membershipTiersSetting.value 
+            : JSON.parse(membershipTiersSetting.value);
+          if (Array.isArray(dbTiers) && dbTiers.length > 0) {
+            const formattedTiers = dbTiers.map((tier: any, index: number) => ({
+              id: tier.id || tier.name?.toLowerCase() || `tier-${index}`,
+              name: tier.name,
+              price: { 
+                etb: tier.priceETB || tier.price?.etb || 0, 
+                usd: tier.priceUSD || tier.price?.usd || 0 
+              },
+              benefits: tier.benefits || [],
+              color: tier.color || 'bg-gray-100 text-gray-900',
+              recommended: tier.recommended || false,
+            }));
+            setTiers(formattedTiers);
+          }
+        } catch (e) {
+          console.error('Failed to parse membership tiers:', e);
+        }
+      }
+
       const notificationPhoneSetting = settings.find((s: any) => s.key === 'notifications.phone');
       const smsEnabledSetting = settings.find((s: any) => s.key === 'notifications.smsEnabled');
       const notificationEmailsSetting = settings.find((s: any) => s.key === 'notifications.emails');
@@ -248,6 +274,41 @@ export default function AdminSettings() {
     if (confirm('Are you sure you want to delete this membership tier?')) {
       setTiers(tiers.filter(t => t.id !== id));
       toast({ title: "Tier Deleted", description: "Membership tier removed." });
+    }
+  };
+
+  const handleSaveMembershipTiers = async () => {
+    try {
+      const tiersForDb = tiers.map(tier => ({
+        id: tier.id,
+        name: tier.name,
+        priceETB: tier.price.etb,
+        priceUSD: tier.price.usd,
+        benefits: tier.benefits || [],
+        duration: "1 year"
+      }));
+
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          key: 'membership_tiers',
+          value: tiersForDb,
+          description: 'Membership tier configurations'
+        }),
+      });
+
+      if (response.ok) {
+        toast({ title: "Saved", description: "Membership pricing updated successfully." });
+        refetchSettings();
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to save membership pricing.", variant: "destructive" });
     }
   };
 
@@ -1000,7 +1061,7 @@ export default function AdminSettings() {
                 </div>
               </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90" onClick={() => toast({ title: "Saved", description: "Membership settings updated." })}>
+                <Button className="bg-primary hover:bg-primary/90" onClick={handleSaveMembershipTiers}>
                   <Save className="mr-2 h-4 w-4" /> Update Pricing
                 </Button>
               </CardFooter>
