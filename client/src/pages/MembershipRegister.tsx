@@ -2,11 +2,12 @@ import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { MEMBERSHIP_TIERS } from '@/lib/mockData';
 import { getSettingByKey } from '@/lib/api';
+import { Camera, Upload } from 'lucide-react';
 
 interface MembershipTier {
   id: string;
@@ -32,6 +33,29 @@ export default function MembershipRegister() {
   const [country, setCountry] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please select an image under 5MB',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     async function fetchTiersAndSelect() {
@@ -112,6 +136,29 @@ export default function MembershipRegister() {
     setIsSubmitting(true);
     
     try {
+      let photoUrl = null;
+      
+      if (photoFile) {
+        const formData = new FormData();
+        formData.append('photo', photoFile);
+        
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (uploadResponse.ok) {
+          const uploadResult = await uploadResponse.json();
+          photoUrl = uploadResult.photoUrl;
+        } else {
+          toast({
+            title: 'Photo Upload Failed',
+            description: 'Could not upload photo. Continuing without photo.',
+            variant: 'destructive',
+          });
+        }
+      }
+      
       const amount = currency === 'etb' ? selectedTier.price.etb : selectedTier.price.usd;
       
       const paymentData = {
@@ -125,6 +172,7 @@ export default function MembershipRegister() {
         city,
         country,
         membershipTier: selectedTier.id,
+        photoUrl,
       };
 
       const response = await fetch('/api/members/initialize-payment', {
@@ -236,6 +284,47 @@ export default function MembershipRegister() {
                       onChange={(e) => setDateOfBirth(e.target.value)}
                       data-testid="input-dob"
                     />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Profile Photo (for membership card)</label>
+                    <div className="flex items-center gap-4">
+                      <div 
+                        className="w-24 h-24 rounded-full bg-zinc-200 flex items-center justify-center overflow-hidden border-2 border-dashed border-zinc-300 cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                        data-testid="photo-upload-area"
+                      >
+                        {photoPreview ? (
+                          <img src={photoPreview} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <Camera className="w-8 h-8 text-zinc-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoChange}
+                          className="hidden"
+                          data-testid="input-photo"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="mb-2"
+                          data-testid="button-upload-photo"
+                        >
+                          <Upload className="w-4 h-4 mr-2" />
+                          {photoFile ? 'Change Photo' : 'Upload Photo'}
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          This photo will appear on your digital membership card. Max 5MB.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

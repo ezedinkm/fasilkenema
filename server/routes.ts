@@ -487,6 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       payment = await storage.createGenericPayment(validation.data);
 
+      const { photoUrl } = req.body;
       const applicationData = {
         transactionId: txRef,
         firstName,
@@ -497,6 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city,
         country,
         membershipTier,
+        photoUrl: photoUrl || null,
       };
 
       const appValidation = insertPendingMemberApplicationSchema.safeParse(applicationData);
@@ -667,6 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             city: application.city,
             country: application.country,
             tier: application.membershipTier,
+            photoUrl: application.photoUrl || null,
             status: 'active',
             expiryDate,
           };
