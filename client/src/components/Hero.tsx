@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const HERO_SLIDES = [
   {
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80',
+    image: '/images/slider-clubhouse.jpg',
     title: 'We Are',
     highlight: 'Mechal FC',
     subtitle: 'Join the official Mechal FC fan community and be part of Ethiopian football excellence.',
