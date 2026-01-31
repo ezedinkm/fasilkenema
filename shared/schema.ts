@@ -187,6 +187,7 @@ export const pendingMemberApplications = pgTable("pending_member_applications", 
   city: text("city").notNull(),
   country: text("country").notNull(),
   membershipTier: text("membership_tier").notNull(),
+  photoUrl: text("photo_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
