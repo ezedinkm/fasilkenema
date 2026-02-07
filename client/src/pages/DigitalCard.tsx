@@ -81,6 +81,8 @@ export default function DigitalCard() {
   const brandingSettings = {
     headerText: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'MECHAL FC',
     headerSubtext: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
+    signature: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.signature')?.value : null) || null,
+    authorizedPersonName: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.authorizedPersonName')?.value : null) || null,
   };
 
   const formatDate = (dateString: string) => {
@@ -213,6 +215,23 @@ export default function DigitalCard() {
                     <p className="font-mono text-xs">{member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
                   </div>
                 </div>
+                
+                {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
+                  <div className="text-center">
+                    {brandingSettings.signature && (
+                      <img 
+                        src={brandingSettings.signature} 
+                        alt="Authorized Signature" 
+                        className="h-8 mx-auto mb-0.5"
+                        style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
+                      />
+                    )}
+                    {brandingSettings.authorizedPersonName && (
+                      <p className="text-[8px] opacity-60">{brandingSettings.authorizedPersonName}</p>
+                    )}
+                  </div>
+                )}
+                
                 <div className="p-1.5 rounded bg-white">
                   <QRCode 
                     value={`https://mechalfc.com/card/${member.membershipNumber}`} 

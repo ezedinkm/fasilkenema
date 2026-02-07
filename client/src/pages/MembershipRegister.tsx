@@ -28,6 +28,7 @@ export default function MembershipRegister() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [idNumber, setIdNumber] = useState('');
   const [rank, setRank] = useState('');
   const [gender, setGender] = useState('');
   const [address, setAddress] = useState('');
@@ -193,6 +194,7 @@ export default function MembershipRegister() {
         email,
         phone,
         password,
+        idNumber,
         rank,
         gender,
         address,
@@ -304,6 +306,12 @@ export default function MembershipRegister() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     data-testid="input-phone"
+                  />
+                  <Input 
+                    placeholder="መታወቂያ ቁጥር / ID Number"
+                    value={idNumber}
+                    onChange={(e) => setIdNumber(e.target.value)}
+                    data-testid="input-id-number"
                   />
                   <div className="grid grid-cols-2 gap-4">
                     <div>

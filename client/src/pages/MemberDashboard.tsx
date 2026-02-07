@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
+import { useQuery } from '@tanstack/react-query';
 import { LogOut, User } from 'lucide-react';
 
 interface MemberData {
@@ -77,6 +78,16 @@ export default function MemberDashboard() {
       description: 'You have been logged out successfully',
     });
     setLocation('/');
+  };
+
+  const { data: branding } = useQuery<any[]>({
+    queryKey: ['/api/public/branding'],
+    staleTime: Infinity,
+  });
+
+  const brandingSettings = {
+    signature: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.signature')?.value : null) || null,
+    authorizedPersonName: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.authorizedPersonName')?.value : null) || null,
   };
 
   if (!member) {
@@ -187,6 +198,21 @@ export default function MemberDashboard() {
                   ሁኔታ: {member.status === 'active' ? 'ንቁ' : 'ያልነቃ'}
                 </p>
               </div>
+              {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
+                <div className="text-center">
+                  {brandingSettings.signature && (
+                    <img 
+                      src={brandingSettings.signature} 
+                      alt="Authorized Signature" 
+                      className="h-10 mx-auto mb-0.5"
+                      style={{ opacity: 0.7 }}
+                    />
+                  )}
+                  {brandingSettings.authorizedPersonName && (
+                    <p className="text-[9px] text-muted-foreground">{brandingSettings.authorizedPersonName}</p>
+                  )}
+                </div>
+              )}
               <div className="p-1.5 bg-white rounded-lg shadow-sm border" data-testid="qr-code">
                 <QRCode 
                   value={`${window.location.origin}/card/${member.membershipNumber}`}

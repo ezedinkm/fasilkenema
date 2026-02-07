@@ -246,12 +246,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fullName: member.fullName,
           email: member.email,
           phone: member.phone,
+          idNumber: member.idNumber,
           rank: member.rank,
           gender: member.gender,
           address: member.address,
           division: member.division,
           tier: member.tier,
           photoUrl: member.photoUrl,
+          joinedDate: member.joinedDate,
           expiryDate: member.expiryDate,
           status: member.status
         } 
@@ -290,12 +292,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fullName: member.fullName,
           email: member.email,
           phone: member.phone,
+          idNumber: member.idNumber,
           rank: member.rank,
           gender: member.gender,
           address: member.address,
           division: member.division,
           tier: member.tier,
           photoUrl: member.photoUrl,
+          joinedDate: member.joinedDate,
           expiryDate: member.expiryDate,
           status: member.status
         });
@@ -601,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      const { rank, gender, address, division } = req.body;
+      const { idNumber, rank, gender, address, division } = req.body;
       
       const applicationData = {
         transactionId: txRef,
@@ -610,6 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         phone,
         password: hashedPassword,
+        idNumber: idNumber || null,
         rank: rank || null,
         gender: gender || null,
         address: address || null,
@@ -786,6 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: application.email,
             phone: application.phone,
             password: application.password || null,
+            idNumber: application.idNumber || null,
             rank: application.rank || null,
             gender: application.gender || null,
             address: application.address || null,
@@ -1077,7 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/branding", async (req, res) => {
     try {
       const settings = await storage.getSettings();
-      const brandingKeys = ['branding.headerText', 'branding.headerSubtext', 'branding.logoUrl'];
+      const brandingKeys = ['branding.headerText', 'branding.headerSubtext', 'branding.logoUrl', 'branding.signature', 'branding.authorizedPersonName'];
       const branding = settings.filter((s: any) => brandingKeys.includes(s.key));
       res.json(branding);
     } catch (error) {
@@ -1143,6 +1149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         membershipNumber: member.membershipNumber,
         fullName: member.fullName,
+        idNumber: member.idNumber,
         rank: member.rank,
         gender: member.gender,
         address: member.address,

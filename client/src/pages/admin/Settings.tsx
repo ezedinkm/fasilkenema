@@ -40,10 +40,13 @@ export default function AdminSettings() {
   const [headerText, setHeaderText] = useState('Fasil Kenema Fan Club');
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [authorizedPersonName, setAuthorizedPersonName] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const signatureInputRef = useRef<HTMLInputElement>(null);
 
   // State for donation tiers
   const [donationTiers, setDonationTiers] = useState<{ id: string; amount: number; label: string }[]>([
@@ -96,11 +99,15 @@ export default function AdminSettings() {
       const headerTextSetting = settings.find((s: any) => s.key === 'branding.headerText');
       const logoSetting = settings.find((s: any) => s.key === 'branding.logo');
       const faviconSetting = settings.find((s: any) => s.key === 'branding.favicon');
+      const signatureSetting = settings.find((s: any) => s.key === 'branding.signature');
+      const authorizedNameSetting = settings.find((s: any) => s.key === 'branding.authorizedPersonName');
       const donationTiersSetting = settings.find((s: any) => s.key === 'donations.tiers');
       
       if (headerTextSetting) setHeaderText(headerTextSetting.value);
       if (logoSetting) setLogoPreview(logoSetting.value);
       if (faviconSetting) setFaviconPreview(faviconSetting.value);
+      if (signatureSetting) setSignaturePreview(signatureSetting.value);
+      if (authorizedNameSetting) setAuthorizedPersonName(authorizedNameSetting.value);
       if (donationTiersSetting) {
         try {
           const parsedTiers = JSON.parse(donationTiersSetting.value);
@@ -354,6 +361,25 @@ export default function AdminSettings() {
     }
   };
 
+  const handleSignatureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500000) {
+        toast({
+          title: "File Too Large",
+          description: "Signature image must be under 500KB",
+          variant: "destructive"
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveBranding = async () => {
     try {
       const mutations = [];
@@ -395,6 +421,34 @@ export default function AdminSettings() {
       } else {
         mutations.push(saveBrandingMutation.mutateAsync({
           key: 'branding.favicon',
+          value: '',
+          delete: true
+        }));
+      }
+
+      if (signaturePreview) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.signature',
+          value: signaturePreview,
+          description: 'Authorized person digital signature (base64)'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.signature',
+          value: '',
+          delete: true
+        }));
+      }
+
+      if (authorizedPersonName) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.authorizedPersonName',
+          value: authorizedPersonName,
+          description: 'Authorized person name for membership cards'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.authorizedPersonName',
           value: '',
           delete: true
         }));
@@ -949,6 +1003,61 @@ export default function AdminSettings() {
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <Label>Digital Signature (Authorized Person)</Label>
+                    <p className="text-xs text-muted-foreground mb-3">Upload a signature image to appear as watermark on membership cards (recommended: transparent PNG, max 500KB)</p>
+                    <div className="flex items-start gap-4">
+                      <div className="w-40 h-20 border-2 border-dashed border-zinc-300 rounded-lg flex items-center justify-center bg-zinc-50">
+                        {signaturePreview ? (
+                          <img src={signaturePreview} alt="Signature preview" className="max-w-full max-h-full object-contain p-2" />
+                        ) : (
+                          <span className="text-xs text-zinc-400">No Signature</span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          ref={signatureInputRef}
+                          onChange={handleSignatureChange}
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                          data-testid="input-signature-file"
+                        />
+                        <Button 
+                          variant="outline" 
+                          onClick={() => signatureInputRef.current?.click()}
+                          data-testid="button-upload-signature"
+                        >
+                          <Upload className="mr-2 h-4 w-4" /> Choose Signature
+                        </Button>
+                        {signaturePreview && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setSignaturePreview(null)}
+                            data-testid="button-remove-signature"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="authorized-person">Authorized Person Name</Label>
+                    <Input 
+                      id="authorized-person" 
+                      value={authorizedPersonName}
+                      onChange={(e) => setAuthorizedPersonName(e.target.value)}
+                      placeholder="Enter authorized person's name"
+                      data-testid="input-authorized-person"
+                    />
+                    <p className="text-xs text-muted-foreground">This name appears below the signature on membership cards</p>
                   </div>
                 </div>
               </CardContent>
