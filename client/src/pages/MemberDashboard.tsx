@@ -35,32 +35,60 @@ export default function MemberDashboard() {
 
   const handleDownloadJPG = async () => {
     if (!cardRef.current || !member) return;
-    const canvas = await html2canvas(cardRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null,
-    });
-    const link = document.createElement('a');
-    link.download = `membership-card-${member.membershipNumber}.jpg`;
-    link.href = canvas.toDataURL('image/jpeg', 0.95);
-    link.click();
+    const el = cardRef.current;
+    const origWidth = el.style.width;
+    const origMinWidth = el.style.minWidth;
+    el.style.width = '640px';
+    el.style.minWidth = '640px';
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#F5F0E8',
+        width: 640,
+        windowWidth: 800,
+        scrollX: 0,
+        scrollY: 0,
+      });
+      const link = document.createElement('a');
+      link.download = `membership-card-${member.membershipNumber}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+    } finally {
+      el.style.width = origWidth;
+      el.style.minWidth = origMinWidth;
+    }
   };
 
   const handleDownloadPDF = async () => {
     if (!cardRef.current || !member) return;
-    const canvas = await html2canvas(cardRef.current, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: null,
-    });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({
-      orientation: 'landscape',
-      unit: 'px',
-      format: [canvas.width / 2, canvas.height / 2],
-    });
-    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
-    pdf.save(`membership-card-${member.membershipNumber}.pdf`);
+    const el = cardRef.current;
+    const origWidth = el.style.width;
+    const origMinWidth = el.style.minWidth;
+    el.style.width = '640px';
+    el.style.minWidth = '640px';
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#F5F0E8',
+        width: 640,
+        windowWidth: 800,
+        scrollX: 0,
+        scrollY: 0,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'px',
+        format: [canvas.width / 2, canvas.height / 2],
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save(`membership-card-${member.membershipNumber}.pdf`);
+    } finally {
+      el.style.width = origWidth;
+      el.style.minWidth = origMinWidth;
+    }
   };
 
   useEffect(() => {
