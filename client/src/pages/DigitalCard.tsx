@@ -48,15 +48,16 @@ export default function DigitalCard() {
     const el = cardRef.current;
     const origWidth = el.style.width;
     const origMinWidth = el.style.minWidth;
-    el.style.width = '640px';
-    el.style.minWidth = '640px';
+    el.style.width = '540px';
+    el.style.minWidth = '540px';
     try {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#F5F0E8',
-        width: 640,
-        windowWidth: 800,
+        width: 540,
+        height: 340,
+        windowWidth: 600,
         scrollX: 0,
         scrollY: 0,
       });
@@ -75,15 +76,16 @@ export default function DigitalCard() {
     const el = cardRef.current;
     const origWidth = el.style.width;
     const origMinWidth = el.style.minWidth;
-    el.style.width = '640px';
-    el.style.minWidth = '640px';
+    el.style.width = '540px';
+    el.style.minWidth = '540px';
     try {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#F5F0E8',
-        width: 640,
-        windowWidth: 800,
+        width: 540,
+        height: 340,
+        windowWidth: 600,
         scrollX: 0,
         scrollY: 0,
       });
@@ -159,22 +161,22 @@ export default function DigitalCard() {
           <div 
             ref={cardRef} 
             className="relative w-full rounded-xl overflow-hidden shadow-2xl border-2 border-[#8B1A1A]"
-            style={{ backgroundColor: '#F5F0E8', minWidth: '640px', aspectRatio: '16/10' }}
+            style={{ backgroundColor: '#F5F0E8', width: '540px', height: '340px' }}
           >
             <div className="px-4 py-2 text-center text-white" style={{ backgroundColor: '#8B1A1A' }}>
               <p className="font-heading text-sm font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
               <p className="text-[10px] tracking-wider opacity-90">የጠቅላላ ጉባዔ ጥሪ ካርድ</p>
             </div>
 
-            <svg className="absolute left-0 right-0 w-full" style={{ top: '38px', height: '120px', zIndex: 1 }} viewBox="0 0 640 120" preserveAspectRatio="none">
-              <path d="M0,70 Q160,30 320,60 T640,45 L640,58 Q480,85 320,72 T0,82 Z" fill="#228B22" opacity="0.9"/>
-              <path d="M0,82 Q160,42 320,72 T640,58 L640,70 Q480,97 320,84 T0,94 Z" fill="#FFFFFF" opacity="0.9"/>
-              <path d="M0,94 Q160,54 320,84 T640,70 L640,82 Q480,109 320,96 T0,106 Z" fill="#DC143C" opacity="0.9"/>
+            <svg className="absolute left-0 right-0 w-full" style={{ top: '34px', height: '100px', zIndex: 1 }} viewBox="0 0 540 100" preserveAspectRatio="none">
+              <path d="M0,55 Q135,25 270,50 T540,35 L540,47 Q405,70 270,58 T0,67 Z" fill="#228B22" opacity="0.9"/>
+              <path d="M0,67 Q135,37 270,58 T540,47 L540,57 Q405,80 270,68 T0,77 Z" fill="#FFFFFF" opacity="0.9"/>
+              <path d="M0,77 Q135,47 270,68 T540,57 L540,67 Q405,90 270,78 T0,87 Z" fill="#DC143C" opacity="0.9"/>
             </svg>
 
-            <div className="relative flex gap-4 px-4 pt-3 pb-2" style={{ zIndex: 2 }}>
-              <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                <div className="w-24 h-28 rounded-lg overflow-hidden bg-gray-200 border-2 border-gray-300 shadow-md">
+            <div className="relative flex gap-3 px-3 pt-2 pb-1" style={{ zIndex: 2 }}>
+              <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                <div className="w-20 h-24 rounded-lg overflow-hidden bg-gray-200 border-2 border-gray-300 shadow-md">
                   {member.photoUrl ? (
                     <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
                   ) : (
@@ -192,37 +194,37 @@ export default function DigitalCard() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-1">
-                <p className="font-bold text-base leading-tight text-[#333] mb-1">{member.fullName}</p>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">መአረግ:</span> <span className="font-semibold">{member.rank || '—'}</span></p>
+              <div className="flex-1 space-y-0.5">
+                <p className="font-bold text-sm leading-tight text-[#333] mb-0.5">{member.fullName}</p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">መአረግ:</span> <span className="font-semibold">{member.rank || '—'}</span></p>
                 </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">ዖታ:</span> <span className="font-semibold">{member.gender || '—'}</span></p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ዖታ:</span> <span className="font-semibold">{member.gender || '—'}</span></p>
                 </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">አድራሻ:</span> <span className="font-semibold">{member.address || '—'}</span></p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">አድራሻ:</span> <span className="font-semibold">{member.address || '—'}</span></p>
                 </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">ክፈለ ጦር/እዝ:</span> <span className="font-semibold">{member.division || '—'}</span></p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ክፈለ ጦር/እዝ:</span> <span className="font-semibold">{member.division || '—'}</span></p>
                 </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">ስልክ ቁጥር:</span> <span className="font-semibold">{member.phone}</span></p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ስልክ ቁጥር:</span> <span className="font-semibold">{member.phone}</span></p>
                 </div>
-                <div className="flex items-start gap-1.5">
-                  <span className="text-[#DC143C] text-xs mt-0.5">★</span>
-                  <p className="text-xs text-[#333]"><span className="text-gray-500">የ ደጋፊነት ደረጃ:</span> <span className="font-bold capitalize">{member.tier}</span></p>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#DC143C] text-[10px]">★</span>
+                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">የ ደጋፊነት ደረጃ:</span> <span className="font-bold capitalize">{member.tier}</span></p>
                 </div>
               </div>
 
               <div className="flex flex-col items-center justify-between flex-shrink-0">
                 {brandingSettings.stamp && (
-                  <div style={{ width: '90px', height: '90px' }}>
+                  <div style={{ width: '75px', height: '75px' }}>
                     <img 
                       src={brandingSettings.stamp} 
                       alt="Stamp" 
@@ -233,14 +235,14 @@ export default function DigitalCard() {
                 <div className="p-1 bg-white rounded shadow-sm mt-1">
                   <QRCode 
                     value={`https://mechalfc.com/card/${member.membershipNumber}`} 
-                    size={50}
+                    size={42}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="px-4 py-2 flex items-center justify-between" style={{ backgroundColor: '#8B1A1A' }}>
-              <div className="text-white text-[10px] space-y-0.5">
+            <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#8B1A1A' }}>
+              <div className="text-white text-[9px] space-y-0">
                 <p>ያገልግልበት ቀን: {member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
               </div>
               {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
@@ -249,16 +251,16 @@ export default function DigitalCard() {
                     <img 
                       src={brandingSettings.signature} 
                       alt="Authorized Signature" 
-                      className="h-7 mx-auto mb-0.5"
+                      className="h-6 mx-auto"
                       style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
                     />
                   )}
                   {brandingSettings.authorizedPersonName && (
-                    <p className="text-[8px] text-white/70">{brandingSettings.authorizedPersonName}</p>
+                    <p className="text-[7px] text-white/70">{brandingSettings.authorizedPersonName}</p>
                   )}
                 </div>
               )}
-              <p className="text-white font-heading text-[10px] font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
+              <p className="text-white font-heading text-[9px] font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
             </div>
           </div>
           
