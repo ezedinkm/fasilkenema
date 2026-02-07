@@ -146,9 +146,12 @@ export default function MemberDashboard() {
                 <h2 className="text-lg font-bold tracking-wider">MECHAL FC</h2>
                 <p className="text-xs opacity-80 tracking-widest">የ ደጋፊዎች ክለብ</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs opacity-70">MEMBERSHIP ID</p>
-                <p className="font-mono font-bold text-sm" data-testid="membership-number">{member.membershipNumber}</p>
+              <div 
+                className="text-right px-3 py-1.5 rounded-md"
+                style={{ backgroundColor: '#DC143C' }}
+              >
+                <p className="text-[9px] uppercase tracking-wider text-white/70">MEMBERSHIP ID</p>
+                <p className="font-mono font-bold text-sm text-white" data-testid="membership-number">{member.membershipNumber}</p>
               </div>
             </div>
 

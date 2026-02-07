@@ -226,10 +226,13 @@ export default function DigitalCard() {
               </div>
               
               <div className="flex items-end justify-between pt-2 border-t border-white/20">
-                <div className="space-y-0.5">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-50">ID</span>
-                    <p className="font-mono text-xs font-bold">{member.membershipNumber}</p>
+                <div className="space-y-1.5">
+                  <div 
+                    className="px-3 py-1.5 rounded-md"
+                    style={{ backgroundColor: '#DC143C' }}
+                  >
+                    <span className="text-[8px] uppercase tracking-wider text-white/70">መታወቂያ ቁጥር / ID</span>
+                    <p className="font-mono text-sm font-bold text-white">{member.membershipNumber}</p>
                   </div>
                   <div>
                     <span className="text-[9px] uppercase tracking-wider opacity-50">ያገልግልበት ቀን</span>
