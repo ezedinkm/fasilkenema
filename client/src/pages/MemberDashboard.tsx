@@ -1,4 +1,5 @@
 import PublicLayout from '@/components/PublicLayout';
+import { ASSETS } from '@/lib/mockData';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useState, useEffect, useRef } from 'react';
@@ -159,11 +160,11 @@ export default function MemberDashboard() {
               <div 
                 className="absolute pointer-events-none"
                 style={{ 
-                  bottom: '20px',
+                  bottom: '60px',
                   right: '20px',
-                  width: '100px',
-                  height: '100px',
-                  opacity: 0.2,
+                  width: '90px',
+                  height: '90px',
+                  opacity: 0.35,
                   zIndex: 1,
                 }}
               >
@@ -174,11 +175,20 @@ export default function MemberDashboard() {
                 />
               </div>
             )}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-bold tracking-wider">MECHAL FC</h2>
-                <p className="text-xs opacity-80 tracking-widest">የ ደጋፊዎች ክለብ</p>
-              </div>
+            
+            <div className="flex flex-col items-center mb-3">
+              <img src={ASSETS.logo} alt="Logo" className="h-16 w-16 object-contain mb-1" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+              <h2 className="text-lg font-bold tracking-wider">MECHAL FC</h2>
+              <p className="text-xs opacity-80 tracking-widest">የ ደጋፊዎች ክለብ</p>
+            </div>
+            
+            <div className="flex justify-between items-center mb-3">
+              <span 
+                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                style={{ backgroundColor: '#DC143C', color: '#ffffff' }}
+              >
+                {member.tier}
+              </span>
               <div 
                 className="text-right px-3 py-1.5 rounded-md"
                 style={{ backgroundColor: '#DC143C' }}

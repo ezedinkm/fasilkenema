@@ -138,19 +138,15 @@ export default function DigitalCard() {
               style={{ background: 'linear-gradient(135deg, #228B22 0%, #1a6b1a 50%, #0d3d0d 100%)' }}
             />
             
-            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05 }}>
-              <img src={ASSETS.logo} className="absolute top-1/2 left-1/2 w-48 h-48" style={{ transform: 'translate(-50%, -50%)', filter: 'grayscale(1) invert(1)' }} />
-            </div>
-            
             {brandingSettings.stamp && (
               <div 
                 className="absolute pointer-events-none"
                 style={{ 
-                  bottom: '50px',
-                  right: '80px',
-                  width: '90px',
-                  height: '90px',
-                  opacity: 0.25,
+                  bottom: '55px',
+                  right: '75px',
+                  width: '80px',
+                  height: '80px',
+                  opacity: 0.35,
                   zIndex: 1,
                 }}
               >
@@ -163,14 +159,13 @@ export default function DigitalCard() {
             )}
             
             <div className="relative p-5 text-white">
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                  <img src={ASSETS.logo} alt="Logo" className="h-12 w-12 object-contain" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                  <div>
-                    <h2 className="font-heading text-xl font-bold leading-none">{brandingSettings.headerText}</h2>
-                    <p className="text-[10px] tracking-widest uppercase opacity-70">{brandingSettings.headerSubtext}</p>
-                  </div>
-                </div>
+              <div className="flex flex-col items-center mb-3">
+                <img src={ASSETS.logo} alt="Logo" className="h-14 w-14 object-contain mb-1" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                <h2 className="font-heading text-lg font-bold leading-none">{brandingSettings.headerText}</h2>
+                <p className="text-[10px] tracking-widest uppercase opacity-70">{brandingSettings.headerSubtext}</p>
+              </div>
+              
+              <div className="flex justify-between items-center mb-3">
                 <span 
                   className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
                   style={{ backgroundColor: '#DC143C', color: '#ffffff' }}
