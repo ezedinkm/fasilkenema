@@ -41,12 +41,14 @@ export default function AdminSettings() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [stampPreview, setStampPreview] = useState<string | null>(null);
   const [authorizedPersonName, setAuthorizedPersonName] = useState('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
+  const stampInputRef = useRef<HTMLInputElement>(null);
 
   // State for donation tiers
   const [donationTiers, setDonationTiers] = useState<{ id: string; amount: number; label: string }[]>([
@@ -100,6 +102,7 @@ export default function AdminSettings() {
       const logoSetting = settings.find((s: any) => s.key === 'branding.logo');
       const faviconSetting = settings.find((s: any) => s.key === 'branding.favicon');
       const signatureSetting = settings.find((s: any) => s.key === 'branding.signature');
+      const stampSetting = settings.find((s: any) => s.key === 'branding.stamp');
       const authorizedNameSetting = settings.find((s: any) => s.key === 'branding.authorizedPersonName');
       const donationTiersSetting = settings.find((s: any) => s.key === 'donations.tiers');
       
@@ -107,6 +110,7 @@ export default function AdminSettings() {
       if (logoSetting) setLogoPreview(logoSetting.value);
       if (faviconSetting) setFaviconPreview(faviconSetting.value);
       if (signatureSetting) setSignaturePreview(signatureSetting.value);
+      if (stampSetting) setStampPreview(stampSetting.value);
       if (authorizedNameSetting) setAuthorizedPersonName(authorizedNameSetting.value);
       if (donationTiersSetting) {
         try {
@@ -380,6 +384,25 @@ export default function AdminSettings() {
     }
   };
 
+  const handleStampChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500000) {
+        toast({
+          title: "File Too Large",
+          description: "Stamp image must be under 500KB",
+          variant: "destructive"
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setStampPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSaveBranding = async () => {
     try {
       const mutations = [];
@@ -449,6 +472,20 @@ export default function AdminSettings() {
       } else {
         mutations.push(saveBrandingMutation.mutateAsync({
           key: 'branding.authorizedPersonName',
+          value: '',
+          delete: true
+        }));
+      }
+
+      if (stampPreview) {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.stamp',
+          value: stampPreview,
+          description: 'Circle stamp watermark image for membership cards (base64)'
+        }));
+      } else {
+        mutations.push(saveBrandingMutation.mutateAsync({
+          key: 'branding.stamp',
           value: '',
           delete: true
         }));
@@ -1058,6 +1095,49 @@ export default function AdminSettings() {
                       data-testid="input-authorized-person"
                     />
                     <p className="text-xs text-muted-foreground">This name appears below the signature on membership cards</p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <Label>Circle Stamp / Seal Watermark</Label>
+                    <p className="text-xs text-muted-foreground mb-3">Upload a circular stamp or seal image to appear as a watermark on membership cards (recommended: transparent PNG, max 500KB)</p>
+                    <div className="flex items-start gap-4">
+                      <div className="w-24 h-24 border-2 border-dashed border-zinc-300 rounded-full flex items-center justify-center bg-zinc-50 overflow-hidden">
+                        {stampPreview ? (
+                          <img src={stampPreview} alt="Stamp preview" className="w-full h-full object-contain p-1" />
+                        ) : (
+                          <span className="text-xs text-zinc-400 text-center px-2">No Stamp</span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <input
+                          type="file"
+                          ref={stampInputRef}
+                          onChange={handleStampChange}
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                          data-testid="input-stamp-file"
+                        />
+                        <Button 
+                          variant="outline" 
+                          onClick={() => stampInputRef.current?.click()}
+                          data-testid="button-upload-stamp"
+                        >
+                          <Upload className="mr-2 h-4 w-4" /> Choose Stamp
+                        </Button>
+                        {stampPreview && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => setStampPreview(null)}
+                            data-testid="button-remove-stamp"
+                          >
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

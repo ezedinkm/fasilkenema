@@ -88,6 +88,7 @@ export default function MemberDashboard() {
   const brandingSettings = {
     signature: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.signature')?.value : null) || null,
     authorizedPersonName: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.authorizedPersonName')?.value : null) || null,
+    stamp: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.stamp')?.value : null) || null,
   };
 
   if (!member) {
@@ -119,8 +120,27 @@ export default function MemberDashboard() {
           </Button>
         </div>
 
-        <Card className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl`}>
-          <div className={`bg-gradient-to-br ${tierStyle.bg} text-white p-6`}>
+        <Card className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl relative`}>
+          <div className={`bg-gradient-to-br ${tierStyle.bg} text-white p-6 relative`}>
+            {brandingSettings.stamp && (
+              <div 
+                className="absolute pointer-events-none"
+                style={{ 
+                  bottom: '20px',
+                  right: '20px',
+                  width: '100px',
+                  height: '100px',
+                  opacity: 0.2,
+                  zIndex: 1,
+                }}
+              >
+                <img 
+                  src={brandingSettings.stamp} 
+                  alt="" 
+                  className="w-full h-full object-contain rounded-full"
+                />
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-bold tracking-wider">MECHAL FC</h2>

@@ -1083,7 +1083,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/public/branding", async (req, res) => {
     try {
       const settings = await storage.getSettings();
-      const brandingKeys = ['branding.headerText', 'branding.headerSubtext', 'branding.logoUrl', 'branding.signature', 'branding.authorizedPersonName'];
+      const brandingKeys = ['branding.headerText', 'branding.headerSubtext', 'branding.logoUrl', 'branding.signature', 'branding.authorizedPersonName', 'branding.stamp'];
       const branding = settings.filter((s: any) => brandingKeys.includes(s.key));
       res.json(branding);
     } catch (error) {

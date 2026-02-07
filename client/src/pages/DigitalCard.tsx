@@ -83,6 +83,7 @@ export default function DigitalCard() {
     headerSubtext: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
     signature: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.signature')?.value : null) || null,
     authorizedPersonName: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.authorizedPersonName')?.value : null) || null,
+    stamp: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.stamp')?.value : null) || null,
   };
 
   const formatDate = (dateString: string) => {
@@ -140,6 +141,26 @@ export default function DigitalCard() {
             <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05 }}>
               <img src={ASSETS.logo} className="absolute top-1/2 left-1/2 w-48 h-48" style={{ transform: 'translate(-50%, -50%)', filter: 'grayscale(1) invert(1)' }} />
             </div>
+            
+            {brandingSettings.stamp && (
+              <div 
+                className="absolute pointer-events-none"
+                style={{ 
+                  bottom: '50px',
+                  right: '80px',
+                  width: '90px',
+                  height: '90px',
+                  opacity: 0.25,
+                  zIndex: 1,
+                }}
+              >
+                <img 
+                  src={brandingSettings.stamp} 
+                  alt="" 
+                  className="w-full h-full object-contain rounded-full"
+                />
+              </div>
+            )}
             
             <div className="relative p-5 text-white">
               <div className="flex justify-between items-start mb-4">
