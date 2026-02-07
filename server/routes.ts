@@ -246,6 +246,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fullName: member.fullName,
           email: member.email,
           phone: member.phone,
+          rank: member.rank,
+          gender: member.gender,
+          address: member.address,
+          division: member.division,
           tier: member.tier,
           photoUrl: member.photoUrl,
           expiryDate: member.expiryDate,
@@ -286,6 +290,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fullName: member.fullName,
           email: member.email,
           phone: member.phone,
+          rank: member.rank,
+          gender: member.gender,
+          address: member.address,
+          division: member.division,
           tier: member.tier,
           photoUrl: member.photoUrl,
           expiryDate: member.expiryDate,
@@ -593,6 +601,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
+      const { rank, gender, address, division } = req.body;
+      
       const applicationData = {
         transactionId: txRef,
         firstName,
@@ -600,6 +610,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         phone,
         password: hashedPassword,
+        rank: rank || null,
+        gender: gender || null,
+        address: address || null,
+        division: division || null,
         dateOfBirth,
         city,
         country,
@@ -772,6 +786,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: application.email,
             phone: application.phone,
             password: application.password || null,
+            rank: application.rank || null,
+            gender: application.gender || null,
+            address: application.address || null,
+            division: application.division || null,
             dateOfBirth: application.dateOfBirth,
             city: application.city,
             country: application.country,
@@ -1125,6 +1143,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         membershipNumber: member.membershipNumber,
         fullName: member.fullName,
+        rank: member.rank,
+        gender: member.gender,
+        address: member.address,
+        division: member.division,
+        phone: member.phone,
         tier: member.tier,
         photoUrl: member.photoUrl,
         joinedDate: member.joinedDate,

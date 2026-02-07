@@ -28,6 +28,10 @@ export default function MembershipRegister() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [rank, setRank] = useState('');
+  const [gender, setGender] = useState('');
+  const [address, setAddress] = useState('');
+  const [division, setDivision] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
@@ -189,6 +193,10 @@ export default function MembershipRegister() {
         email,
         phone,
         password,
+        rank,
+        gender,
+        address,
+        division,
         dateOfBirth,
         city,
         country,
@@ -292,10 +300,46 @@ export default function MembershipRegister() {
                     data-testid="input-email"
                   />
                   <Input 
-                    placeholder="Phone Number *"
+                    placeholder="ስልክ ቁጥር / Phone Number *"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     data-testid="input-phone"
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">መአረግ / Rank</label>
+                      <Input 
+                        placeholder="መአረግ"
+                        value={rank}
+                        onChange={(e) => setRank(e.target.value)}
+                        data-testid="input-rank"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">ዖታ / Gender</label>
+                      <select
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        data-testid="input-gender"
+                      >
+                        <option value="">ዖታ ይምረጡ</option>
+                        <option value="ወንድ">ወንድ</option>
+                        <option value="ሴት">ሴት</option>
+                      </select>
+                    </div>
+                  </div>
+                  <Input 
+                    placeholder="አድራሻ / Address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    data-testid="input-address"
+                  />
+                  <Input 
+                    placeholder="ክፈለ ጦር/እዝ / Division/Command"
+                    value={division}
+                    onChange={(e) => setDivision(e.target.value)}
+                    data-testid="input-division"
                   />
                   <div>
                     <label className="text-sm font-medium mb-2 block">Date of Birth *</label>

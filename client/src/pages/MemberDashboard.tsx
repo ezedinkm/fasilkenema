@@ -1,11 +1,11 @@
 import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
-import { LogOut, CreditCard, User, Calendar, MapPin } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
 
 interface MemberData {
   id: number;
@@ -13,6 +13,10 @@ interface MemberData {
   fullName: string;
   email: string;
   phone: string;
+  rank: string | null;
+  gender: string | null;
+  address: string | null;
+  division: string | null;
   tier: string;
   photoUrl: string | null;
   expiryDate: string;
@@ -83,10 +87,10 @@ export default function MemberDashboard() {
     );
   }
 
-  const tierColors: Record<string, { bg: string; text: string; border: string }> = {
-    silver: { bg: 'bg-gradient-to-br from-gray-300 to-gray-500', text: 'text-white', border: 'border-gray-400' },
-    gold: { bg: 'bg-gradient-to-br from-yellow-400 to-yellow-600', text: 'text-black', border: 'border-yellow-500' },
-    platinum: { bg: 'bg-gradient-to-br from-purple-400 to-purple-700', text: 'text-white', border: 'border-purple-500' },
+  const tierColors: Record<string, { bg: string; accent: string }> = {
+    silver: { bg: 'from-gray-600 to-gray-800', accent: 'border-gray-400' },
+    gold: { bg: 'from-yellow-600 to-yellow-900', accent: 'border-yellow-500' },
+    platinum: { bg: 'from-purple-600 to-purple-900', accent: 'border-purple-500' },
   };
 
   const tierStyle = tierColors[member.tier.toLowerCase()] || tierColors.silver;
@@ -95,23 +99,30 @@ export default function MemberDashboard() {
 
   return (
     <PublicLayout>
-      <div className="container px-4 py-8 max-w-2xl mx-auto">
+      <div className="container px-4 py-8 max-w-xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Membership</h1>
+          <h1 className="text-2xl font-bold">የ አባልነት መታወቂያ</h1>
           <Button variant="outline" size="sm" onClick={handleLogout} data-testid="button-logout">
             <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            ውጣ
           </Button>
         </div>
 
-        <Card className={`overflow-hidden ${tierStyle.border} border-2 shadow-xl`}>
-          <div className={`${tierStyle.bg} ${tierStyle.text} p-6`}>
-            <div className="flex items-start justify-between">
+        <Card className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl`}>
+          <div className={`bg-gradient-to-br ${tierStyle.bg} text-white p-6`}>
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-sm opacity-80 uppercase tracking-wider">Mechal FC Fan Club</h2>
-                <p className="text-2xl font-bold mt-1">{member.tier.toUpperCase()} MEMBER</p>
+                <h2 className="text-lg font-bold tracking-wider">MECHAL FC</h2>
+                <p className="text-xs opacity-80 tracking-widest">የ ደጋፊዎች ክለብ</p>
               </div>
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-white/20 border-2 border-white/50">
+              <div className="text-right">
+                <p className="text-xs opacity-70">MEMBERSHIP ID</p>
+                <p className="font-mono font-bold text-sm" data-testid="membership-number">{member.membershipNumber}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="w-24 h-28 rounded-lg overflow-hidden bg-white/20 border-2 border-white/40 flex-shrink-0">
                 {member.photoUrl ? (
                   <img 
                     src={member.photoUrl} 
@@ -125,73 +136,63 @@ export default function MemberDashboard() {
                   </div>
                 )}
               </div>
-            </div>
-            
-            <div className="mt-6">
-              <p className="text-xl font-bold" data-testid="member-name">{member.fullName}</p>
-              <p className="text-lg opacity-90 font-mono mt-1" data-testid="membership-number">
-                {member.membershipNumber}
-              </p>
+
+              <div className="flex-1 space-y-1.5 text-sm">
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider opacity-60">ሙሉ ስም</span>
+                  <p className="font-bold text-base leading-tight" data-testid="member-name">{member.fullName}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider opacity-60">መአረግ</span>
+                  <p className="font-medium leading-tight">{member.rank || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase tracking-wider opacity-60">ዖታ</span>
+                  <p className="font-medium leading-tight">{member.gender || '—'}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 text-sm opacity-80">
-              <Calendar className="w-4 h-4" />
-              <span>Valid until: {expiryDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-              {isExpired && (
-                <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded">EXPIRED</span>
-              )}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-4 text-sm">
+              <div>
+                <span className="text-[10px] uppercase tracking-wider opacity-60">አድራሻ</span>
+                <p className="font-medium leading-tight">{member.address || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider opacity-60">ክፈለ ጦር/እዝ</span>
+                <p className="font-medium leading-tight">{member.division || '—'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider opacity-60">ስልክ ቁጥር</span>
+                <p className="font-medium leading-tight">{member.phone}</p>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider opacity-60">የ ደጋፊነት ደረጃ</span>
+                <p className="font-bold leading-tight capitalize">{member.tier}</p>
+              </div>
             </div>
+
+            {isExpired && (
+              <div className="mt-3 px-3 py-1 bg-red-500/80 text-white text-xs text-center rounded">
+                ጊዜው ያለፈበት / EXPIRED
+              </div>
+            )}
           </div>
           
-          <CardContent className="bg-white p-6">
+          <CardContent className="bg-white p-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  <span>{member.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{member.phone}</span>
-                </div>
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <p>ያገልግልበት ቀን: {expiryDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                <p className={`font-medium ${member.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                  ሁኔታ: {member.status === 'active' ? 'ንቁ' : 'ያልነቃ'}
+                </p>
               </div>
-              <div className="p-2 bg-white rounded-lg shadow-sm border" data-testid="qr-code">
+              <div className="p-1.5 bg-white rounded-lg shadow-sm border" data-testid="qr-code">
                 <QRCode 
-                  value={`${window.location.origin}/membership-card/${member.membershipNumber}`}
-                  size={80}
+                  value={`${window.location.origin}/card/${member.membershipNumber}`}
+                  size={64}
                   level="M"
                 />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Membership Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-muted-foreground">Status</span>
-                <span className={`font-medium ${member.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>
-                  {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                </span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-muted-foreground">Tier</span>
-                <span className="font-medium">{member.tier}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-muted-foreground">Member ID</span>
-                <span className="font-mono font-medium">{member.membershipNumber}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-muted-foreground">Expiry Date</span>
-                <span className="font-medium">{expiryDate.toLocaleDateString()}</span>
               </div>
             </div>
           </CardContent>

@@ -12,6 +12,11 @@ import { FileImage, FileText, User } from 'lucide-react';
 interface MemberData {
   membershipNumber: string;
   fullName: string;
+  rank: string | null;
+  gender: string | null;
+  address: string | null;
+  division: string | null;
+  phone: string;
   tier: string;
   photoUrl: string | null;
   joinedDate: string;
@@ -114,86 +119,113 @@ export default function DigitalCard() {
 
   return (
     <PublicLayout>
-      <div className="bg-zinc-100 flex items-center justify-center p-4">
+      <div className="bg-zinc-100 flex items-center justify-center p-4 py-8">
         <div className="max-w-md w-full">
           <h1 className="text-2xl font-bold text-center mb-8 text-primary font-heading uppercase tracking-wider">
-            Official Member Card
+            የ አባልነት መታወቂያ ካርድ
           </h1>
           
           <div 
             ref={cardRef} 
-            className="relative aspect-[1.586/1] w-full rounded-xl overflow-hidden shadow-2xl transform transition-transform hover:scale-[1.02] duration-300"
+            className="relative w-full rounded-xl overflow-hidden shadow-2xl"
             style={{ backgroundColor: '#228B22' }}
           >
             <div 
               className="absolute inset-0"
-              style={{ background: 'linear-gradient(to bottom right, #228B22, #1a6b1a, #0d3d0d)' }}
-            >
+              style={{ background: 'linear-gradient(135deg, #228B22 0%, #1a6b1a 50%, #0d3d0d 100%)' }}
+            />
+            
+            <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.05 }}>
+              <img src={ASSETS.logo} className="absolute top-1/2 left-1/2 w-48 h-48" style={{ transform: 'translate(-50%, -50%)', filter: 'grayscale(1) invert(1)' }} />
             </div>
             
-            <div className="absolute inset-0 p-6 flex flex-col justify-between" style={{ color: '#ffffff' }}>
-              <div className="flex justify-between items-start">
-                <img src={ASSETS.logo} alt="Logo" className="h-16 w-16 object-contain" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                <div className="text-right">
-                  <h2 className="font-heading text-2xl font-bold leading-none" style={{ color: '#ffffff' }}>{brandingSettings.headerText}</h2>
-                  <p className="text-xs tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.8)' }}>{brandingSettings.headerSubtext}</p>
+            <div className="relative p-5 text-white">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex items-center gap-3">
+                  <img src={ASSETS.logo} alt="Logo" className="h-12 w-12 object-contain" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
+                  <div>
+                    <h2 className="font-heading text-xl font-bold leading-none">{brandingSettings.headerText}</h2>
+                    <p className="text-[10px] tracking-widest uppercase opacity-70">{brandingSettings.headerSubtext}</p>
+                  </div>
+                </div>
+                <span 
+                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                  style={{ backgroundColor: '#DC143C', color: '#ffffff' }}
+                >
+                  {member.tier}
+                </span>
+              </div>
+              
+              <div className="flex gap-4 mb-4">
+                <div className="w-20 h-24 rounded-lg bg-white/20 overflow-hidden border-2 border-white/40 flex-shrink-0">
+                  {member.photoUrl ? (
+                    <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 text-white/70" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 space-y-1">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider opacity-50">ሙሉ ስም</span>
+                    <p className="font-bold text-sm leading-tight">{member.fullName}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider opacity-50">መአረግ</span>
+                    <p className="text-xs font-medium leading-tight">{member.rank || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider opacity-50">ዖታ</span>
+                    <p className="text-xs font-medium leading-tight">{member.gender || '—'}</p>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex justify-between items-end mt-4">
-                <div className="flex items-end gap-4">
-                  <div className="w-16 h-16 rounded-full bg-white/20 overflow-hidden border-2 border-white/50 flex-shrink-0">
-                    {member.photoUrl ? (
-                      <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <User className="w-8 h-8 text-white/70" />
-                      </div>
-                    )}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs mb-4">
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider opacity-50">አድራሻ</span>
+                  <p className="font-medium leading-tight">{member.address || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider opacity-50">ክፈለ ጦር/እዝ</span>
+                  <p className="font-medium leading-tight">{member.division || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider opacity-50">ስልክ ቁጥር</span>
+                  <p className="font-medium leading-tight">{member.phone}</p>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase tracking-wider opacity-50">የ ደጋፊነት ደረጃ</span>
+                  <p className="font-bold leading-tight capitalize">{member.tier}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-end justify-between pt-2 border-t border-white/20">
+                <div className="space-y-0.5">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-wider opacity-50">ID</span>
+                    <p className="font-mono text-xs font-bold">{member.membershipNumber}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Member Name</p>
-                    <p className="font-display text-lg tracking-wide uppercase" style={{ color: '#ffffff' }}>{member.fullName}</p>
-                    
-                    <div className="flex gap-4 mt-2">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>ID Number</p>
-                        <p className="font-mono text-xs" style={{ color: '#ffffff' }}>{member.membershipNumber}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'rgba(255,255,255,0.7)' }}>Valid Thru</p>
-                        <p className="font-mono text-xs" style={{ color: '#ffffff' }}>{member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
-                      </div>
-                    </div>
+                    <span className="text-[9px] uppercase tracking-wider opacity-50">ያገልግልበት ቀን</span>
+                    <p className="font-mono text-xs">{member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
                   </div>
                 </div>
-                
-                <div className="p-2 rounded" style={{ backgroundColor: '#ffffff' }}>
+                <div className="p-1.5 rounded bg-white">
                   <QRCode 
-                    value={`https://mechalfc.com/verify/${member.membershipNumber}`} 
-                    size={70}
+                    value={`https://mechalfc.com/card/${member.membershipNumber}`} 
+                    size={60}
                   />
                 </div>
               </div>
-              
-              <div className="absolute top-1/2 left-1/2 pointer-events-none" style={{ transform: 'translate(-50%, -50%)', opacity: 0.1 }}>
-                <img src={ASSETS.logo} className="w-64 h-64" style={{ filter: 'grayscale(1) invert(1)' }} />
-              </div>
-              
-               <div className="absolute bottom-6 left-1/2" style={{ transform: 'translateX(-50%)' }}>
-                 <span 
-                   className="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest"
-                   style={{ backgroundColor: '#DC143C', color: '#ffffff', border: '1px solid rgba(220, 20, 60, 0.7)' }}
-                 >
-                   {member.tier} Member
-                 </span>
-               </div>
             </div>
           </div>
           
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              Show this QR code at the stadium entrance for priority access.
+              ይህን QR ኮድ በስታዲየም ለቅድሚያ ተደራሽነት ያሳዩ
             </p>
             <div className="flex gap-2">
               <Button 
