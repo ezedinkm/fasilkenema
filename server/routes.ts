@@ -605,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      const { idNumber, rank, gender, address, division } = req.body;
+      const { rank, gender, address, division } = req.body;
       
       const applicationData = {
         transactionId: txRef,
@@ -614,7 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email,
         phone,
         password: hashedPassword,
-        idNumber: idNumber || null,
+        idNumber: null,
         rank: rank || null,
         gender: gender || null,
         address: address || null,
@@ -782,6 +782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           const membershipNumber = `FK-${Date.now()}`;
+          const idNumber = `MFC-${String(Date.now()).slice(-6)}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
           const expiryDate = new Date();
           expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
@@ -791,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             email: application.email,
             phone: application.phone,
             password: application.password || null,
-            idNumber: application.idNumber || null,
+            idNumber,
             rank: application.rank || null,
             gender: application.gender || null,
             address: application.address || null,
