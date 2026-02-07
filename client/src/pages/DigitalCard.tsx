@@ -130,134 +130,131 @@ export default function DigitalCard() {
           
           <div 
             ref={cardRef} 
-            className="relative w-full rounded-xl overflow-hidden shadow-2xl"
-            style={{ backgroundColor: '#228B22' }}
+            className="relative w-full rounded-xl overflow-hidden shadow-2xl border-2 border-[#8B1A1A]"
+            style={{ backgroundColor: '#F5F0E8' }}
           >
-            <div 
-              className="absolute inset-0"
-              style={{ background: 'linear-gradient(180deg, #228B22 0%, #228B22 30%, #FFD700 50%, #DC143C 70%, #DC143C 100%)' }}
-            />
-            
-            {brandingSettings.stamp && (
-              <div 
-                className="absolute pointer-events-none"
-                style={{ 
-                  bottom: '55px',
-                  right: '20px',
-                  width: '100px',
-                  height: '100px',
-                  opacity: 0.7,
-                  zIndex: 2,
-                }}
-              >
-                <img 
-                  src={brandingSettings.stamp} 
-                  alt="" 
-                  className="w-full h-full object-contain rounded-full"
-                />
-              </div>
-            )}
-            
-            <div className="relative p-5 text-white">
-              <div className="flex flex-col items-center mb-3">
-                <img src={ASSETS.logo} alt="Logo" className="h-14 w-14 object-contain mb-1" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} />
-                <h2 className="font-heading text-lg font-bold leading-none">{brandingSettings.headerText}</h2>
-                <p className="text-[10px] tracking-widest uppercase opacity-70">{brandingSettings.headerSubtext}</p>
-              </div>
-              
-              <div className="flex justify-between items-center mb-3">
-                <span 
-                  className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                  style={{ backgroundColor: '#DC143C', color: '#ffffff' }}
-                >
-                  {member.tier}
-                </span>
-              </div>
-              
-              <div className="flex gap-4 mb-4">
-                <div className="w-20 h-24 rounded-lg bg-white/20 overflow-hidden border-2 border-white/40 flex-shrink-0">
+            <div className="px-5 py-3 text-center text-white" style={{ backgroundColor: '#8B1A1A' }}>
+              <p className="font-heading text-base font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
+              <p className="text-[11px] tracking-wider opacity-90">የጠቅላላ ጉባዔ ጥሪ ካርድ</p>
+            </div>
+
+            <svg className="absolute left-0 right-0 w-full" style={{ top: '50px', height: '200px', zIndex: 1 }} viewBox="0 0 400 200" preserveAspectRatio="none">
+              <path d="M0,120 Q100,60 200,100 T400,80 L400,95 Q300,135 200,115 T0,135 Z" fill="#228B22" opacity="0.9"/>
+              <path d="M0,135 Q100,75 200,115 T400,95 L400,110 Q300,150 200,130 T0,150 Z" fill="#FFFFFF" opacity="0.9"/>
+              <path d="M0,150 Q100,90 200,130 T400,110 L400,125 Q300,165 200,145 T0,165 Z" fill="#DC143C" opacity="0.9"/>
+            </svg>
+
+            <div className="relative px-5 pt-4 pb-3" style={{ zIndex: 2 }}>
+              <div className="flex gap-4 items-start">
+                <div className="w-20 h-24 rounded-lg overflow-hidden bg-gray-200 border-2 border-gray-300 flex-shrink-0 shadow-md">
                   {member.photoUrl ? (
                     <img src={member.photoUrl} alt={member.fullName} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-8 h-8 text-white/70" />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <User className="w-8 h-8 text-gray-400" />
                     </div>
                   )}
                 </div>
-                
-                <div className="flex-1 space-y-1">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-50">ሙሉ ስም</span>
-                    <p className="font-bold text-sm leading-tight">{member.fullName}</p>
+
+                <div className="flex-1">
+                  <div className="mb-2">
+                    <div 
+                      className="inline-block px-2 py-1 rounded-md"
+                      style={{ backgroundColor: '#DC143C' }}
+                    >
+                      <span className="text-[7px] uppercase tracking-wider text-white/80">ID</span>
+                      <p className="font-mono font-bold text-[11px] text-white">{member.membershipNumber}</p>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-50">መአረግ</span>
-                    <p className="text-xs font-medium leading-tight">{member.rank || '—'}</p>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-50">ዖታ</span>
-                    <p className="text-xs font-medium leading-tight">{member.gender || '—'}</p>
-                  </div>
+                  <p className="font-bold text-sm leading-tight text-[#333]">{member.fullName}</p>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs mb-4">
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider opacity-50">አድራሻ</span>
-                  <p className="font-medium leading-tight">{member.address || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider opacity-50">ክፈለ ጦር/እዝ</span>
-                  <p className="font-medium leading-tight">{member.division || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider opacity-50">ስልክ ቁጥር</span>
-                  <p className="font-medium leading-tight">{member.phone}</p>
-                </div>
-                <div>
-                  <span className="text-[9px] uppercase tracking-wider opacity-50">የ ደጋፊነት ደረጃ</span>
-                  <p className="font-bold leading-tight capitalize">{member.tier}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-end justify-between pt-2 border-t border-white/20">
-                <div className="space-y-1.5">
-                  <div 
-                    className="px-3 py-1.5 rounded-md"
-                    style={{ backgroundColor: '#DC143C' }}
-                  >
-                    <span className="text-[8px] uppercase tracking-wider text-white/70">መታወቂያ ቁጥር / ID</span>
-                    <p className="font-mono text-sm font-bold text-white">{member.membershipNumber}</p>
-                  </div>
-                  <div>
-                    <span className="text-[9px] uppercase tracking-wider opacity-50">ያገልግልበት ቀን</span>
-                    <p className="font-mono text-xs">{member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
-                  </div>
-                </div>
-                
-                {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
-                  <div className="text-center">
-                    {brandingSettings.signature && (
-                      <img 
-                        src={brandingSettings.signature} 
-                        alt="Authorized Signature" 
-                        className="h-8 mx-auto mb-0.5"
-                        style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
-                      />
-                    )}
-                    {brandingSettings.authorizedPersonName && (
-                      <p className="text-[8px] opacity-60">{brandingSettings.authorizedPersonName}</p>
-                    )}
+
+                {brandingSettings.stamp && (
+                  <div className="flex-shrink-0" style={{ width: '70px', height: '70px' }}>
+                    <img 
+                      src={brandingSettings.stamp} 
+                      alt="Stamp" 
+                      className="w-full h-full object-contain rounded-full"
+                    />
                   </div>
                 )}
-                
-                <div className="p-1.5 rounded bg-white">
-                  <QRCode 
-                    value={`https://mechalfc.com/card/${member.membershipNumber}`} 
-                    size={60}
-                  />
+              </div>
+            </div>
+
+            <div className="relative px-5 pb-3 space-y-1" style={{ zIndex: 2 }}>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">መአረግ / Rank</span>
+                  <p className="text-xs font-semibold text-[#333] leading-tight">{member.rank || '—'}</p>
                 </div>
               </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">ዖታ / Sex</span>
+                  <p className="text-xs font-semibold text-[#333] leading-tight">{member.gender || '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">አድራሻ / Address</span>
+                  <p className="text-xs font-semibold text-[#333] leading-tight">{member.address || '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">ክፈለ ጦር/እዝ / Division</span>
+                  <p className="text-xs font-semibold text-[#333] leading-tight">{member.division || '—'}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">ስልክ ቁጥር / Phone</span>
+                  <p className="text-xs font-semibold text-[#333] leading-tight">{member.phone}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-[#DC143C] text-xs mt-0.5">★</span>
+                <div>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">የ ደጋፊነት ደረጃ / Level</span>
+                  <p className="text-xs font-bold text-[#333] leading-tight capitalize">{member.tier}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 py-2 flex items-center justify-between" style={{ backgroundColor: '#8B1A1A' }}>
+              <div className="text-white text-[10px] space-y-0.5">
+                <p>ያገልግልበት ቀን: {member.expiryDate ? formatDate(member.expiryDate) : 'N/A'}</p>
+              </div>
+              {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
+                <div className="text-center">
+                  {brandingSettings.signature && (
+                    <img 
+                      src={brandingSettings.signature} 
+                      alt="Authorized Signature" 
+                      className="h-7 mx-auto mb-0.5"
+                      style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
+                    />
+                  )}
+                  {brandingSettings.authorizedPersonName && (
+                    <p className="text-[8px] text-white/70">{brandingSettings.authorizedPersonName}</p>
+                  )}
+                </div>
+              )}
+              <div className="p-1 rounded bg-white">
+                <QRCode 
+                  value={`https://mechalfc.com/card/${member.membershipNumber}`} 
+                  size={50}
+                />
+              </div>
+            </div>
+
+            <div className="text-center py-2" style={{ backgroundColor: '#8B1A1A' }}>
+              <p className="text-white font-heading text-xs font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
             </div>
           </div>
           
