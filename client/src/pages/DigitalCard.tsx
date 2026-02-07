@@ -135,7 +135,7 @@ export default function DigitalCard() {
           >
             <div 
               className="absolute inset-0"
-              style={{ background: 'linear-gradient(135deg, #228B22 0%, #1a6b1a 50%, #0d3d0d 100%)' }}
+              style={{ background: 'linear-gradient(180deg, #228B22 0%, #228B22 30%, #FFD700 50%, #DC143C 70%, #DC143C 100%)' }}
             />
             
             {brandingSettings.stamp && (
@@ -143,11 +143,11 @@ export default function DigitalCard() {
                 className="absolute pointer-events-none"
                 style={{ 
                   bottom: '55px',
-                  right: '75px',
-                  width: '80px',
-                  height: '80px',
-                  opacity: 0.35,
-                  zIndex: 1,
+                  right: '20px',
+                  width: '100px',
+                  height: '100px',
+                  opacity: 0.7,
+                  zIndex: 2,
                 }}
               >
                 <img 

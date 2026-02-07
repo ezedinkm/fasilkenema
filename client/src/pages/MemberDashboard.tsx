@@ -133,13 +133,7 @@ export default function MemberDashboard() {
     );
   }
 
-  const tierColors: Record<string, { bg: string; accent: string }> = {
-    silver: { bg: 'from-gray-600 to-gray-800', accent: 'border-gray-400' },
-    gold: { bg: 'from-yellow-600 to-yellow-900', accent: 'border-yellow-500' },
-    platinum: { bg: 'from-purple-600 to-purple-900', accent: 'border-purple-500' },
-  };
-
-  const tierStyle = tierColors[member.tier.toLowerCase()] || tierColors.silver;
+  const tierStyle = { accent: 'border-green-600' };
   const expiryDate = new Date(member.expiryDate);
   const isExpired = expiryDate < new Date();
 
@@ -155,17 +149,17 @@ export default function MemberDashboard() {
         </div>
 
         <Card ref={cardRef} className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl relative`}>
-          <div className={`bg-gradient-to-br ${tierStyle.bg} text-white p-6 relative`}>
+          <div className="text-white p-6 relative" style={{ background: 'linear-gradient(180deg, #228B22 0%, #228B22 30%, #FFD700 50%, #DC143C 70%, #DC143C 100%)' }}>
             {brandingSettings.stamp && (
               <div 
                 className="absolute pointer-events-none"
                 style={{ 
                   bottom: '60px',
                   right: '20px',
-                  width: '90px',
-                  height: '90px',
-                  opacity: 0.35,
-                  zIndex: 1,
+                  width: '100px',
+                  height: '100px',
+                  opacity: 0.7,
+                  zIndex: 2,
                 }}
               >
                 <img 
