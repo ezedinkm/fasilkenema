@@ -1,12 +1,14 @@
 import PublicLayout from '@/components/PublicLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
 import { useQuery } from '@tanstack/react-query';
-import { LogOut, User } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { LogOut, User, FileImage, FileText } from 'lucide-react';
 
 interface MemberData {
   id: number;
@@ -28,6 +30,37 @@ export default function MemberDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [member, setMember] = useState<MemberData | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadJPG = async () => {
+    if (!cardRef.current || !member) return;
+    const canvas = await html2canvas(cardRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+    });
+    const link = document.createElement('a');
+    link.download = `membership-card-${member.membershipNumber}.jpg`;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!cardRef.current || !member) return;
+    const canvas = await html2canvas(cardRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: null,
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'landscape',
+      unit: 'px',
+      format: [canvas.width / 2, canvas.height / 2],
+    });
+    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 2, canvas.height / 2);
+    pdf.save(`membership-card-${member.membershipNumber}.pdf`);
+  };
 
   useEffect(() => {
     const fetchMemberData = async () => {
@@ -120,7 +153,7 @@ export default function MemberDashboard() {
           </Button>
         </div>
 
-        <Card className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl relative`}>
+        <Card ref={cardRef} className={`overflow-hidden ${tierStyle.accent} border-2 shadow-2xl rounded-2xl relative`}>
           <div className={`bg-gradient-to-br ${tierStyle.bg} text-white p-6 relative`}>
             {brandingSettings.stamp && (
               <div 
@@ -246,6 +279,25 @@ export default function MemberDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-6 flex gap-3">
+          <Button 
+            variant="outline" 
+            className="flex-1" 
+            onClick={handleDownloadJPG}
+            data-testid="button-download-jpg"
+          >
+            <FileImage className="mr-2 h-4 w-4" /> Download JPG
+          </Button>
+          <Button 
+            variant="outline" 
+            className="flex-1" 
+            onClick={handleDownloadPDF}
+            data-testid="button-download-pdf"
+          >
+            <FileText className="mr-2 h-4 w-4" /> Download PDF
+          </Button>
+        </div>
       </div>
     </PublicLayout>
   );
