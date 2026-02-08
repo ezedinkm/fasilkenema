@@ -131,9 +131,9 @@ export default function MembershipSuccess() {
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-2">
               <p className="font-semibold">What's Next?</p>
               <ul className="text-sm text-left space-y-2 max-w-md mx-auto">
-                <li>✓ Check your email for your membership confirmation</li>
-                <li>✓ Your digital membership card will be sent to you shortly</li>
-                <li>✓ You'll receive exclusive updates and benefits</li>
+                <li>✓ Login with your phone number to view your digital membership card</li>
+                <li>✓ You'll receive exclusive updates and benefits via SMS</li>
+                <li>✓ Download your membership card from your dashboard</li>
               </ul>
             </div>
 

@@ -4,59 +4,48 @@ interface SendSmsResult {
   error?: string;
 }
 
-interface GeezSmsResponse {
-  status: string;
-  message?: string;
-  data?: {
-    message_id?: string;
-  };
-}
-
 export async function sendSms(phone: string, message: string): Promise<SendSmsResult> {
-  const token = process.env.GEEZ_SMS_PASSWORD;
-  const shortcodeIdStr = process.env.GEEZ_SMS_SENDER_ID;
+  const apiKey = process.env.AFRO_SMS_API_KEY;
 
-  if (!token) {
-    console.error('Geez SMS token not configured');
+  if (!apiKey) {
+    console.error('Afro SMS API key not configured');
     return { success: false, error: 'SMS service not configured' };
   }
 
   try {
     const formattedPhone = formatEthiopianPhone(phone);
     
-    const formData = new FormData();
-    formData.append('token', token);
-    formData.append('phone', formattedPhone);
-    formData.append('msg', message);
+    const payload = {
+      to: formattedPhone,
+      message: message,
+    };
     
-    const shortcodeId = shortcodeIdStr ? parseInt(shortcodeIdStr, 10) : null;
-    if (shortcodeId && !isNaN(shortcodeId)) {
-      formData.append('shortcode_id', shortcodeId.toString());
-    }
+    console.log('Sending SMS via Afro Message API:', { phone: formattedPhone });
     
-    console.log('Sending SMS to Geez API:', { phone: formattedPhone, shortcodeId: shortcodeId || 'default' });
-    
-    const response = await fetch('https://api.geezsms.com/api/v1/sms/send', {
+    const response = await fetch('https://api.afromessage.com/api/send', {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     
-    console.log('Geez SMS API response:', data);
+    console.log('Afro SMS API response:', data);
 
-    if (response.ok && (data.status === 'success' || data.message_status === 'success' || !data.error)) {
+    if (response.ok && (data.acknowledge === 'success' || data.response?.status === 'sent')) {
       console.log(`SMS sent successfully to ${formattedPhone}`);
       return { 
         success: true, 
-        messageId: data.api_log_id?.toString() || data.log
+        messageId: data.response?.id?.toString() || data.id?.toString()
       };
     } else {
-      console.error('Geez SMS API error:', data);
-      const errorMsg = typeof data.msg === 'object' ? JSON.stringify(data.msg) : (data.msg || data.message || 'Failed to send SMS');
+      console.error('Afro SMS API error:', data);
       return { 
         success: false, 
-        error: errorMsg
+        error: data.response?.errors?.[0] || data.message || 'Failed to send SMS'
       };
     }
   } catch (error) {
@@ -66,6 +55,18 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
       error: error instanceof Error ? error.message : 'Network error' 
     };
   }
+}
+
+export async function sendOtp(phone: string): Promise<{ success: boolean; code?: string; error?: string }> {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const message = `Your Mechal FC verification code is: ${code}. Valid for 5 minutes.`;
+  
+  const result = await sendSms(phone, message);
+  
+  if (result.success) {
+    return { success: true, code };
+  }
+  return { success: false, error: result.error };
 }
 
 function formatEthiopianPhone(phone: string): string {
@@ -79,7 +80,7 @@ function formatEthiopianPhone(phone: string): string {
     cleaned = '251' + cleaned;
   }
   
-  return cleaned;
+  return '+' + cleaned;
 }
 
 export async function sendPaymentNotification(
@@ -89,7 +90,7 @@ export async function sendPaymentNotification(
   notificationPhone: string
 ): Promise<SendSmsResult> {
   const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
-  const message = `New ${typeLabel} Payment Received! Amount: ${amount} ${currency}. Fasil Kenema Fan Club.`;
+  const message = `New ${typeLabel} Payment Received! Amount: ${amount} ${currency}. Mechal FC Fan Club.`;
   
   return sendSms(notificationPhone, message);
 }
@@ -103,7 +104,7 @@ export async function sendPaymentNotificationWithTotal(
   totalUSD: number
 ): Promise<SendSmsResult> {
   const typeLabel = type === 'membership' ? 'Membership' : 'Donation';
-  const message = `Fasil FC: New ${typeLabel} ${amount} ${currency} received! Total: ${totalETB} ETB, ${totalUSD} USD.`;
+  const message = `Mechal FC: New ${typeLabel} ${amount} ${currency} received! Total: ${totalETB} ETB, ${totalUSD} USD.`;
   
   return sendSms(notificationPhone, message);
 }

@@ -24,6 +24,7 @@ import type {
   InsertPayment,
   PendingMemberApplication,
   InsertPendingMemberApplication,
+  OtpVerification,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -89,6 +90,11 @@ export interface IStorage {
     donationETB: number;
     donationUSD: number;
   }>;
+
+  createOtp(phone: string, code: string, purpose: string, expiresAt: Date): Promise<OtpVerification>;
+  getValidOtp(phone: string, code: string, purpose: string): Promise<OtpVerification | undefined>;
+  markOtpVerified(id: number): Promise<void>;
+  deleteExpiredOtps(): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -332,6 +338,49 @@ export class DbStorage implements IStorage {
     const donationUSD = donations.filter((d: Donation) => d.currency === 'USD').reduce((sum: number, d: Donation) => sum + d.amount, 0);
 
     return { membershipETB, membershipUSD, donationETB, donationUSD };
+  }
+
+  async createOtp(phone: string, code: string, purpose: string, expiresAt: Date): Promise<OtpVerification> {
+    await db.delete(schema.otpVerifications).where(
+      and(
+        eq(schema.otpVerifications.phone, phone),
+        eq(schema.otpVerifications.purpose, purpose)
+      )
+    );
+    const result = await db.insert(schema.otpVerifications).values({
+      phone,
+      code,
+      purpose,
+      verified: false,
+      expiresAt,
+    }).returning();
+    return result[0];
+  }
+
+  async getValidOtp(phone: string, code: string, purpose: string): Promise<OtpVerification | undefined> {
+    const result = await db.select().from(schema.otpVerifications).where(
+      and(
+        eq(schema.otpVerifications.phone, phone),
+        eq(schema.otpVerifications.code, code),
+        eq(schema.otpVerifications.purpose, purpose),
+        eq(schema.otpVerifications.verified, false)
+      )
+    );
+    const otp = result[0];
+    if (otp && new Date(otp.expiresAt) > new Date()) {
+      return otp;
+    }
+    return undefined;
+  }
+
+  async markOtpVerified(id: number): Promise<void> {
+    await db.update(schema.otpVerifications).set({ verified: true }).where(eq(schema.otpVerifications.id, id));
+  }
+
+  async deleteExpiredOtps(): Promise<void> {
+    await db.delete(schema.otpVerifications).where(
+      lte(schema.otpVerifications.expiresAt, new Date())
+    );
   }
 }
 

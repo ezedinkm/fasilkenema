@@ -26,7 +26,6 @@ export default function MembershipRegister() {
   
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [rank, setRank] = useState('');
   const [gender, setGender] = useState('');
@@ -121,7 +120,7 @@ export default function MembershipRegister() {
   }, [setLocation]);
 
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !city || !country || !password) {
+    if (!firstName || !lastName || !phone || !dateOfBirth || !city || !country || !password) {
       toast({
         title: 'Missing Information',
         description: 'Please fill in all required fields',
@@ -190,7 +189,6 @@ export default function MembershipRegister() {
         currency: currency.toUpperCase(),
         firstName,
         lastName,
-        email,
         phone,
         password,
         rank,
@@ -292,13 +290,6 @@ export default function MembershipRegister() {
                       data-testid="input-last-name"
                     />
                   </div>
-                  <Input 
-                    placeholder="Email Address *" 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    data-testid="input-email"
-                  />
                   <Input 
                     placeholder="ስልክ ቁጥር / Phone Number *"
                     value={phone}
@@ -433,7 +424,7 @@ export default function MembershipRegister() {
                     data-testid="input-confirm-password"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Password must be at least 6 characters. You can login with your email or phone number.
+                    Password must be at least 6 characters. You will login with your phone number.
                   </p>
                 </div>
               </div>

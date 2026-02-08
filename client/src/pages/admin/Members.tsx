@@ -28,7 +28,6 @@ export default function AdminMembers() {
   
   const [formData, setFormData] = useState({
     fullName: '',
-    email: '',
     phone: '',
     dateOfBirth: '',
     country: 'Ethiopia',
@@ -58,7 +57,6 @@ export default function AdminMembers() {
     setEditingMember(null);
     setFormData({
       fullName: '',
-      email: '',
       phone: '',
       dateOfBirth: '',
       country: 'Ethiopia',
@@ -75,7 +73,6 @@ export default function AdminMembers() {
     setEditingMember(member);
     setFormData({
       fullName: member.fullName,
-      email: member.email,
       phone: member.phone,
       dateOfBirth: member.dateOfBirth,
       country: member.country,
@@ -129,8 +126,8 @@ export default function AdminMembers() {
 
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
-      + "ID,Name,Email,Phone,Tier,Status,Joined\n"
-      + members.map(m => `${m.membershipNumber},${m.fullName},${m.email},${m.phone},${m.tier},${m.status},${new Date(m.joinedDate).toLocaleDateString()}`).join("\n");
+      + "ID,Name,Phone,Tier,Status,Joined\n"
+      + members.map(m => `${m.membershipNumber},${m.fullName},${m.phone},${m.tier},${m.status},${new Date(m.joinedDate).toLocaleDateString()}`).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -173,15 +170,6 @@ export default function AdminMembers() {
                       value={formData.fullName} 
                       onChange={(e) => setFormData({...formData, fullName: e.target.value})} 
                       data-testid="input-fullname"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input 
-                      type="email"
-                      value={formData.email} 
-                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
-                      data-testid="input-email"
                     />
                   </div>
                   <div className="space-y-2">
@@ -286,7 +274,7 @@ export default function AdminMembers() {
                 <TableRow className="bg-zinc-50 hover:bg-zinc-50">
                   <TableHead className="w-[140px]">ID</TableHead>
                   <TableHead>Full Name</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Joined</TableHead>
@@ -296,7 +284,7 @@ export default function AdminMembers() {
               <TableBody>
                 {members.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No members yet. Add your first member to get started.
                     </TableCell>
                   </TableRow>
@@ -305,7 +293,7 @@ export default function AdminMembers() {
                     <TableRow key={member.id} data-testid={`row-member-${member.id}`}>
                       <TableCell className="font-mono font-medium">{member.membershipNumber}</TableCell>
                       <TableCell>{member.fullName}</TableCell>
-                      <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                      <TableCell className="text-muted-foreground">{member.phone}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`
                           ${member.tier === 'platinum' ? 'border-yellow-500 text-yellow-600 bg-yellow-50' : ''}

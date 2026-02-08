@@ -8,8 +8,8 @@ import path from "path";
 import fs from "fs";
 import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema, passwordResetTokens } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
-import { sendPaymentNotification } from "./sms";
-import { sendPaymentNotificationEmail, sendPasswordResetEmail } from "./email";
+import { sendPaymentNotification, sendOtp } from "./sms";
+import { sendPaymentNotificationEmail } from "./email";
 import crypto from "crypto";
 import { eq, and, gt } from "drizzle-orm";
 
@@ -206,16 +206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/member/login", async (req, res) => {
     try {
-      const { identifier, password } = req.body;
+      const { phone, password } = req.body;
       
-      if (!identifier || !password) {
-        return res.status(400).json({ error: 'Email/phone and password are required' });
+      if (!phone || !password) {
+        return res.status(400).json({ error: 'Phone number and password are required' });
       }
       
-      let member = await storage.getMemberByEmail(identifier);
-      if (!member) {
-        member = await storage.getMemberByPhone(identifier);
-      }
+      const member = await storage.getMemberByPhone(phone);
 
       if (!member) {
         return res.status(401).json({ error: 'Invalid credentials' });
@@ -246,7 +243,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: member.id, 
           membershipNumber: member.membershipNumber, 
           fullName: member.fullName,
-          email: member.email,
           phone: member.phone,
           idNumber: member.idNumber,
           rank: member.rank,
@@ -266,39 +262,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/otp/send", async (req, res) => {
+    try {
+      const { phone, purpose } = req.body;
+      
+      if (!phone) {
+        return res.status(400).json({ error: 'Phone number is required' });
+      }
+
+      if (!purpose || !['registration', 'password_reset'].includes(purpose)) {
+        return res.status(400).json({ error: 'Valid purpose is required' });
+      }
+
+      if (purpose === 'password_reset') {
+        const member = await storage.getMemberByPhone(phone);
+        if (!member) {
+          return res.json({ message: 'If an account with that phone number exists, an OTP has been sent.' });
+        }
+      }
+
+      const result = await sendOtp(phone);
+      
+      if (result.success && result.code) {
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await storage.createOtp(phone, result.code, purpose, expiresAt);
+        
+        res.json({ message: 'OTP sent successfully', success: true });
+      } else {
+        console.error('Failed to send OTP:', result.error);
+        res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({ error: 'Failed to send OTP' });
+    }
+  });
+
+  app.post("/api/otp/verify", async (req, res) => {
+    try {
+      const { phone, code, purpose } = req.body;
+      
+      if (!phone || !code || !purpose) {
+        return res.status(400).json({ error: 'Phone, code, and purpose are required' });
+      }
+
+      const otp = await storage.getValidOtp(phone, code, purpose);
+      
+      if (!otp) {
+        return res.status(400).json({ error: 'Invalid or expired OTP code' });
+      }
+
+      await storage.markOtpVerified(otp.id);
+      
+      res.json({ success: true, message: 'OTP verified successfully' });
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({ error: 'Failed to verify OTP' });
+    }
+  });
+
   app.post("/api/member/forgot-password", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { phone } = req.body;
       
-      if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
+      if (!phone) {
+        return res.status(400).json({ error: 'Phone number is required' });
       }
 
-      const member = await storage.getMemberByEmail(email);
+      const member = await storage.getMemberByPhone(phone);
       
-      res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
-
       if (!member) {
-        return;
+        return res.json({ message: 'If an account with that phone number exists, an OTP has been sent.', success: true });
       }
 
-      const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
-
-      const { db } = await import("./db");
-      await db.insert(passwordResetTokens).values({
-        memberId: member.id,
-        token,
-        expiresAt,
-      });
-
-      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const resetLink = `${baseUrl}/member/reset-password?token=${token}`;
-
-      try {
-        await sendPasswordResetEmail(member.email, member.fullName, resetLink);
-      } catch (emailError) {
-        console.error('Failed to send password reset email:', emailError);
+      const result = await sendOtp(phone);
+      
+      if (result.success && result.code) {
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        await storage.createOtp(phone, result.code, 'password_reset', expiresAt);
+        res.json({ message: 'OTP sent to your phone number.', success: true });
+      } else {
+        res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
       }
     } catch (error) {
       console.error('Forgot password error:', error);
@@ -308,38 +352,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/member/reset-password", async (req, res) => {
     try {
-      const { token, newPassword } = req.body;
+      const { phone, otp, newPassword } = req.body;
 
-      if (!token || !newPassword) {
-        return res.status(400).json({ error: 'Token and new password are required' });
+      if (!phone || !otp || !newPassword) {
+        return res.status(400).json({ error: 'Phone, OTP code, and new password are required' });
       }
 
       if (newPassword.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
       }
 
-      const { db } = await import("./db");
-      const resetTokens = await db.select().from(passwordResetTokens)
-        .where(
-          and(
-            eq(passwordResetTokens.token, token),
-            eq(passwordResetTokens.used, false),
-            gt(passwordResetTokens.expiresAt, new Date())
-          )
-        );
-
-      if (resetTokens.length === 0) {
-        return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+      const otpRecord = await storage.getValidOtp(phone, otp, 'password_reset');
+      
+      if (!otpRecord) {
+        return res.status(400).json({ error: 'Invalid or expired OTP code. Please request a new one.' });
       }
 
-      const resetToken = resetTokens[0];
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      
-      await storage.updateMember(resetToken.memberId, { password: hashedPassword });
+      const member = await storage.getMemberByPhone(phone);
+      if (!member) {
+        return res.status(404).json({ error: 'Member not found' });
+      }
 
-      await db.update(passwordResetTokens)
-        .set({ used: true })
-        .where(eq(passwordResetTokens.id, resetToken.id));
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateMember(member.id, { password: hashedPassword });
+      await storage.markOtpVerified(otpRecord.id);
 
       res.json({ message: 'Password has been reset successfully. You can now login with your new password.' });
     } catch (error) {
@@ -374,7 +410,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: member.id,
           membershipNumber: member.membershipNumber,
           fullName: member.fullName,
-          email: member.email,
           phone: member.phone,
           idNumber: member.idNumber,
           rank: member.rank,
@@ -650,9 +685,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/members/initialize-payment", async (req, res) => {
     let payment: any = null;
     try {
-      const { amount, currency, firstName, lastName, email, phone, dateOfBirth, city, country, membershipTier } = req.body;
+      const { amount, currency, firstName, lastName, phone, dateOfBirth, city, country, membershipTier } = req.body;
       
-      if (!amount || !firstName || !lastName || !email || !phone || !dateOfBirth || !city || !country || !membershipTier) {
+      if (!amount || !firstName || !lastName || !phone || !dateOfBirth || !city || !country || !membershipTier) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
 
@@ -695,7 +730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         transactionId: txRef,
         firstName,
         lastName,
-        email,
+        email: null,
         phone,
         password: hashedPassword,
         idNumber: null,
@@ -723,7 +758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: paymentCurrency,
-        email: email,
+        email: `${phone.replace(/\D/g, '')}@member.mechalfc.com`,
         first_name: firstName,
         last_name: lastName,
         phone_number: phone,
@@ -873,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const memberData = {
             membershipNumber,
             fullName: `${application.firstName} ${application.lastName}`,
-            email: application.email,
+            email: null,
             phone: application.phone,
             password: application.password || null,
             idNumber,

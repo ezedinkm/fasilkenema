@@ -15,7 +15,6 @@ interface MemberData {
   id: number;
   membershipNumber: string;
   fullName: string;
-  email: string;
   phone: string;
   rank: string | null;
   gender: string | null;
