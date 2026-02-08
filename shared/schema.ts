@@ -217,3 +217,15 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 });
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
+export const otpVerifications = pgTable("otp_verifications", {
+  id: serial("id").primaryKey(),
+  phone: text("phone").notNull(),
+  code: text("code").notNull(),
+  purpose: text("purpose").notNull(),
+  verified: boolean("verified").notNull().default(false),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type OtpVerification = typeof otpVerifications.$inferSelect;
