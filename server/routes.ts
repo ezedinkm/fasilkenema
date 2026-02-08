@@ -222,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!member.password) {
-        return res.status(401).json({ error: 'Account not set up. Please complete registration.' });
+        return res.status(401).json({ error: 'Your account does not have a password yet. Please use "Forgot Password?" to set one.', needsPasswordSetup: true });
       }
 
       const validPassword = await bcrypt.compare(password, member.password);

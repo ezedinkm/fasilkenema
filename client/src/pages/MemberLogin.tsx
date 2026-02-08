@@ -40,6 +40,14 @@ export default function MemberLogin() {
       const result = await response.json();
 
       if (!response.ok) {
+        if (result.needsPasswordSetup) {
+          toast({
+            title: 'Password Setup Required',
+            description: 'Redirecting you to set up your password...',
+          });
+          setTimeout(() => setLocation('/member/forgot-password'), 1500);
+          return;
+        }
         toast({
           title: 'Login Failed',
           description: result.error || 'Invalid credentials',
