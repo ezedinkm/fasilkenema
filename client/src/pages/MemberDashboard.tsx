@@ -44,7 +44,7 @@ export default function MemberDashboard() {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#F5F0E8',
+        backgroundColor: null,
         width: 540,
         height: 340,
         windowWidth: 600,
@@ -72,7 +72,7 @@ export default function MemberDashboard() {
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#F5F0E8',
+        backgroundColor: null,
         width: 540,
         height: 340,
         windowWidth: 600,
@@ -179,121 +179,120 @@ export default function MemberDashboard() {
         </div>
 
         <div className="overflow-x-auto">
-        <Card ref={cardRef} className="overflow-hidden border-2 border-[#8B1A1A] shadow-2xl rounded-2xl relative" style={{ width: '540px', height: '340px' }}>
-          <div className="relative h-full" style={{ backgroundColor: '#F5F0E8' }}>
-            <div className="px-4 py-2 text-center text-white" style={{ backgroundColor: '#8B1A1A' }}>
-              <p className="font-heading text-sm font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
-              <p className="text-[10px] tracking-wider opacity-90">የጠቅላላ ጉባዔ ጥሪ ካርድ</p>
-            </div>
+        <Card ref={cardRef} className="overflow-hidden shadow-2xl rounded-2xl relative" style={{ width: '540px', height: '340px' }}>
+          <div className="relative h-full">
+            <img src="/card-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/20" />
 
-            <svg className="absolute left-0 right-0 w-full" style={{ top: '34px', height: '100px', zIndex: 1 }} viewBox="0 0 540 100" preserveAspectRatio="none">
-              <path d="M0,55 Q135,25 270,50 T540,35 L540,47 Q405,70 270,58 T0,67 Z" fill="#228B22" opacity="0.9"/>
-              <path d="M0,67 Q135,37 270,58 T540,47 L540,57 Q405,80 270,68 T0,77 Z" fill="#FFFFFF" opacity="0.9"/>
-              <path d="M0,77 Q135,47 270,68 T540,57 L540,67 Q405,90 270,78 T0,87 Z" fill="#DC143C" opacity="0.9"/>
-            </svg>
+            <div className="relative h-full flex flex-col" style={{ zIndex: 2 }}>
+              <div className="px-4 py-1.5 text-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                <p className="font-heading text-sm font-bold tracking-wide text-white drop-shadow-md">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
+                <p className="text-[10px] tracking-wider text-white/90">የጠቅላላ ጉባዔ ጥሪ ካርድ</p>
+              </div>
 
-            <div className="relative flex gap-3 px-3 pt-2 pb-1" style={{ zIndex: 2 }}>
-              <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                <div className="w-20 h-24 rounded-lg overflow-hidden bg-gray-200 border-2 border-gray-300 shadow-md">
-                  {member.photoUrl ? (
-                    <img 
-                      src={member.photoUrl} 
-                      alt={member.fullName}
-                      className="w-full h-full object-cover"
-                      data-testid="member-photo"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <User className="w-10 h-10 text-gray-400" />
+              <div className="flex-1 flex gap-3 px-3 pt-2 pb-1">
+                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                  <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-white/60 shadow-lg">
+                    {member.photoUrl ? (
+                      <img 
+                        src={member.photoUrl} 
+                        alt={member.fullName}
+                        className="w-full h-full object-cover"
+                        data-testid="member-photo"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-white/20">
+                        <User className="w-10 h-10 text-white/70" />
+                      </div>
+                    )}
+                  </div>
+                  <div 
+                    className="px-2 py-0.5 rounded-md text-center shadow-md"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+                  >
+                    <p className="text-[7px] uppercase tracking-wider text-yellow-300">MEMBERSHIP ID</p>
+                    <p className="font-mono font-bold text-[10px] text-white" data-testid="membership-number">{member.membershipNumber}</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-0.5">
+                  <p className="font-bold text-sm leading-tight text-white drop-shadow-md mb-0.5" data-testid="member-name">{member.fullName}</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">መአረግ:</span> <span className="font-semibold">{member.rank || '—'}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">ዖታ:</span> <span className="font-semibold">{member.gender || '—'}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">አድራሻ:</span> <span className="font-semibold">{member.address || '—'}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">ክፈለ ጦር/እዝ:</span> <span className="font-semibold">{member.division || '—'}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">ስልክ ቁጥር:</span> <span className="font-semibold">{member.phone}</span></p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-300 text-[10px]">★</span>
+                    <p className="text-[10px] text-white drop-shadow-sm"><span className="text-white/70">የ ደጋፊነት ደረጃ:</span> <span className="font-bold capitalize">{member.tier}</span></p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center justify-between flex-shrink-0">
+                  {brandingSettings.stamp && (
+                    <div style={{ width: '75px', height: '75px' }}>
+                      <img 
+                        src={brandingSettings.stamp} 
+                        alt="Stamp" 
+                        className="w-full h-full object-contain rounded-full drop-shadow-lg"
+                      />
                     </div>
                   )}
-                </div>
-                <div 
-                  className="px-2 py-0.5 rounded-md text-center"
-                  style={{ backgroundColor: '#DC143C' }}
-                >
-                  <p className="text-[7px] uppercase tracking-wider text-white/80">MEMBERSHIP ID</p>
-                  <p className="font-mono font-bold text-[10px] text-white" data-testid="membership-number">{member.membershipNumber}</p>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-0.5">
-                <p className="font-bold text-sm leading-tight text-[#333] mb-0.5" data-testid="member-name">{member.fullName}</p>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">መአረግ:</span> <span className="font-semibold">{member.rank || '—'}</span></p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ዖታ:</span> <span className="font-semibold">{member.gender || '—'}</span></p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">አድራሻ:</span> <span className="font-semibold">{member.address || '—'}</span></p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ክፈለ ጦር/እዝ:</span> <span className="font-semibold">{member.division || '—'}</span></p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">ስልክ ቁጥር:</span> <span className="font-semibold">{member.phone}</span></p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#DC143C] text-[10px]">★</span>
-                  <p className="text-[10px] text-[#333]"><span className="text-gray-500">የ ደጋፊነት ደረጃ:</span> <span className="font-bold capitalize">{member.tier}</span></p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center justify-between flex-shrink-0">
-                {brandingSettings.stamp && (
-                  <div style={{ width: '75px', height: '75px' }}>
-                    <img 
-                      src={brandingSettings.stamp} 
-                      alt="Stamp" 
-                      className="w-full h-full object-contain rounded-full"
+                  <div className="p-1 bg-white rounded shadow-md mt-1" data-testid="qr-code">
+                    <QRCode 
+                      value={`${window.location.origin}/card/${member.membershipNumber}`}
+                      size={42}
+                      level="M"
                     />
                   </div>
-                )}
-                <div className="p-1 bg-white rounded shadow-sm mt-1" data-testid="qr-code">
-                  <QRCode 
-                    value={`${window.location.origin}/card/${member.membershipNumber}`}
-                    size={42}
-                    level="M"
-                  />
                 </div>
               </div>
-            </div>
 
-            {isExpired && (
-              <div className="relative mx-4 mb-2 px-3 py-1 bg-red-600 text-white text-xs text-center rounded font-bold" style={{ zIndex: 2 }}>
-                ጊዜው ያለፈበት / EXPIRED
-              </div>
-            )}
-
-            <div className="absolute bottom-0 left-0 right-0 px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: '#8B1A1A' }}>
-              <div className="text-white text-[9px] space-y-0">
-                <p>ያገልግልበት ቀን: {expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                <p className="font-semibold" style={{ color: member.status === 'active' ? '#90EE90' : '#FFB6C1' }}>
-                  ሁኔታ: {member.status === 'active' ? 'ንቁ' : 'ያልነቃ'}
-                </p>
-              </div>
-              {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
-                <div className="text-center">
-                  {brandingSettings.signature && (
-                    <img 
-                      src={brandingSettings.signature} 
-                      alt="Authorized Signature" 
-                      className="h-6 mx-auto"
-                      style={{ filter: 'brightness(0) invert(1)', opacity: 0.8 }}
-                    />
-                  )}
-                  {brandingSettings.authorizedPersonName && (
-                    <p className="text-[7px] text-white/70">{brandingSettings.authorizedPersonName}</p>
-                  )}
+              {isExpired && (
+                <div className="mx-3 mb-1 px-3 py-0.5 bg-red-600/90 text-white text-[10px] text-center rounded font-bold">
+                  ጊዜው ያለፈበት / EXPIRED
                 </div>
               )}
-              <p className="text-white font-heading text-[9px] font-bold tracking-wide">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
+
+              <div className="px-3 py-1.5 flex items-center justify-between" style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}>
+                <div className="text-white text-[9px] space-y-0">
+                  <p className="drop-shadow-sm">ያገልግልበት ቀን: {expiryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="font-semibold" style={{ color: member.status === 'active' ? '#90EE90' : '#FFB6C1' }}>
+                    ሁኔታ: {member.status === 'active' ? 'ንቁ' : 'ያልነቃ'}
+                  </p>
+                </div>
+                {(brandingSettings.signature || brandingSettings.authorizedPersonName) && (
+                  <div className="text-center">
+                    {brandingSettings.signature && (
+                      <img 
+                        src={brandingSettings.signature} 
+                        alt="Authorized Signature" 
+                        className="h-6 mx-auto"
+                        style={{ filter: 'brightness(0) invert(1)', opacity: 0.9 }}
+                      />
+                    )}
+                    {brandingSettings.authorizedPersonName && (
+                      <p className="text-[7px] text-white/80">{brandingSettings.authorizedPersonName}</p>
+                    )}
+                  </div>
+                )}
+                <p className="text-white font-heading text-[9px] font-bold tracking-wide drop-shadow-sm">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
+              </div>
             </div>
           </div>
         </Card>
