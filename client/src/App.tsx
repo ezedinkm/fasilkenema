@@ -25,6 +25,8 @@ import AdminSMS from "@/pages/admin/SMS";
 import AdminSettings from "@/pages/admin/Settings";
 import MemberLogin from "@/pages/MemberLogin";
 import MemberDashboard from "@/pages/MemberDashboard";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -53,6 +55,8 @@ function Router() {
       
       {/* Member Routes */}
       <Route path="/member/login" component={MemberLogin} />
+      <Route path="/member/forgot-password" component={ForgotPassword} />
+      <Route path="/member/reset-password" component={ResetPassword} />
       <Route path="/member/dashboard" component={MemberDashboard} />
       
       {/* Admin Routes */}

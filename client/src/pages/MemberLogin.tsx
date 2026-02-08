@@ -108,6 +108,12 @@ export default function MemberLogin() {
               >
                 {isLoading ? 'Logging in...' : 'Login'}
               </Button>
+
+              <div className="text-right">
+                <Link href="/member/forgot-password" className="text-sm text-primary hover:underline" data-testid="link-forgot-password">
+                  Forgot Password?
+                </Link>
+              </div>
             </form>
             
             <div className="mt-6 text-center text-sm">
