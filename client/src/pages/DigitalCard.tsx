@@ -114,6 +114,7 @@ export default function DigitalCard() {
     signature: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.signature')?.value : null) || null,
     authorizedPersonName: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.authorizedPersonName')?.value : null) || null,
     stamp: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.stamp')?.value : null) || null,
+    stamp2: (Array.isArray(branding) ? branding.find((s: any) => s.key === 'branding.stamp2')?.value : null) || null,
   };
 
   const formatDate = (dateString: string) => {
@@ -221,15 +222,26 @@ export default function DigitalCard() {
                 </div>
 
                 <div className="flex flex-col items-center justify-between flex-shrink-0">
-                  {brandingSettings.stamp && (
-                    <div style={{ width: '75px', height: '75px' }}>
-                      <img 
-                        src={brandingSettings.stamp} 
-                        alt="Stamp" 
-                        className="w-full h-full object-contain rounded-full drop-shadow-lg"
-                      />
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {brandingSettings.stamp2 && (
+                      <div style={{ width: '75px', height: '75px' }}>
+                        <img 
+                          src={brandingSettings.stamp2} 
+                          alt="Stamp 2" 
+                          className="w-full h-full object-contain rounded-full drop-shadow-lg"
+                        />
+                      </div>
+                    )}
+                    {brandingSettings.stamp && (
+                      <div style={{ width: '75px', height: '75px' }}>
+                        <img 
+                          src={brandingSettings.stamp} 
+                          alt="Stamp" 
+                          className="w-full h-full object-contain rounded-full drop-shadow-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div className="p-1 bg-white rounded shadow-md mt-1">
                     <QRCode 
                       value={`https://mechalfc.com/card/${member.membershipNumber}`} 
