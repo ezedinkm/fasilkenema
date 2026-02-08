@@ -141,3 +141,33 @@ export async function sendPaymentNotificationEmail(
   
   return sendEmail(emails, subject, htmlContent);
 }
+
+export async function sendPasswordResetEmail(
+  toEmail: string,
+  memberName: string,
+  resetLink: string
+): Promise<SendEmailResult> {
+  const subject = 'Password Reset - Mechal FC Fan Club';
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="text-align: center; padding: 20px; background: linear-gradient(135deg, #228B22, #DC143C); border-radius: 10px 10px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Mechal FC Fan Club</h1>
+        <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0;">Password Reset Request</p>
+      </div>
+      <div style="padding: 30px; background: #f9f9f9; border: 1px solid #e0e0e0;">
+        <p style="font-size: 16px; color: #333;">Hello <strong>${memberName}</strong>,</p>
+        <p style="color: #555;">We received a request to reset your password. Click the button below to set a new password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetLink}" style="background-color: #228B22; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: bold; display: inline-block;">Reset Password</a>
+        </div>
+        <p style="color: #888; font-size: 13px;">This link will expire in 1 hour. If you did not request this, please ignore this email.</p>
+        <p style="color: #888; font-size: 13px;">Or copy and paste this link: <br/><a href="${resetLink}" style="color: #228B22; word-break: break-all;">${resetLink}</a></p>
+      </div>
+      <div style="text-align: center; padding: 15px; color: #999; font-size: 12px;">
+        <p>Mechal Sport Club Fan Club</p>
+      </div>
+    </div>
+  `;
+
+  return sendEmail(toEmail, subject, htmlContent);
+}
