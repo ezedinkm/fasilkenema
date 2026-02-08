@@ -206,3 +206,14 @@ export const pendingMemberApplications = pgTable("pending_member_applications", 
 export const insertPendingMemberApplicationSchema = createInsertSchema(pendingMemberApplications).omit({ id: true, createdAt: true });
 export type InsertPendingMemberApplication = z.infer<typeof insertPendingMemberApplicationSchema>;
 export type PendingMemberApplication = typeof pendingMemberApplications.$inferSelect;
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  memberId: integer("member_id").notNull().references(() => members.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
