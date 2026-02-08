@@ -6,10 +6,12 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema } from "@shared/schema";
+import { insertMemberSchema, insertMembershipPaymentSchema, insertDonationSchema, insertPostSchema, insertPageSchema, insertSmsTemplateSchema, insertSmsLogSchema, insertSettingSchema, insertPaymentSchema, insertPendingMemberApplicationSchema, passwordResetTokens } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { sendPaymentNotification } from "./sms";
-import { sendPaymentNotificationEmail } from "./email";
+import { sendPaymentNotificationEmail, sendPasswordResetEmail } from "./email";
+import crypto from "crypto";
+import { eq, and, gt } from "drizzle-orm";
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -261,6 +263,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Member login error:', error);
       res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.post("/api/member/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const member = await storage.getMemberByEmail(email);
+      
+      res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+
+      if (!member) {
+        return;
+      }
+
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+      const { db } = await import("./db");
+      await db.insert(passwordResetTokens).values({
+        memberId: member.id,
+        token,
+        expiresAt,
+      });
+
+      const baseUrl = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const resetLink = `${baseUrl}/member/reset-password?token=${token}`;
+
+      try {
+        await sendPasswordResetEmail(member.email, member.fullName, resetLink);
+      } catch (emailError) {
+        console.error('Failed to send password reset email:', emailError);
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process request' });
+    }
+  });
+
+  app.post("/api/member/reset-password", async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+
+      const { db } = await import("./db");
+      const resetTokens = await db.select().from(passwordResetTokens)
+        .where(
+          and(
+            eq(passwordResetTokens.token, token),
+            eq(passwordResetTokens.used, false),
+            gt(passwordResetTokens.expiresAt, new Date())
+          )
+        );
+
+      if (resetTokens.length === 0) {
+        return res.status(400).json({ error: 'Invalid or expired reset link. Please request a new one.' });
+      }
+
+      const resetToken = resetTokens[0];
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      
+      await storage.updateMember(resetToken.memberId, { password: hashedPassword });
+
+      await db.update(passwordResetTokens)
+        .set({ used: true })
+        .where(eq(passwordResetTokens.id, resetToken.id));
+
+      res.json({ message: 'Password has been reset successfully. You can now login with your new password.' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
     }
   });
 
