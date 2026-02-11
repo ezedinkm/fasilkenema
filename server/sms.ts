@@ -15,31 +15,32 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
   try {
     const formattedPhone = formatEthiopianPhone(phone);
     
-    const payload = {
-      to: formattedPhone,
-      message: message,
-    };
-    
     console.log('Sending SMS via Afro Message API:', { phone: formattedPhone });
     
-    const response = await fetch('https://api.afromessage.com/api/send', {
-      method: 'POST',
+    const params = new URLSearchParams({
+      to: formattedPhone,
+      message: message,
+    });
+    
+    const url = `https://api.afromessage.com/api/send?${params.toString()}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
     
     console.log('Afro SMS API response:', data);
 
-    if (response.ok && (data.acknowledge === 'success' || data.response?.status === 'sent')) {
+    if (response.ok && data.acknowledge === 'success') {
       console.log(`SMS sent successfully to ${formattedPhone}`);
       return { 
         success: true, 
-        messageId: data.response?.id?.toString() || data.id?.toString()
+        messageId: data.response?.message_id || data.response?.id?.toString()
       };
     } else {
       console.error('Afro SMS API error:', data);
