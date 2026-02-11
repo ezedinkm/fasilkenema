@@ -187,7 +187,6 @@ export default function MemberDashboard() {
             <div className="relative h-full flex flex-col" style={{ zIndex: 2 }}>
               <div className="px-4 py-1.5 text-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}>
                 <p className="font-heading text-sm font-bold tracking-wide text-white drop-shadow-md">መቻል ስፖርት ክለብ የደጋፊዎች ማህበር</p>
-                <p className="text-[10px] tracking-wider text-white/90">የጠቅላላ ጉባዔ ጥሪ ካርድ</p>
               </div>
 
               <div className="flex-1 flex gap-3 px-3 pt-2 pb-1">
