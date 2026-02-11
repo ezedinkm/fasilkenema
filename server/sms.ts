@@ -4,6 +4,18 @@ interface SendSmsResult {
   error?: string;
 }
 
+const AFRO_CONFIG = {
+  baseUrl: 'https://api.afromessage.com/api',
+  identifierId: 'e80ad9d8-adf3-463f-80f4-7c4b39f7f164',
+  senderName: 'IBEX TECHNO',
+  shortCode: '8585',
+  otpLength: 6,
+  otpType: 0,
+  otpExpiresInSeconds: 300,
+  spaceBefore: 1,
+  spaceAfter: 0,
+};
+
 export async function sendSms(phone: string, message: string): Promise<SendSmsResult> {
   const apiKey = process.env.AFRO_SMS_API_KEY;
 
@@ -18,11 +30,13 @@ export async function sendSms(phone: string, message: string): Promise<SendSmsRe
     console.log('Sending SMS via Afro Message API:', { phone: formattedPhone });
     
     const params = new URLSearchParams({
+      from: AFRO_CONFIG.identifierId,
+      sender: AFRO_CONFIG.senderName,
       to: formattedPhone,
       message: message,
     });
     
-    const url = `https://api.afromessage.com/api/send?${params.toString()}`;
+    const url = `${AFRO_CONFIG.baseUrl}/send?${params.toString()}`;
     
     const response = await fetch(url, {
       method: 'GET',
