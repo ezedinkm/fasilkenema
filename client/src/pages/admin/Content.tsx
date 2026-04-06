@@ -211,20 +211,20 @@ export default function AdminContent() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-heading font-bold text-zinc-900">Content Management</h1>
-            <p className="text-muted-foreground">Manage news, pages, and translations.</p>
+      <div className="space-y-8 min-w-0">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 min-w-0">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-zinc-900">Content Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage news, pages, and translations.</p>
           </div>
-          
+
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleCreate}>
+              <Button size="sm" className="bg-primary hover:bg-primary/90 w-full sm:w-auto shrink-0" onClick={handleCreate}>
                 <Plus className="mr-2 h-4 w-4" /> Create New Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="w-[calc(100vw-1.5rem)] max-w-2xl max-h-[90vh] overflow-y-auto sm:w-full">
               <DialogHeader>
                 <DialogTitle>{editingPost ? 'Edit Post' : 'Create New Post'}</DialogTitle>
               </DialogHeader>
@@ -284,8 +284,8 @@ export default function AdminContent() {
           </Dialog>
         </div>
 
-        <Tabs defaultValue="news" className="w-full">
-          <TabsList className="mb-4">
+        <Tabs defaultValue="news" className="w-full min-w-0">
+          <TabsList className="mb-4 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
             <TabsTrigger value="news">News & Blog</TabsTrigger>
             <TabsTrigger value="pages">Static Pages</TabsTrigger>
             <TabsTrigger value="translations">Translations</TabsTrigger>

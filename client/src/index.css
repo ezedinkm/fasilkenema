@@ -355,4 +355,25 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Partners nav marquee — scroll right to left */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 25s linear infinite;
+  }
+
+  /* Mobile safe areas (notched phones, home indicator) */
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .min-h-screen-safe {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
 }

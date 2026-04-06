@@ -11,7 +11,7 @@ async function seed() {
       await storage.createAdmin({
         email: "admin@gmail.com",
         password: hashedPassword,
-        fullName: "Admin User"
+        fullName: "Admin User",
       });
       console.log("Created default admin user (admin@gmail.com / 112233)");
     }
@@ -21,11 +21,29 @@ async function seed() {
       await storage.upsertSetting({
         key: "membership_tiers",
         value: [
-          { id: "silver", name: "Silver", priceETB: 500, priceUSD: 15, duration: "1 year" },
-          { id: "gold", name: "Gold", priceETB: 1000, priceUSD: 25, duration: "1 year" },
-          { id: "platinum", name: "Platinum", priceETB: 2000, priceUSD: 50, duration: "1 year" }
+          {
+            id: "silver",
+            name: "Silver",
+            priceETB: 500,
+            priceUSD: 15,
+            duration: "1 year",
+          },
+          {
+            id: "gold",
+            name: "Gold",
+            priceETB: 1000,
+            priceUSD: 25,
+            duration: "1 year",
+          },
+          {
+            id: "platinum",
+            name: "Platinum",
+            priceETB: 2000,
+            priceUSD: 50,
+            duration: "1 year",
+          },
         ],
-        description: "Membership tier configurations"
+        description: "Membership tier configurations",
       });
       console.log("Created default membership tiers");
     }
@@ -34,30 +52,36 @@ async function seed() {
     if (smsTemplates.length === 0) {
       await storage.createSmsTemplate({
         name: "Welcome",
-        message: "Welcome to Mechal FC Fan Club! Your membership number is {{membershipNumber}}. Thank you for your support!"
+        message:
+          "Welcome to Fasil Kenema FC Fan Club! Your membership number is {{membershipNumber}}. Thank you for your support!",
       });
       await storage.createSmsTemplate({
         name: "Renewal Reminder",
-        message: "Dear {{name}}, your Mechal FC membership expires on {{expiryDate}}. Renew now to continue enjoying exclusive benefits!"
+        message:
+          "Dear {{name}}, your Fasil Kenema FC membership expires on {{expiryDate}}. Renew now to continue enjoying exclusive benefits!",
       });
       console.log("Created default SMS templates");
     }
 
-    const brandingHeaderText = await storage.getSettingByKey("branding.headerText");
+    const brandingHeaderText = await storage.getSettingByKey(
+      "branding.headerText",
+    );
     if (!brandingHeaderText) {
       await storage.upsertSetting({
         key: "branding.headerText",
-        value: "MECHAL FC",
-        description: "Header text displayed in navbar"
+        value: "FASIL KENEMA",
+        description: "Header text displayed in navbar",
       });
     }
 
-    const brandingHeaderSubtext = await storage.getSettingByKey("branding.headerSubtext");
+    const brandingHeaderSubtext = await storage.getSettingByKey(
+      "branding.headerSubtext",
+    );
     if (!brandingHeaderSubtext) {
       await storage.upsertSetting({
         key: "branding.headerSubtext",
         value: "SPORT CLUB",
-        description: "Subtext displayed below header in navbar"
+        description: "Subtext displayed below header in navbar",
       });
     }
 

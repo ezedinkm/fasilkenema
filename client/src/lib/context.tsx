@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LANGUAGES } from './mockData';
+import { useQuery } from '@tanstack/react-query';
 
 interface Admin {
   id: number;
@@ -81,27 +82,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [token, setToken] = useState<string | null>(localStorage.getItem('admin_token'));
   const [themeColors, setThemeColors] = useState<ThemeColors>(DEFAULT_THEME);
 
-  const loadTheme = async () => {
-    try {
-      const response = await fetch('/api/settings');
-      if (response.ok) {
-        const settings = await response.json();
-        const primaryColor = settings.find((s: any) => s.key === 'theme.primaryColor')?.value || DEFAULT_THEME.primaryColor;
-        const secondaryColor = settings.find((s: any) => s.key === 'theme.secondaryColor')?.value || DEFAULT_THEME.secondaryColor;
-        const accentColor = settings.find((s: any) => s.key === 'theme.accentColor')?.value || DEFAULT_THEME.accentColor;
-        
-        const colors = { primaryColor, secondaryColor, accentColor };
-        setThemeColors(colors);
-        applyThemeColors(colors);
-      }
-    } catch (error) {
-      console.error('Failed to load theme:', error);
-    }
-  };
+  const { data: settings, refetch } = useQuery<any[]>({
+    queryKey: ['/api/public/settings'],
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
-    loadTheme();
-  }, []);
+    if (!Array.isArray(settings)) return;
+
+    const primaryColor = settings.find((s: any) => s.key === 'theme.primaryColor')?.value || DEFAULT_THEME.primaryColor;
+    const secondaryColor = settings.find((s: any) => s.key === 'theme.secondaryColor')?.value || DEFAULT_THEME.secondaryColor;
+    const accentColor = settings.find((s: any) => s.key === 'theme.accentColor')?.value || DEFAULT_THEME.accentColor;
+
+    const colors = { primaryColor, secondaryColor, accentColor };
+    setThemeColors(colors);
+    applyThemeColors(colors);
+  }, [settings]);
 
   useEffect(() => {
     if (token) {
@@ -155,6 +151,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'nav.blog': language === 'am' ? 'ብሎግ' : 'News',
       'nav.membership': language === 'am' ? 'አባልነት' : 'Membership',
       'nav.donate': language === 'am' ? 'ድጋፍ' : 'Donate',
+      'nav.programs': language === 'am' ? 'ፕሮግራሞች' : 'Programs',
+      'nav.team': language === 'am' ? 'ቡድን' : 'Team',
+      'nav.partners': language === 'am' ? 'አጋሮች' : 'Partners',
       'hero.title': language === 'am' ? 'የመቻል ቤት' : 'The Home of Mechal FC',
       'hero.subtitle': language === 'am' ? 'መቻል የስፖርት ማህበር ኦፊሴላዊ የደጋፊዎች መድረክ' : 'Official Fan Club Platform of Mechal Sport Club',
       'hero.cta': language === 'am' ? 'አባል ይሁኑ' : 'Join the Club',
@@ -164,7 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider value={{ language, setLanguage, user, admin, login, adminLogin, logout, t, token, themeColors, refreshTheme: loadTheme }}>
+    <AppContext.Provider value={{ language, setLanguage, user, admin, login, adminLogin, logout, t, token, themeColors, refreshTheme: () => { void refetch(); } }}>
       {children}
     </AppContext.Provider>
   );

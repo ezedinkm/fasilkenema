@@ -3,7 +3,6 @@ import { type Server } from "node:http";
 import path from "node:path";
 
 import type { Express } from "express";
-import { nanoid } from "nanoid";
 import { createServer as createViteServer, createLogger } from "vite";
 
 import runApp from "./app";
@@ -11,6 +10,7 @@ import runApp from "./app";
 import viteConfig from "../vite.config";
 
 const viteLogger = createLogger();
+import "dotenv/config";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -34,23 +34,20 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
+
+  const clientTemplatePath = path.resolve(
+    import.meta.dirname,
+    "..",
+    "client",
+    "index.html",
+  );
+  // Load once to avoid repeated disk reads and cache-busting.
+  const template = await fs.promises.readFile(clientTemplatePath, "utf-8");
+
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
     try {
-      const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
-        "client",
-        "index.html",
-      );
-
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {

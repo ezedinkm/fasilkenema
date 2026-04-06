@@ -1,36 +1,54 @@
-import { useEffect, useState } from 'react';
-import AdminLayout from '@/components/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, CreditCard, TrendingUp, UserCheck, DollarSign } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { getMembers, getRevenueStats } from '@/lib/api';
+import { useEffect, useState } from "react";
+import AdminLayout from "@/components/AdminLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, CreditCard, TrendingUp, DollarSign } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { getAdminDashboardStats } from "@/lib/api";
 
-const DATA = [
-  { name: 'Jan', members: 400 },
-  { name: 'Feb', members: 300 },
-  { name: 'Mar', members: 200 },
-  { name: 'Apr', members: 278 },
-  { name: 'May', members: 189 },
-  { name: 'Jun', members: 239 },
-  { name: 'Jul', members: 349 },
-];
+type DashboardStats = {
+  totalMembers: number;
+  membershipETB: number;
+  membershipUSD: number;
+  donationETB: number;
+  donationUSD: number;
+  growth: Array<{ name: string; members: number }>;
+};
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({ membershipETB: 0, membershipUSD: 0, donationETB: 0, donationUSD: 0 });
+  const [stats, setStats] = useState({
+    membershipETB: 0,
+    membershipUSD: 0,
+    donationETB: 0,
+    donationUSD: 0,
+  });
   const [totalMembers, setTotalMembers] = useState(0);
+  const [growthData, setGrowthData] = useState<
+    Array<{ name: string; members: number }>
+  >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [revenueData, membersData] = await Promise.all([
-          getRevenueStats(),
-          getMembers(),
-        ]);
-        setStats(revenueData);
-        setTotalMembers(membersData.length);
+        const dashboardData: DashboardStats = await getAdminDashboardStats();
+        setStats({
+          membershipETB: Number(dashboardData.membershipETB) || 0,
+          membershipUSD: Number(dashboardData.membershipUSD) || 0,
+          donationETB: Number(dashboardData.donationETB) || 0,
+          donationUSD: Number(dashboardData.donationUSD) || 0,
+        });
+        setTotalMembers(Number(dashboardData.totalMembers) || 0);
+        setGrowthData(dashboardData.growth ?? []);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
@@ -43,52 +61,85 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-zinc-900">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of club performance and metrics.</p>
+      <div className="space-y-8 min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-heading font-bold text-zinc-900">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Overview of club performance and metrics.
+          </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Members
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : totalMembers.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Registered members</p>
+              <div className="text-2xl font-bold">
+                {loading ? "..." : totalMembers.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Registered members
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue (ETB)</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Revenue (ETB)
+              </CardTitle>
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : totalRevenueETB.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Membership: {stats.membershipETB.toLocaleString()} | Donations: {stats.donationETB.toLocaleString()}</p>
+              <div className="text-2xl font-bold">
+                {loading ? "..." : totalRevenueETB.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Membership + Renewals: {stats.membershipETB.toLocaleString()} |
+                Donations: {stats.donationETB.toLocaleString()}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue (USD)</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Revenue (USD)
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : `$${totalRevenueUSD.toLocaleString()}`}</div>
-              <p className="text-xs text-muted-foreground">Membership: ${stats.membershipUSD.toLocaleString()} | Donations: ${stats.donationUSD.toLocaleString()}</p>
+              <div className="text-2xl font-bold">
+                {loading ? "..." : `$${totalRevenueUSD.toLocaleString()}`}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Membership + Renewals: ${stats.membershipUSD.toLocaleString()} |
+                Donations: ${stats.donationUSD.toLocaleString()}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Membership Fees</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Membership Fees
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : stats.membershipETB.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Total membership revenue</p>
+              <div className="text-2xl font-bold">
+                {loading
+                  ? "..."
+                  : `${stats.membershipETB.toLocaleString()} ETB`}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Includes new memberships and renewals | USD: $
+                {stats.membershipUSD.toLocaleString()}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -98,30 +149,46 @@ export default function AdminDashboard() {
           <CardHeader>
             <CardTitle>Membership Growth</CardTitle>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[350px] w-full">
+          <CardContent className="pl-1 pr-1 sm:pl-2 sm:pr-2 -mx-1 sm:mx-0 overflow-x-auto">
+            <div className="h-[220px] sm:h-[300px] md:h-[350px] w-full min-w-[280px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={DATA}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="name" 
-                    stroke="#888888" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
+                <BarChart
+                  data={growthData}
+                  margin={{ top: 8, right: 4, left: 0, bottom: 4 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#e5e7eb"
                   />
-                  <YAxis 
-                    stroke="#888888" 
-                    fontSize={12} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickFormatter={(value) => `${value}`} 
+                  <XAxis
+                    dataKey="name"
+                    stroke="#888888"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
                   />
-                  <Tooltip 
-                    cursor={{ fill: '#f4f4f5' }}
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}`}
                   />
-                  <Bar dataKey="members" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Tooltip
+                    cursor={{ fill: "#f4f4f5" }}
+                    contentStyle={{
+                      borderRadius: "8px",
+                      border: "none",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    }}
+                  />
+                  <Bar
+                    dataKey="members"
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

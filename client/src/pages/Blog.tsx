@@ -1,18 +1,95 @@
-import PublicLayout from '@/components/PublicLayout';
-import NewsCard from '@/components/NewsCard';
-import { NEWS_POSTS } from '@/lib/mockData';
-import { Trophy, Newspaper, Users, Calendar } from 'lucide-react';
+import PublicLayout from "@/components/PublicLayout";
+import NewsCard from "@/components/NewsCard";
+import { Trophy, Newspaper, Users, Calendar } from "lucide-react";
+import { getPosts } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { Link } from "wouter";
+
+type NormalizedNewsPost = {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  image: string;
+  category: string;
+};
+
+function normalizeApiPost(raw: any): NormalizedNewsPost {
+  const id = Number(raw?.id);
+  const slug = String(raw?.slug ?? "");
+  const title = String(raw?.titleEn ?? raw?.title ?? "");
+  const excerpt = String(raw?.contentEn ?? raw?.excerpt ?? "");
+  const image = String(raw?.imageUrl ?? raw?.image ?? "");
+  const category = String(raw?.category ?? "");
+
+  const published =
+    raw?.publishedAt ?? raw?.published_at ?? raw?.createdAt ?? raw?.created_at;
+  const dateStr =
+    published == null
+      ? ""
+      : typeof published === "string"
+        ? published.slice(0, 10)
+        : new Date(published).toISOString().slice(0, 10);
+
+  // Keep excerpt reasonably sized for the card UI.
+  const trimmedExcerpt =
+    excerpt.length > 260 ? `${excerpt.slice(0, 260)}…` : excerpt;
+
+  return {
+    id,
+    slug,
+    title,
+    excerpt: trimmedExcerpt,
+    date: dateStr,
+    image,
+    category,
+  };
+}
 
 export default function Blog() {
-  const categories = [
-    { icon: Trophy, label: 'ዋንጫ | Trophies', count: 1 },
-    { icon: Newspaper, label: 'ግጥሚያ | Matches', count: 2 },
-    { icon: Users, label: 'ማህበረሰብ | Community', count: 1 },
-    { icon: Calendar, label: 'ክለብ | Club', count: 2 },
-  ];
+  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState<NormalizedNewsPost[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const apiPosts = await getPosts();
+        if (cancelled) return;
+
+        const normalized = (Array.isArray(apiPosts) ? apiPosts : [])
+          .map(normalizeApiPost)
+          .filter((p) => p.id && p.slug && p.title);
+
+        setPosts(normalized);
+        setLoading(false);
+      } catch {
+        if (cancelled) return;
+        setPosts([]);
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <PublicLayout>
+      {loading && (
+        <div className="fixed inset-0 z-50 bg-white backdrop-blur-sm flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+            <p className="text-sm font-bold text-red-600 uppercase tracking-wider">
+              Loading news…
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-primary via-amber-800 to-amber-900 py-16 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white/20 rounded-full" />
@@ -22,24 +99,17 @@ export default function Blog() {
         <div className="container px-4 relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-1 h-12 bg-amber-400 rounded-full" />
-            <span className="text-amber-400 font-bold uppercase tracking-widest text-sm">ዜና | News</span>
+            <span className="text-amber-400 font-bold uppercase tracking-widest text-sm">
+              ዜና | News
+            </span>
           </div>
           <h1 className="font-heading text-5xl md:text-6xl font-bold text-white mb-4">
-            የመቻል ዜና
+            የፋሲል ከነማ ዜና
           </h1>
           <p className="text-xl text-white/80 max-w-2xl">
-            Mechal FC News - Latest updates from Mechal FC, match reports, transfer news, and community events.
+            FASIL S.C News - Latest updates from FASIL S.C, match reports,
+            transfer news, and community events.
           </p>
-          
-          <div className="flex flex-wrap gap-4 mt-8">
-            {categories.map((cat, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-                <cat.icon className="h-4 w-4 text-amber-400" />
-                <span className="text-white text-sm font-medium">{cat.label}</span>
-                <span className="text-amber-400 text-xs font-bold">({cat.count})</span>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -54,26 +124,36 @@ export default function Blog() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {NEWS_POSTS.map(post => (
-            <NewsCard key={post.id} post={post} />
-          ))}
-        </div>
+        {!loading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <NewsCard key={post.id} post={post} />
+            ))}
+          </div>
+        )}
 
-        <div className="mt-16 bg-gradient-to-r from-zinc-900 to-zinc-800 rounded-2xl p-8 text-center">
-          <h3 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
-            ከመቻል ጋር ይቀላቀሉ | Join the Mechal FC Family
-          </h3>
-          <p className="text-zinc-400 mb-6 max-w-xl mx-auto">
-            Become a member and get exclusive access to news, match tickets, and community events.
-          </p>
-          <a 
-            href="/membership" 
-            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-bold px-8 py-3 rounded-lg transition-colors"
-            data-testid="link-join-membership"
-          >
-            Become a Member
-          </a>
+        <div className="mt-16 bg-red-600 text-white relative overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+          <div className="container px-8 py-12 relative z-10">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div className="text-center md:text-left">
+                <h3 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
+                  ከፋሲል ከነማ ጋር ይቀላቀሉ | Join the FASIL S.C Family
+                </h3>
+                <p className="text-white/80 mb-0 max-w-xl">
+                  Become a member and get exclusive access to news, match
+                  tickets, and community events.
+                </p>
+              </div>
+              <Link
+                href="/membership"
+                className="inline-flex items-center gap-2 bg-white text-red-600 hover:bg-gray-100 font-bold px-8 py-3 rounded-lg transition-colors text-lg"
+                data-testid="link-join-membership"
+              >
+                Become a Member
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </PublicLayout>

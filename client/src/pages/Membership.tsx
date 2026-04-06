@@ -1,45 +1,36 @@
-import PublicLayout from '@/components/PublicLayout';
-import MembershipCard from '@/components/MembershipCard';
-import { MEMBERSHIP_TIERS } from '@/lib/mockData';
-import { useState, useEffect } from 'react';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { getSettingByKey } from '@/lib/api';
+import PublicLayout from "@/components/PublicLayout";
+import MembershipCard from "@/components/MembershipCard";
+import { useState, useEffect, useMemo } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { getMembershipTiers } from "@/lib/membershipTiers";
 
 interface MembershipTier {
   id: string;
   name: string;
+  amharicVersion?: string;
   price: { etb: number; usd: number };
+  monthlyPrice?: { etb: number; usd: number };
   benefits: string[];
   color: string;
   recommended: boolean;
 }
 
 export default function Membership() {
-  const [currency, setCurrency] = useState<'etb' | 'usd'>('etb');
-  const [tiers, setTiers] = useState<MembershipTier[]>(MEMBERSHIP_TIERS);
+  const [currency, setCurrency] = useState<"etb" | "usd">("etb");
+  const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">(
+    "annual",
+  );
+  const [tiers, setTiers] = useState<MembershipTier[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchTiers() {
       try {
-        const result = await getSettingByKey('membership_tiers');
-        if (result?.value && Array.isArray(result.value)) {
-          const dbTiers = result.value.map((tier: any, index: number) => ({
-            id: tier.id || tier.name?.toLowerCase() || `tier-${index}`,
-            name: tier.name,
-            price: { 
-              etb: tier.priceETB || tier.price?.etb || 0, 
-              usd: tier.priceUSD || tier.price?.usd || 0 
-            },
-            benefits: tier.benefits || [],
-            color: tier.color || (index === 1 ? 'bg-primary text-black' : index === 2 ? 'bg-secondary text-white' : 'bg-gray-100 text-gray-900'),
-            recommended: tier.recommended || index === 1,
-          }));
-          setTiers(dbTiers);
-        }
+        const apiTiers = await getMembershipTiers();
+        setTiers(apiTiers);
       } catch (error) {
-        console.error('Failed to fetch membership tiers:', error);
+        console.error("Failed to fetch membership tiers:", error);
       } finally {
         setLoading(false);
       }
@@ -47,38 +38,107 @@ export default function Membership() {
     fetchTiers();
   }, []);
 
+  const sortedTiers = useMemo(() => {
+    return [...tiers].sort((a, b) => {
+      const aPrice =
+        billingCycle === "monthly"
+          ? currency === "etb"
+            ? (a.monthlyPrice?.etb ?? a.price.etb)
+            : (a.monthlyPrice?.usd ?? a.price.usd)
+          : currency === "etb"
+            ? a.price.etb
+            : a.price.usd;
+      const bPrice =
+        billingCycle === "monthly"
+          ? currency === "etb"
+            ? (b.monthlyPrice?.etb ?? b.price.etb)
+            : (b.monthlyPrice?.usd ?? b.price.usd)
+          : currency === "etb"
+            ? b.price.etb
+            : b.price.usd;
+
+      return bPrice - aPrice;
+    });
+  }, [tiers, currency, billingCycle]);
+
   return (
     <PublicLayout>
-      <div className="bg-primary py-20 text-white text-center">
-        <div className="container px-4">
-          <h1 className="font-heading text-5xl md:text-7xl font-bold mb-6">Join The Family</h1>
-          <p className="text-xl max-w-2xl mx-auto opacity-90">
-            Support Mechal FC directly and enjoy exclusive benefits. Your membership fuels our success on the pitch.
+      <div className="bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white relative overflow-hidden py-20 md:py-24">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+        <div className="container px-4 relative z-10 text-center">
+          <h1 className="font-heading text-5xl md:text-7xl font-bold mb-6">
+            Join The Family
+          </h1>
+          <p className="text-xl max-w-3xl mx-auto text-white/90 leading-relaxed">
+            Support Mechal FC directly and enjoy exclusive benefits. Choose your
+            tier, grow with the club, and power success on and off the pitch.
           </p>
         </div>
       </div>
 
-      <div className="container px-4 py-12">
-        {/* Currency Toggle */}
-        <div className="flex justify-center items-center space-x-4 mb-12">
-          <Label htmlFor="currency-mode" className={`text-lg font-bold ${currency === 'etb' ? 'text-primary' : 'text-muted-foreground'}`}>ETB</Label>
-          <Switch 
-            id="currency-mode" 
-            checked={currency === 'usd'} 
-            onCheckedChange={(checked) => setCurrency(checked ? 'usd' : 'etb')} 
-          />
-          <Label htmlFor="currency-mode" className={`text-lg font-bold ${currency === 'usd' ? 'text-primary' : 'text-muted-foreground'}`}>USD</Label>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">Loading membership options...</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {tiers.map(tier => (
-              <MembershipCard key={tier.id} tier={tier} currency={currency} />
-            ))}
+      <div className="bg-zinc-50">
+        <div className="container px-4 py-14 md:py-16">
+          {/* Currency Toggle */}
+          <div className="flex justify-center items-center space-x-4 mb-12 bg-white border border-zinc-200 rounded-xl px-6 py-4 max-w-md mx-auto shadow-sm">
+            <Label
+              htmlFor="currency-mode"
+              className={`text-lg font-bold ${currency === "etb" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              ETB
+            </Label>
+            <Switch
+              id="currency-mode"
+              checked={currency === "usd"}
+              onCheckedChange={(checked) =>
+                setCurrency(checked ? "usd" : "etb")
+              }
+            />
+            <Label
+              htmlFor="currency-mode"
+              className={`text-lg font-bold ${currency === "usd" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              USD
+            </Label>
           </div>
-        )}
+          <div className="flex justify-center items-center space-x-4 mb-12 bg-white border border-zinc-200 rounded-xl px-6 py-4 max-w-md mx-auto shadow-sm">
+            <Label
+              htmlFor="billing-mode"
+              className={`text-lg font-bold ${billingCycle === "annual" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Annual
+            </Label>
+            <Switch
+              id="billing-mode"
+              checked={billingCycle === "monthly"}
+              onCheckedChange={(checked) =>
+                setBillingCycle(checked ? "monthly" : "annual")
+              }
+            />
+            <Label
+              htmlFor="billing-mode"
+              className={`text-lg font-bold ${billingCycle === "monthly" ? "text-primary" : "text-muted-foreground"}`}
+            >
+              Monthly
+            </Label>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              Loading membership options...
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {sortedTiers.map((tier) => (
+                <MembershipCard
+                  key={tier.id}
+                  tier={tier}
+                  currency={currency}
+                  billingCycle={billingCycle}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </PublicLayout>
   );

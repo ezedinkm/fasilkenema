@@ -1,12 +1,9 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import ForgotPassword from './ForgotPassword';
 
+/**
+ * Same flow as /member/forgot-password (SMS OTP + new password).
+ * Kept as a separate route for links/bookmarks to “reset password”.
+ */
 export default function ResetPassword() {
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    setLocation('/member/forgot-password');
-  }, [setLocation]);
-
-  return null;
+  return <ForgotPassword />;
 }
