@@ -1,14 +1,12 @@
-import axios from "axios";
 import * as cheerio from "cheerio";
 
 import { pool } from "../db.ts";
+import { ensureLeagueSchema } from "../shared/leagueSchema.js";
 
 let activeScrapePromise = null;
 
 function normalizeName(name) {
-  return String(name ?? "")
-    .trim()
-    .toLowerCase();
+  return String(name ?? "").trim().toLowerCase();
 }
 
 function extractTeamNameFromLink($, el) {
@@ -46,9 +44,7 @@ async function scrapeTable(html) {
   const rows = [];
   $(".team").each((_, el) => {
     const teamName = normalizeName($(el).text());
-    const root = $(el).closest("tr").length
-      ? $(el).closest("tr")
-      : $(el).parent();
+    const root = $(el).closest("tr").length ? $(el).closest("tr") : $(el).parent();
 
     rows.push({
       teamName,
@@ -109,22 +105,12 @@ async function scrapeTableBeSoccer(html) {
     .map((el) => $(el))
     .find(($t) => {
       const text = $t.text().toUpperCase();
-      return (
-        text.includes("PTS") &&
-        text.includes("MP") &&
-        text.includes("GF") &&
-        text.includes("GA")
-      );
+      return text.includes("PTS") && text.includes("MP") && text.includes("GF") && text.includes("GA");
     });
 
   if (!standingsTable) return { found: 0, upserted: 0 };
 
-  const headerCells = standingsTable
-    .find("tr")
-    .first()
-    .find("th,td")
-    .toArray()
-    .map((c) => normalizeName($(c).text()));
+  const headerCells = standingsTable.find("tr").first().find("th,td").toArray().map((c) => normalizeName($(c).text()));
   const idx = {
     pts: headerCells.findIndex((h) => h === "pts"),
     mp: headerCells.findIndex((h) => h === "mp"),
@@ -141,36 +127,20 @@ async function scrapeTableBeSoccer(html) {
   for (const tr of dataRows) {
     const $tr = $(tr);
     const teamLink = $tr.find('a[href*="/team/"]').first();
-    const teamName = teamLink.length
-      ? extractTeamNameFromLink($, teamLink)
-      : normalizeName($tr.find("td").first().text());
+    const teamName = teamLink.length ? extractTeamNameFromLink($, teamLink) : normalizeName($tr.find("td").first().text());
     if (!teamName) continue;
 
-    const cells = $tr
-      .find("td")
-      .toArray()
-      .map((c) => $(c).text());
+    const cells = $tr.find("td").toArray().map((c) => $(c).text());
 
-    const points =
-      idx.pts >= 0 ? parseIntSafe(cells[idx.pts]) : parseIntSafe(cells[0]);
-    const played =
-      idx.mp >= 0 ? parseIntSafe(cells[idx.mp]) : parseIntSafe(cells[1]);
+    const points = idx.pts >= 0 ? parseIntSafe(cells[idx.pts]) : parseIntSafe(cells[0]);
+    const played = idx.mp >= 0 ? parseIntSafe(cells[idx.mp]) : parseIntSafe(cells[1]);
     const win = idx.w >= 0 ? parseIntSafe(cells[idx.w]) : 0;
     const draw = idx.d >= 0 ? parseIntSafe(cells[idx.d]) : 0;
     const loss = idx.l >= 0 ? parseIntSafe(cells[idx.l]) : 0;
     const goalsFor = idx.gf >= 0 ? parseIntSafe(cells[idx.gf]) : 0;
     const goalsAgainst = idx.ga >= 0 ? parseIntSafe(cells[idx.ga]) : 0;
 
-    parsed.push({
-      teamName,
-      played,
-      win,
-      draw,
-      loss,
-      goalsFor,
-      goalsAgainst,
-      points,
-    });
+    parsed.push({ teamName, played, win, draw, loss, goalsFor, goalsAgainst, points });
   }
 
   let upserted = 0;
@@ -192,16 +162,7 @@ async function scrapeTableBeSoccer(html) {
           goals_against = EXCLUDED.goals_against,
           points = EXCLUDED.points;
       `,
-      [
-        clubId,
-        r.played,
-        r.win,
-        r.draw,
-        r.loss,
-        r.goalsFor,
-        r.goalsAgainst,
-        r.points,
-      ],
+      [clubId, r.played, r.win, r.draw, r.loss, r.goalsFor, r.goalsAgainst, r.points],
     );
     upserted += 1;
   }
@@ -233,9 +194,7 @@ async function scrapeMatches(html) {
   const matches = [];
   $(".home-team").each((_, el) => {
     const homeName = normalizeName($(el).text());
-    const root = $(el).closest("tr").length
-      ? $(el).closest("tr")
-      : $(el).parent();
+    const root = $(el).closest("tr").length ? $(el).closest("tr") : $(el).parent();
 
     const awayName = normalizeName(root.find(".away-team").first().text());
     const scoreText = root.find(".score").first().text();
@@ -305,7 +264,7 @@ async function scrapeMatchesBeSoccer(html) {
     const dateCandidate =
       datetimeAttr ||
       $tr.find('[class*="date"]').first().text() ||
-      $tr.find("[data-date]").first().attr("data-date") ||
+      $tr.find('[data-date]').first().attr("data-date") ||
       "";
     const matchDate = parseDate(dateCandidate);
     if (!matchDate) return;
@@ -351,29 +310,44 @@ async function scrapeMatchesBeSoccer(html) {
 
 async function runEthiopianLeagueScrape() {
   const tableUrl =
-    process.env.EPL_TABLE_URL ??
-    "https://www.besoccer.com/competition/table/premier_league_ethiopia";
+    process.env.EPL_TABLE_URL ?? "https://www.besoccer.com/competition/table/premier_league_ethiopia";
   const matchesUrl =
-    process.env.EPL_MATCHES_URL ??
-    "https://www.besoccer.com/competition/scores/premier_league_ethiopia";
+    process.env.EPL_MATCHES_URL ?? "https://www.besoccer.com/competition/scores/premier_league_ethiopia";
 
   try {
-    const headers = {
-      "user-agent": "Mozilla/5.0 (compatible; MechalEPLScraper/1.0)",
+    await ensureLeagueSchema(pool);
+
+    const headers = { "user-agent": "Mozilla/5.0 (compatible; MechalEPLScraper/1.0)" };
+    const fetchWithTimeout = async (url) => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+      try {
+        const response = await fetch(url, {
+          headers,
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+        }
+        return await response.text();
+      } finally {
+        clearTimeout(timeout);
+      }
     };
-    const [tableRes, matchesRes] = await Promise.all([
-      axios.get(tableUrl, { timeout: 30000, headers }),
-      axios.get(matchesUrl, { timeout: 30000, headers }),
+
+    const [tableHtml, matchesHtml] = await Promise.all([
+      fetchWithTimeout(tableUrl),
+      fetchWithTimeout(matchesUrl),
     ]);
 
-    let table = await scrapeTable(tableRes.data);
+    let table = await scrapeTable(tableHtml);
     if (!table.found) {
-      table = await scrapeTableBeSoccer(tableRes.data);
+      table = await scrapeTableBeSoccer(tableHtml);
     }
 
-    let matches = await scrapeMatches(matchesRes.data);
+    let matches = await scrapeMatches(matchesHtml);
     if (!matches.found) {
-      matches = await scrapeMatchesBeSoccer(matchesRes.data);
+      matches = await scrapeMatchesBeSoccer(matchesHtml);
     }
 
     return { ok: true, table, matches };

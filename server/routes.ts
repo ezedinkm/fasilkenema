@@ -40,7 +40,8 @@ import { JWT_SECRET, authenticateToken } from "./middleware/authMiddleware";
 import { upload, uploadsDir } from "./middleware/multerConfig";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
-
+import eplRoutes from "./routes/eplRoutes.js";
+import scrapeRoutes from "./routes/scrapeRoutes.js";
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
 type OtpPurpose = "registration" | "password_reset";
 
@@ -705,6 +706,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   registerTeamAdminRoutes(app);
   registerAdminRoutes(app);
+  app.use("/api", eplRoutes);
+  app.use("/api", scrapeRoutes);
 
   app.post("/api/upload", upload.single("photo"), (req, res) => {
     try {

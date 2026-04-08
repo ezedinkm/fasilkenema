@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { pool } from "../db.ts";
+import { ensureLeagueSchema } from "../shared/leagueSchema.js";
 
 const router = Router();
 
@@ -14,6 +15,8 @@ function toDisplayName(name) {
 
 router.get("/epl", async (_req, res) => {
   try {
+    await ensureLeagueSchema(pool);
+
     const standingsResult = await pool.query(
       `
         SELECT
@@ -90,16 +93,10 @@ router.get("/epl", async (_req, res) => {
 
     const finished = matches
       .filter((m) => m.status === "finished")
-      .sort(
-        (a, b) =>
-          new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime(),
-      );
+      .sort((a, b) => new Date(b.matchDate).getTime() - new Date(a.matchDate).getTime());
     const upcoming = matches
       .filter((m) => m.status === "upcoming")
-      .sort(
-        (a, b) =>
-          new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime(),
-      );
+      .sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
     res.json({
       ok: true,
@@ -117,3 +114,4 @@ router.get("/epl", async (_req, res) => {
 });
 
 export default router;
+

@@ -29,12 +29,11 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const token =
-      localStorage.getItem("admin_token") || localStorage.getItem("token");
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
     const headers: HeadersInit = {};
-
+    
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const res = await fetch(queryKey.join("/") as string, {
@@ -47,6 +46,14 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) {
+      const text = await res.text();
+      const preview = text.slice(0, 160).replace(/\s+/g, " ").trim();
+      throw new Error(
+        `Expected JSON response but received ${contentType || "unknown content type"} from ${queryKey.join("/")}. Preview: ${preview}`,
+      );
+    }
     return await res.json();
   };
 

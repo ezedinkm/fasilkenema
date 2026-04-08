@@ -70,20 +70,24 @@ export default function Charity() {
   return (
     <PublicLayout>
       {/* Hero */}
-      <section className="bg-gradient-to-b from-amber-600 to-amber-700 text-white py-16 md:py-24">
-        <div className="container px-4 max-w-4xl mx-auto text-center">
+      <section>
+      <div className="bg-red-600 text-white relative overflow-hidden py-20">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+          <div className="container px-4 relative z-10 text-center">
           <p className="text-amber-100 text-sm font-semibold uppercase tracking-wider mb-2">
             Programs
           </p>
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
             Charity Work
           </h1>
-          <p className="text-lg md:text-xl text-amber-50 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-amber-50 max-w-2xl mx-auto">
             Giving back to the community through youth support, health
             initiatives, and partnerships.
           </p>
+          </div>
         </div>
       </section>
+      
 
       {/* About */}
       <section className="py-12 md:py-16 bg-white">
@@ -115,7 +119,7 @@ export default function Charity() {
                   <img
                     src={loadedImageIndexes[i] ? src : undefined}
                     alt={`Charity work ${i + 1}`}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"

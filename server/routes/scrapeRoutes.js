@@ -1,9 +1,6 @@
 import { Router } from "express";
 
-import {
-  isEplScrapeRunning,
-  scrapeEthiopianLeague,
-} from "../scraper/eplScraper.js";
+import { isEplScrapeRunning, scrapeEthiopianLeague } from "../scraper/eplScraper.js";
 
 const router = Router();
 
@@ -24,3 +21,4 @@ router.get("/scrape", async (_req, res) => {
 });
 
 export default router;
+

@@ -55,3 +55,16 @@ export async function initializeLeagueSchema(pool) {
     );
   `);
 }
+
+let schemaReadyPromise = null;
+
+export async function ensureLeagueSchema(pool) {
+  if (!schemaReadyPromise) {
+    schemaReadyPromise = initializeLeagueSchema(pool).catch((error) => {
+      schemaReadyPromise = null;
+      throw error;
+    });
+  }
+  return schemaReadyPromise;
+}
+

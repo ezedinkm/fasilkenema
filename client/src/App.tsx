@@ -44,17 +44,18 @@ import TeamMen from "@/pages/team/Men";
 import TeamWomen from "@/pages/team/Women";
 import TeamJunior from "@/pages/team/Junior";
 import TeamTrophies from "@/pages/team/Trophies";
-import EthiopianLeague from "@/pages/EthiopianLeague";
+import EthiopianLeague from "@/pages/EthiopianPremierLeague";
 import Gonder from "@/pages/Gonder";
 import Shopping from "@/pages/Shopping";
+import Partners from "@/pages/Partners";
 
 function ScrollToTop() {
   const [location] = useLocation();
-
+  
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location]);
-
+  
   return null;
 }
 
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/donate" component={Donate} />
       <Route path="/gonder" component={Gonder} />
       <Route path="/shopping" component={Shopping} />
+      <Route path="/partners" component={Partners} />
       <Route path="/donate/success" component={DonateSuccess} />
       <Route path="/programs" component={Programs} />
       <Route path="/programs/basketball" component={Basketball} />
@@ -88,7 +90,7 @@ function Router() {
       <Route path="/team/trophies" component={TeamTrophies} />
       <Route path="/epl" component={EthiopianLeague} />
       <Route path="/card/:membershipNumber" component={DigitalCard} />
-
+      
       {/* Member Routes */}
       <Route path="/member/login" component={MemberLogin} />
       <Route path="/member/forgot-password" component={ForgotPassword} />
@@ -97,7 +99,7 @@ function Router() {
       <Route path="/women-fasil" component={WomenFasil} />
       <Route path="/junior-fasil" component={JuniorFasil} />
       <Route path="/meetings-events" component={MeetingsEvents} />
-
+      
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
@@ -111,7 +113,7 @@ function Router() {
       <Route path="/admin/team" component={AdminTeam} />
 
       <Route path="/not-found" component={NotFound} />
-
+      
       <Route component={NotFound} />
     </Switch>
   );

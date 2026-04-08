@@ -23,8 +23,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
   const image = String(raw?.imageUrl ?? raw?.image ?? "");
   const category = String(raw?.category ?? "");
 
-  const published =
-    raw?.publishedAt ?? raw?.published_at ?? raw?.createdAt ?? raw?.created_at;
+  const published = raw?.publishedAt ?? raw?.published_at ?? raw?.createdAt ?? raw?.created_at;
   const dateStr =
     published == null
       ? ""
@@ -36,18 +35,11 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
   const trimmedExcerpt =
     excerpt.length > 260 ? `${excerpt.slice(0, 260)}…` : excerpt;
 
-  return {
-    id,
-    slug,
-    title,
-    excerpt: trimmedExcerpt,
-    date: dateStr,
-    image,
-    category,
-  };
+  return { id, slug, title, excerpt: trimmedExcerpt, date: dateStr, image, category };
 }
 
 export default function Blog() {
+  
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<NormalizedNewsPost[]>([]);
 
@@ -83,20 +75,16 @@ export default function Blog() {
         <div className="fixed inset-0 z-50 bg-white backdrop-blur-sm flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
-            <p className="text-sm font-bold text-red-600 uppercase tracking-wider">
-              Loading news…
-            </p>
+            <p className="text-sm font-bold text-red-600 uppercase tracking-wider">Loading news…</p>
           </div>
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-primary via-amber-800 to-amber-900 py-16 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 border-4 border-white/20 rounded-full" />
-          <div className="absolute bottom-10 right-10 w-48 h-48 border-4 border-white/20 rounded-full" />
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 border-2 border-amber-400/30 rotate-45" />
-        </div>
-        <div className="container px-4 relative z-10">
+<section>
+      <div className="bg-red-600 text-white relative overflow-hidden py-20">
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+          {/* <div className="container px-4 relative z-10 text-center"> */}
+          <div className="container px-4 relative z-10">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-1 h-12 bg-amber-400 rounded-full" />
             <span className="text-amber-400 font-bold uppercase tracking-widest text-sm">
@@ -107,11 +95,14 @@ export default function Blog() {
             የፋሲል ከነማ ዜና
           </h1>
           <p className="text-xl text-white/80 max-w-2xl">
-            FASIL S.C News - Latest updates from FASIL S.C, match reports,
-            transfer news, and community events.
+            FASIL S.C News - Latest updates from FASIL S.C, match
+            reports, transfer news, and community events.
           </p>
+
         </div>
-      </div>
+          </div>
+        {/* </div> */}
+      </section>
 
       <div className="container px-4 py-12">
         <div className="flex items-center justify-between mb-8">
@@ -138,7 +129,7 @@ export default function Blog() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="text-center md:text-left">
                 <h3 className="font-heading text-2xl md:text-3xl font-bold text-white mb-2">
-                  ከፋሲል ከነማ ጋር ይቀላቀሉ | Join the FASIL S.C Family
+                ከፋሲል ከነማ ጋር ይቀላቀሉ | Join the FASIL S.C Family
                 </h3>
                 <p className="text-white/80 mb-0 max-w-xl">
                   Become a member and get exclusive access to news, match
