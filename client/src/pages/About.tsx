@@ -15,13 +15,13 @@ function getFirstWords(text: string, n: number): string {
   return words.slice(0, n).join(" ") + " ";
 }
 import historyImage1 from "@/assets/History/full team new.jpg";
-import historyImage2 from "@/assets/History/ምስረታ copy.jpg";
-import historyImage3 from "@/assets/History/ፋሲል ብሄራዊ ሊግ.jpg";
-import historyImage4 from "@/assets/History/ትግል ፍሬ copy 2.jpg";
-import historyImage5 from "@/assets/History/ፋሲል በ1966 ዓ.ም.jpg";
-import historyImage6 from "@/assets/History/ፋሲል ከነማ በከፍተኛ ሊግ .png";
-import historyImage7 from "@/assets/History/ፋሲል ከነማ በፕሪሚየር ሊጉ ( 2009___ ).jpg";
-import historyImage8 from "@/assets/History/ቤትኪንግ የኢትዮጵያ ፕሪሚየር ሊግ በ2013 ዓ.ም አሸናፊ። (2013 ዓ.ም) copy 2.jpg";
+import historyImage2 from "@/assets/History/copy.jpg";
+import historyImage3 from "@/assets/History/fasilligue.jpg";
+import historyImage4 from "@/assets/History/tigilfire.jpg";
+import historyImage5 from "@/assets/History/1966.jpg";
+import historyImage6 from "@/assets/History/higherligue.png";
+import historyImage7 from "@/assets/History/ligue2009.jpg";
+import historyImage8 from "@/assets/History/betkingwinner2013.jpg";
 
 const SECTIONS = [
   {
