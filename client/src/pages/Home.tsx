@@ -6,7 +6,7 @@ import { ArrowRight, Trophy, ShoppingBag } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import GONDER_IMAGE_URL from "@/assets/gonder/Gonder.webp";
+import GONDER_IMAGE_URL from "@/assets/gonder/gonder.webp";
 
 function Gonder() {
   const rootRef = useRef<HTMLDivElement | null>(null);
