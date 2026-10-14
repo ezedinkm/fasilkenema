@@ -1,11 +1,11 @@
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
-import stadium1 from "@/assets/stadium/1 (1).jpg";
-import stadium2 from "@/assets/stadium/1 (2).jpg";
-import stadium3 from "@/assets/stadium/1 (3).jpg";
-import stadium4 from "@/assets/stadium/1 (4).jpg";
-import stadium5 from "@/assets/stadium/1 (5).jpg";
-import stadium6 from "@/assets/stadium/1 (6).jpg";
+import stadium1 from "@/assets/stadium/st1.jpg";
+import stadium2 from "@/assets/stadium/st2.jpg";
+import stadium3 from "@/assets/stadium/st3.jpg";
+import stadium4 from "@/assets/stadium/st4.jpg";
+import stadium5 from "@/assets/stadium/st5.jpg";
+import stadium6 from "@/assets/stadium/st6.jpg";
 import { useEffect, useState } from "react";
 
 const STADIUM_TITLE = "Fasil Kenema Stadium";
