@@ -27,7 +27,16 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 export async function getMembers() {
   const response = await fetchWithAuth("/api/members");
-  return response.json();
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(
+      typeof data?.error === "string" ? data.error : "Failed to load members",
+    );
+  }
+  if (!Array.isArray(data)) {
+    throw new Error("The members response was invalid. Please try again.");
+  }
+  return data;
 }
 
 /** Public endpoint (no auth). Prefer `createAdminMember` from the admin UI. */

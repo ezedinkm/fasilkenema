@@ -83,6 +83,7 @@ export default function AdminMembers() {
   const { toast } = useToast();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
+  const [membersError, setMembersError] = useState<string | null>(null);
   const [membershipTiers, setMembershipTiers] = useState<AdminTierRow[]>([]);
   const [tiersLoading, setTiersLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -162,14 +163,20 @@ export default function AdminMembers() {
   }, [members, searchQuery]);
 
   const fetchMembers = async () => {
+    setLoading(true);
+    setMembersError(null);
     try {
       const data = await getMembers();
-      setMembers(data);
+      setMembers(Array.isArray(data) ? data : []);
     } catch (error) {
+      setMembers([]);
+      const message =
+        error instanceof Error ? error.message : "Failed to load members";
+      setMembersError(message);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load members",
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -790,6 +797,19 @@ export default function AdminMembers() {
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">
               Loading members...
+            </div>
+          ) : membersError ? (
+            <div className="p-8 text-center">
+              <p className="text-sm text-destructive">{membersError}</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-4"
+                onClick={() => void fetchMembers()}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try again
+              </Button>
             </div>
           ) : members.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
