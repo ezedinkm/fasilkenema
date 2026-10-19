@@ -633,7 +633,13 @@ export function registerAdminRoutes(app: Express): void {
 
   app.get("/api/admin/sms/audiences", authenticateToken, async (_req, res) => {
     try {
-      const members = await db.select().from(schema.members);
+      const members = await db
+        .select({
+          phone: schema.members.phone,
+          status: schema.members.status,
+          tier: schema.members.tier,
+        })
+        .from(schema.members);
       const validActiveMembers = members.filter(
         (member) => member.status === "active" && Boolean(member.phone),
       );
@@ -727,7 +733,15 @@ export function registerAdminRoutes(app: Express): void {
       }
 
       const targetType = targetTypeRaw as SmsBroadcastTargetType;
-      const allMembers = await db.select().from(schema.members);
+      const allMembers = await db
+        .select({
+          phone: schema.members.phone,
+          status: schema.members.status,
+          tier: schema.members.tier,
+          fullName: schema.members.fullName,
+          membershipNumber: schema.members.membershipNumber,
+        })
+        .from(schema.members);
       const filtered = allMembers.filter((member) => {
         if (!member.phone) {
           return false;
