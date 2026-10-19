@@ -147,7 +147,7 @@ export default function AdminSettings() {
   >({});
 
   // State for branding
-  const [headerText, setHeaderText] = useState("Fasil Kenema Fan Club");
+  const [headerText, setHeaderText] = useState("FASIL S.C");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);

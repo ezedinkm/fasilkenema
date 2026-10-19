@@ -85,16 +85,23 @@ async function ensureAdminExists() {
     const brandingHeaderText = await storage.getSettingByKey(
       "branding.headerText",
     );
+    const isSaintGeorgeBrand = Boolean(
+      brandingHeaderText &&
+        /saint\s+george/i.test(brandingHeaderText.value),
+    );
     if (!brandingHeaderText) {
       await storage.upsertSetting({
         key: "branding.headerText",
-        value: "FASIL KENEMA",
+        value: "FASIL S.C",
         description: "Header text displayed in navbar",
       });
-    } else if (brandingHeaderText.value === "MECHAL FC") {
+    } else if (
+      brandingHeaderText.value === "MECHAL FC" ||
+      isSaintGeorgeBrand
+    ) {
       await storage.upsertSetting({
         key: "branding.headerText",
-        value: "FASIL KENEMA",
+        value: "FASIL S.C",
         description: "Header text displayed in navbar",
       });
     }
@@ -105,8 +112,38 @@ async function ensureAdminExists() {
     if (!brandingHeaderSubtext) {
       await storage.upsertSetting({
         key: "branding.headerSubtext",
-        value: "SPORT CLUB",
+        value: "sport Club",
         description: "Subtext displayed below header in navbar",
+      });
+    } else if (
+      isSaintGeorgeBrand &&
+      brandingHeaderSubtext.value.toLowerCase() === "sport club"
+    ) {
+      await storage.upsertSetting({
+        key: "branding.headerSubtext",
+        value: "sport Club",
+        description: "Subtext displayed below header in navbar",
+      });
+    }
+
+    const logoAssetVersion = await storage.getSettingByKey(
+      "migration.clubLogoAssetVersion",
+    );
+    if (!logoAssetVersion) {
+      await storage.upsertSetting({
+        key: "branding.logo",
+        value: "/fasillogo.png",
+        description: "Site logo",
+      });
+      await storage.upsertSetting({
+        key: "branding.favicon",
+        value: "/fasillogo.png",
+        description: "Site favicon",
+      });
+      await storage.upsertSetting({
+        key: "migration.clubLogoAssetVersion",
+        value: "1",
+        description: "One-time migration for the updated club logo asset",
       });
     }
   } catch (error) {

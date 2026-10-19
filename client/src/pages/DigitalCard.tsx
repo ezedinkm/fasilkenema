@@ -116,11 +116,11 @@ export default function DigitalCard() {
     headerText:
       (Array.isArray(branding)
         ? branding.find((s: any) => s.key === "branding.headerText")?.value
-        : null) || "MECHAL FC",
+        : null) || "FASIL S.C",
     headerSubtext:
       (Array.isArray(branding)
         ? branding.find((s: any) => s.key === "branding.headerSubtext")?.value
-        : null) || "SPORT CLUB",
+        : null) || "sport Club",
     signature:
       (Array.isArray(branding)
         ? branding.find((s: any) => s.key === "branding.signature")?.value

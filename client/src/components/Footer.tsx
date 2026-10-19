@@ -20,6 +20,7 @@ export default function Footer() {
 
   const brandingSettings = {
     headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'FASIL F.C',
+    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'sport Club',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     footerTagline: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.footerTagline')?.value : null) || "The official home of FASIL S.C Ethiopian football excellence.",
     copyrightText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.copyrightText')?.value : null) || 'FASIL S.C',
@@ -69,8 +70,13 @@ export default function Footer() {
                 alt="Fasil Kenema SC"
                 className="h-12 w-12 md:h-14 md:w-14 object-contain"
               />
-              <span className="font-heading text-xl md:text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
-                {brandingSettings.headerText}
+              <span className="flex flex-col">
+                <span className="font-heading text-xl md:text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
+                  {brandingSettings.headerText}
+                </span>
+                <span className="text-xs font-semibold tracking-wide text-slate-500">
+                  {brandingSettings.headerSubtext}
+                </span>
               </span>
             </Link>
             

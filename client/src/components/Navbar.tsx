@@ -533,7 +533,7 @@ export default function Navbar() {
 
   const brandingSettings = {
     headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'FASIL S.C',
-    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'SPORT CLUB',
+    headerSubtext: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerSubtext')?.value : null) || 'sport Club',
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     favicon: Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.favicon')?.value : null,
   };
@@ -701,9 +701,14 @@ export default function Navbar() {
           <div className="flex items-center p-1 bg-white rounded">
             <img src={brandingSettings.logo} alt="" className="h-10 w-10 md:h-12 md:w-12 object-contain" />
             </div>
-            <span className="hidden sm:block font-heading text-lg md:text-xl font-bold uppercase tracking-tight text-white">
-              {brandingSettings.headerText}
-            </span>
+            <div className="hidden sm:block leading-tight">
+              <span className="block font-heading text-lg md:text-xl font-bold uppercase tracking-tight text-white">
+                {brandingSettings.headerText}
+              </span>
+              <span className="block text-[10px] font-semibold tracking-wide text-white/80">
+                {brandingSettings.headerSubtext}
+              </span>
+            </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1 lg:gap-3 h-full">
@@ -805,7 +810,7 @@ export default function Navbar() {
                         <span className="font-heading text-lg font-bold uppercase tracking-tight text-slate-900 block">
                           {brandingSettings.headerText}
                         </span>
-                        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                        <span className="text-[10px] font-semibold tracking-wide text-slate-500">
                           {brandingSettings.headerSubtext}
                         </span>
                       </div>

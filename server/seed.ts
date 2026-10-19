@@ -69,7 +69,7 @@ async function seed() {
     if (!brandingHeaderText) {
       await storage.upsertSetting({
         key: "branding.headerText",
-        value: "FASIL KENEMA",
+        value: "FASIL S.C",
         description: "Header text displayed in navbar",
       });
     }
@@ -80,7 +80,7 @@ async function seed() {
     if (!brandingHeaderSubtext) {
       await storage.upsertSetting({
         key: "branding.headerSubtext",
-        value: "SPORT CLUB",
+        value: "sport Club",
         description: "Subtext displayed below header in navbar",
       });
     }
