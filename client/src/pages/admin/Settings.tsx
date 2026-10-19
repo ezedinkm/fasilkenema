@@ -30,7 +30,11 @@ import {
   CreditCard,
   Globe,
 } from "lucide-react";
-import { SMS_GEEZ_SETTING_KEYS } from "@shared/schema";
+import {
+  LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
+  PUBLIC_SITE_BASE_URL_SETTING_KEY,
+  SMS_ICONIC_SETTING_KEYS,
+} from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
@@ -196,11 +200,7 @@ export default function AdminSettings() {
   const [chapaSandboxMode, setChapaSandboxMode] = useState(true);
   const [chapaKeysConfigured, setChapaKeysConfigured] = useState(false);
 
-  const [geezSmsId, setGeezSmsId] = useState("");
-  const [geezSmsToken, setGeezSmsToken] = useState("");
-  const [geezSmsSender, setGeezSmsSender] = useState("");
-  const [geezSmsConfigured, setGeezSmsConfigured] = useState(false);
-  /** Stored as `sms.geez.baseUrl` — public origin for Chapa return/callback URLs (overrides APP_BASE_URL). */
+  const [iconicSmsSenderId, setIconicSmsSenderId] = useState("");
   const [publicSiteBaseUrl, setPublicSiteBaseUrl] = useState("");
 
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
@@ -208,6 +208,21 @@ export default function AdminSettings() {
     staleTime: 0,
     enabled: !!token,
   });
+
+  const { data: smsProviderStatus, refetch: refetchSmsProviderStatus } =
+    useQuery<{ apiKeyConfigured: boolean }>({
+      queryKey: ["/api/admin/sms/provider-status"],
+      enabled: !!token,
+      queryFn: async () => {
+        const response = await fetch("/api/admin/sms/provider-status", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to check SMS configuration");
+        }
+        return response.json();
+      },
+    });
 
   const { data: membershipTiersData, refetch: refetchMembershipTiers } =
     useQuery<any[]>({
@@ -420,33 +435,18 @@ export default function AdminSettings() {
         ),
       );
 
-      // Geez SMS: these `settings` rows are what `server/sms.ts` reads first; `.env` is fallback only.
-      const geezIdSetting = settings.find(
-        (s: any) => s.key === SMS_GEEZ_SETTING_KEYS.id,
+      const senderIdSetting = settings.find(
+        (s: any) => s.key === SMS_ICONIC_SETTING_KEYS.senderId,
       );
-      const geezTokenSetting = settings.find(
-        (s: any) => s.key === SMS_GEEZ_SETTING_KEYS.token,
-      );
-      const geezSenderSetting = settings.find(
-        (s: any) => s.key === SMS_GEEZ_SETTING_KEYS.sender,
-      );
-      const geezBaseUrlSetting = settings.find(
-        (s: any) => s.key === SMS_GEEZ_SETTING_KEYS.baseUrl,
-      );
-
-      if (geezIdSetting) setGeezSmsId(String(geezIdSetting.value ?? ""));
-      if (geezTokenSetting)
-        setGeezSmsToken(String(geezTokenSetting.value ?? ""));
-      if (geezSenderSetting)
-        setGeezSmsSender(String(geezSenderSetting.value ?? ""));
-      setPublicSiteBaseUrl(String(geezBaseUrlSetting?.value ?? "").trim());
-
-      setGeezSmsConfigured(
-        !!(
-          String(geezIdSetting?.value ?? "").trim() &&
-          String(geezTokenSetting?.value ?? "").trim()
-        ),
-      );
+      const publicBaseUrlSetting =
+        settings.find(
+          (s: any) => s.key === PUBLIC_SITE_BASE_URL_SETTING_KEY,
+        ) ??
+        settings.find(
+          (s: any) => s.key === LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
+        );
+      setIconicSmsSenderId(String(senderIdSetting?.value ?? ""));
+      setPublicSiteBaseUrl(String(publicBaseUrlSetting?.value ?? "").trim());
     }
   }, [settings]);
 
@@ -1108,14 +1108,13 @@ export default function AdminSettings() {
     try {
       if (trimmed) {
         await saveBrandingMutation.mutateAsync({
-          key: SMS_GEEZ_SETTING_KEYS.baseUrl,
+          key: PUBLIC_SITE_BASE_URL_SETTING_KEY,
           value: trimmed,
-          description:
-            "Public site base URL for Chapa return/callback links (stored as sms.geez.baseUrl)",
+          description: "Public site base URL for Chapa return/callback links",
         });
       } else {
         await saveBrandingMutation.mutateAsync({
-          key: SMS_GEEZ_SETTING_KEYS.baseUrl,
+          key: PUBLIC_SITE_BASE_URL_SETTING_KEY,
           value: "",
           delete: true,
         });
@@ -1223,72 +1222,34 @@ export default function AdminSettings() {
 
   const handleSaveSmsGatewaySettings = async () => {
     try {
-      const trimmedId = geezSmsId.trim();
-      const trimmedToken = geezSmsToken.trim();
-      const trimmedSender = geezSmsSender.trim();
-
-      const promises: Promise<unknown>[] = [];
-
-      if (trimmedId) {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.id,
-            value: trimmedId,
-            description: "Geez SMS shortcode / API ID (GEEZ_SMS_ID)",
-          }),
-        );
-      } else {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.id,
-            value: "",
-            delete: true,
-          }),
-        );
-      }
-
-      if (trimmedToken) {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.token,
-            value: trimmedToken,
-            description: "Geez SMS API token (GEEZ_SMS_TOKEN)",
-          }),
-        );
-      } else {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.token,
-            value: "",
-            delete: true,
-          }),
-        );
-      }
-
-      if (trimmedSender) {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.sender,
-            value: trimmedSender,
-            description: "Geez SMS sender name (GEEZ_SMS_SENDER)",
-          }),
-        );
-      } else {
-        promises.push(
-          saveBrandingMutation.mutateAsync({
-            key: SMS_GEEZ_SETTING_KEYS.sender,
-            value: "",
-            delete: true,
-          }),
-        );
-      }
-
-      await Promise.all(promises);
-      setGeezSmsConfigured(!!(trimmedId && trimmedToken));
+      const senderId = iconicSmsSenderId.trim();
+      await saveBrandingMutation.mutateAsync(
+        senderId
+          ? {
+              key: SMS_ICONIC_SETTING_KEYS.senderId,
+              value: senderId,
+              description: "Optional IconicSMS sender shortcode ID",
+            }
+          : {
+              key: SMS_ICONIC_SETTING_KEYS.senderId,
+              value: "",
+              delete: true,
+            },
+      );
+      await Promise.all(
+        ["sms.geez.id", "sms.geez.token", "sms.geez.sender"].map((key) =>
+          saveBrandingMutation.mutateAsync({ key, value: "", delete: true }),
+        ),
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/settings"],
+      });
+      await refetchSmsProviderStatus();
       toast({
-        title: "SMS gateway saved",
-        description:
-          "Geez SMS credentials updated. Empty fields fall back to server .env (GEEZ_SMS_*).",
+        title: "SMS settings saved",
+        description: smsProviderStatus?.apiKeyConfigured
+          ? "IconicSMS is ready to accept messages."
+          : "Add ICONIC_SMS_API_KEY in Replit Secrets to enable SMS sending.",
       });
     } catch {
       toast({
@@ -2474,17 +2435,14 @@ export default function AdminSettings() {
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
                   <h4 className="font-semibold text-sm text-blue-800">
-                    Geez SMS Integration
+                    IconicSMS Integration
                   </h4>
                   <p className="text-xs text-blue-700">
-                    SMS is sent via Geez SMS. Configure{" "}
-                    <span className="font-medium">GEEZ_SMS_ID</span>,{" "}
-                    <span className="font-medium">GEEZ_SMS_TOKEN</span>, and{" "}
-                    <span className="font-medium">GEEZ_SMS_SENDER</span> under
-                    the <span className="font-medium">Payments &amp; SMS</span>{" "}
-                    tab (database values override{" "}
-                    <span className="font-mono text-[11px]">.env</span> on the
-                    server).
+                    SMS is sent through IconicSMS. Add{" "}
+                    <span className="font-medium">ICONIC_SMS_API_KEY</span> to
+                    Replit Secrets, then optionally set an approved sender ID
+                    in the <span className="font-medium">Payments &amp; SMS</span>{" "}
+                    tab.
                   </p>
                 </div>
               </CardContent>
@@ -2615,13 +2573,10 @@ export default function AdminSettings() {
               <CardHeader>
                 <CardTitle>Payments &amp; SMS</CardTitle>
                 <CardDescription>
-                  Payment gateways, public site URL, and Geez SMS credentials.
-                  Chapa and Geez fields override{" "}
-                  <span className="font-mono text-xs">CHAPA_*</span> and{" "}
-                  <span className="font-mono text-xs">GEEZ_SMS_*</span> when
-                  set. The public base URL is stored as{" "}
-                  <span className="font-mono text-xs">sms.geez.baseUrl</span>{" "}
-                  and overrides{" "}
+                  Payment gateways, public site URL, and IconicSMS settings.
+                  Chapa keys use{" "}
+                  <span className="font-mono text-xs">CHAPA_*</span>. The public
+                  base URL overrides{" "}
                   <span className="font-mono text-xs">APP_BASE_URL</span> for
                   payment redirects when set.
                 </CardDescription>
@@ -2807,12 +2762,12 @@ export default function AdminSettings() {
                     <div className="space-y-4 rounded-xl border border-zinc-200/80 bg-zinc-50/40 p-4 sm:p-5">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-sm font-bold text-white">
-                            GZ
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
+                            IC
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-bold leading-tight">
-                              Geez SMS
+                              IconicSMS
                             </h4>
                             <p className="text-xs text-muted-foreground">
                               OTP, alerts, and member SMS
@@ -2821,76 +2776,42 @@ export default function AdminSettings() {
                         </div>
                         <Badge
                           className={
-                            geezSmsConfigured
+                            smsProviderStatus?.apiKeyConfigured
                               ? "shrink-0 bg-green-500 hover:bg-green-500"
                               : "shrink-0 bg-amber-500 hover:bg-amber-500"
                           }
                         >
-                          {geezSmsConfigured ? "Active" : "Not configured"}
+                          {smsProviderStatus?.apiKeyConfigured
+                            ? "Active"
+                            : "API key required"}
                         </Badge>
                       </div>
 
                       <div className="grid gap-3 border-t border-zinc-200/60 pt-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="geez-sms-id">GEEZ_SMS_ID</Label>
-                          <Input
-                            id="geez-sms-id"
-                            type="text"
-                            value={geezSmsId}
-                            onChange={(e) => setGeezSmsId(e.target.value)}
-                            placeholder="Shortcode / API ID from Geez SMS"
-                            className="font-mono text-sm"
-                            data-testid="input-geez-sms-id"
-                            autoComplete="off"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            {/* Stored as <span className="font-mono">sms.geez.id</span>. Empty →{' '} */}
-                            <span className="font-mono">GEEZ_SMS_ID</span>
-                          </p>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="geez-sms-token">GEEZ_SMS_TOKEN</Label>
-                          <Input
-                            id="geez-sms-token"
-                            type="password"
-                            value={geezSmsToken}
-                            onChange={(e) => setGeezSmsToken(e.target.value)}
-                            placeholder="API token"
-                            className="font-mono text-sm"
-                            data-testid="input-geez-sms-token"
-                            autoComplete="off"
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            {/* Stored as <span className="font-mono">sms.geez.token</span>. Empty →{' '} */}
-                            <span className="font-mono">GEEZ_SMS_TOKEN</span>
-                          </p>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="geez-sms-sender">
-                            GEEZ_SMS_SENDER
+                          <Label htmlFor="iconic-sms-sender">
+                            Sender ID (optional)
                           </Label>
                           <Input
-                            id="geez-sms-sender"
+                            id="iconic-sms-sender"
                             type="text"
-                            value={geezSmsSender}
-                            onChange={(e) => setGeezSmsSender(e.target.value)}
-                            placeholder="e.g. registered sender name"
+                            value={iconicSmsSenderId}
+                            onChange={(e) =>
+                              setIconicSmsSenderId(e.target.value)
+                            }
+                            placeholder="Approved sender name or shortcode ID"
                             className="font-mono text-sm"
-                            data-testid="input-geez-sms-sender"
+                            data-testid="input-iconic-sms-sender"
                             autoComplete="off"
                           />
-                          <p className="text-xs text-muted-foreground">
-                            {/* Stored as <span className="font-mono">sms.geez.sender</span>. Empty →{' '} */}
-                            <span className="font-mono">GEEZ_SMS_SENDER</span>{" "}
-                            (server default if unset)
-                          </p>
                         </div>
                       </div>
 
                       <p className="text-xs text-muted-foreground border-t border-zinc-200/60 pt-3">
-                        The server loads credentials from the database first,
-                        then falls back to environment variables. ID and token
-                        are required to send SMS.
+                        Store the API key as the Replit Secret{" "}
+                        <span className="font-mono">ICONIC_SMS_API_KEY</span>.
+                        The key stays on the server; without a sender ID,
+                        IconicSMS uses your account default.
                       </p>
                     </div>
                   </div>

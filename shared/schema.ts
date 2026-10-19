@@ -231,24 +231,13 @@ export const insertSettingSchema = createInsertSchema(settings).omit({
 export type InsertSetting = z.infer<typeof insertSettingSchema>;
 export type Setting = typeof settings.$inferSelect;
 
-/** `settings` row keys for Geez SMS (values stored as JSON strings). */
-export const SMS_GEEZ_SETTING_KEYS = {
-  id: "sms.geez.id",
-  token: "sms.geez.token",
-  sender: "sms.geez.sender",
-  /** Public origin for Chapa return/callback URLs (https://yourdomain.com). Stored in `settings`. */
-  baseUrl: "sms.geez.baseUrl",
+export const SMS_ICONIC_SETTING_KEYS = {
+  senderId: "sms.iconic.shortcodeId",
 } as const;
 
-/** Admin form / API shape for Geez SMS gateway credentials. */
-export const smsGatewayGeezFormSchema = z.object({
-  id: z.string().max(512).optional(),
-  token: z.string().max(4000).optional(),
-  sender: z.string().max(64).optional(),
-  baseUrl: z.string().max(512).optional(),
-});
-
-export type SmsGatewayGeezForm = z.infer<typeof smsGatewayGeezFormSchema>;
+export const PUBLIC_SITE_BASE_URL_SETTING_KEY = "public.siteBaseUrl";
+/** Legacy key is retained only as a read fallback for Chapa return URLs. */
+export const LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY = "sms.geez.baseUrl";
 
 export const membershipTiers = pgTable("membership_tiers", {
   id: text("id").primaryKey(),

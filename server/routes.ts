@@ -21,7 +21,8 @@ import {
   donationTiers,
   usermessage,
   watchReviews,
-  SMS_GEEZ_SETTING_KEYS,
+  LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
+  PUBLIC_SITE_BASE_URL_SETTING_KEY,
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
 import { fromZodError } from "zod-validation-error";
@@ -33,7 +34,7 @@ import {
   sendMembershipWelcomeSms,
   sendPasswordResetSuccessSms,
   userFacingSmsFailureMessage,
-} from "./sms";
+} from "./iconicSms";
 import crypto from "crypto";
 import { eq, and, gt, asc, desc, sql } from "drizzle-orm";
 import { JWT_SECRET, authenticateToken } from "./middleware/authMiddleware";
@@ -408,9 +409,9 @@ function queueMemberRenewalThankYouSms(
 type ChapaReturnKind = "donation" | "membership" | "renewal";
 
 async function getPublicBaseUrlFromRequest(req: Request): Promise<string> {
-  const baseUrlSetting = await storage.getSettingByKey(
-    SMS_GEEZ_SETTING_KEYS.baseUrl,
-  );
+  const baseUrlSetting =
+    (await storage.getSettingByKey(PUBLIC_SITE_BASE_URL_SETTING_KEY)) ??
+    (await storage.getSettingByKey(LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY));
   const fromDb = String(parseSettingValue(baseUrlSetting?.value) ?? "")
     .trim()
     .replace(/\/+$/, "");

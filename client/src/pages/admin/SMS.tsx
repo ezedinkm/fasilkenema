@@ -261,7 +261,7 @@ export default function AdminSMS() {
               SMS & Communications
             </h1>
             <p className="text-muted-foreground">
-              Broadcast to members and view delivery totals from the SMS log.
+              Broadcast to members and view SMS accepted by the provider.
             </p>
           </div>
           <Button
@@ -281,10 +281,10 @@ export default function AdminSMS() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              SMS delivered (all time)
+              SMS queued (all time)
             </CardTitle>
             <CardDescription>
-              Total messages the gateway accepted successfully — OTP, new-member
+              Total messages the provider accepted into its queue — OTP, new-member
               welcome, donation thanks, office payment alerts, and broadcasts —
               each success is one row in{" "}
               <span className="font-mono text-xs">sms_logs</span>.
@@ -294,14 +294,14 @@ export default function AdminSMS() {
             {smsStats ? (
               <div className="rounded-xl border border-green-200 bg-white p-6 shadow-sm max-w-md">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Delivered
+                  Queued
                 </p>
                 <p className="mt-2 text-4xl font-bold font-mono tabular-nums text-green-700">
                   {smsStats.delivered}
                 </p>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Failed attempts are not included here; only confirmed sends
-                  are counted.
+                  Failed attempts are not included. Queued does not guarantee
+                  final delivery.
                 </p>
               </div>
             ) : (

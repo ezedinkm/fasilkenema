@@ -3,8 +3,9 @@ import { asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { authenticateToken } from "./middleware/authMiddleware";
-import { sendSms } from "./sms";
+import { sendSms } from "./iconicSms";
 import { storage } from "./storage";
+import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
 
 type DashboardGrowthPoint = {
   name: string;
@@ -249,6 +250,27 @@ async function processSmsQueue(): Promise<void> {
 }
 
 export function registerAdminRoutes(app: Express): void {
+  app.get(
+    "/api/admin/sms/provider-status",
+    authenticateToken,
+    async (_req, res) => {
+      try {
+        const senderSetting = await storage.getSettingByKey(
+          SMS_ICONIC_SETTING_KEYS.senderId,
+        );
+        res.json({
+          provider: "IconicSMS",
+          apiKeyConfigured: Boolean(
+            String(process.env.ICONIC_SMS_API_KEY ?? "").trim(),
+          ),
+          senderId: String(senderSetting?.value ?? ""),
+        });
+      } catch (error) {
+        console.error("[adminroute] SMS provider status", error);
+        res.status(500).json({ error: "Failed to read SMS provider status" });
+      }
+    },
+  );
   void ensureSmsLogsCategoryColumn().catch((err) =>
     console.error("[adminroute] sms_logs.category migration", err),
   );
