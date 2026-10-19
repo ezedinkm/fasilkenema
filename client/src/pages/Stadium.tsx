@@ -1,11 +1,6 @@
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
-import stadium1 from "@/assets/stadium/st1.jpg";
-import stadium2 from "@/assets/stadium/st2.jpg";
-import stadium3 from "@/assets/stadium/st3.jpg";
-import stadium4 from "@/assets/stadium/st4.jpg";
-import stadium5 from "@/assets/stadium/st5.jpg";
-import stadium6 from "@/assets/stadium/st6.jpg";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 import { useEffect, useState } from "react";
 
 const STADIUM_TITLE = "Fasil Kenema Stadium";
@@ -27,13 +22,13 @@ const STADIUM_DESCRIPTION = `
 ይህ ቦታ ባብዛኛው የሀገራችን የተለያዩ ስታዲየሞች በተለምዶ የክቡር ትሪቡን በመባል የሚታዎቀዉ ሲሆን በጎንደሩ የአጤ ፋሲለደስ ስታዲየም ግን የነገስታቱ ወይም የአፄ ቴዎድሮስ መቀመጫ በመባል ይታዎቃል፡፡ በ1995 የጥላፎቅ ግንባታዉ የተሰራለት የቴዎድሮስ መቀመጫ ስያሜዉን ያገኘዉ በመሳፍንት ተከፋፍላ የነበረችውን ሀገራቸዉ ወደ አንድ ለማምጣት ብዙ በደከሙት ሀገር ወዳድ መሪ አጤ ቴዎድሮስ ምክንያት ነዉ፡፡  በዚህ የደጋፊዎች መቀመጫ ቦታ የክብር እንግዶች፣ የዳኞች ኮሚሽነር እና የተለያዩ አካለት ይታደሙበታል፡፡`.trim();
 
 const GALLERY_IMAGES = [
-  stadium1,
-  stadium2,
-  stadium3,
-  stadium4,
-  stadium5,
-  stadium6,
-];
+  getLocalAssetUrl("stadium/st1.jpg"),
+  getLocalAssetUrl("stadium/st2.jpg"),
+  getLocalAssetUrl("stadium/st3.jpg"),
+  getLocalAssetUrl("stadium/st4.jpg"),
+  getLocalAssetUrl("stadium/st5.jpg"),
+  getLocalAssetUrl("stadium/st6.jpg"),
+].filter((image): image is string => Boolean(image));
 
 export default function Stadium() {
   const [heroLoaded, setHeroLoaded] = useState(false);
@@ -114,13 +109,15 @@ export default function Stadium() {
         className="relative bg-gray-900 text-white min-h-[45vh] flex items-end"
         data-stadium-hero
       >
-        <img
-          src={heroLoaded ? GALLERY_IMAGES[0] : undefined}
-          alt={STADIUM_TITLE}
-          decoding="async"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-70"
-        />
+        {GALLERY_IMAGES[0] && (
+          <img
+            src={heroLoaded ? GALLERY_IMAGES[0] : undefined}
+            alt={STADIUM_TITLE}
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 w-full h-full object-cover opacity-70"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
         <div className="container px-4 py-16 md:py-24 max-w-4xl mx-auto relative z-10 text-center">
           <p className="text-red-300 text-sm font-semibold uppercase tracking-wider mb-2">
@@ -148,6 +145,7 @@ export default function Stadium() {
       </section>
 
       {/* 6 images gallery */}
+      {GALLERY_IMAGES.length > 0 && (
       <section className="py-14 md:py-20 bg-gray-50">
         <div className="container px-4 max-w-6xl mx-auto">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2 text-center">
@@ -178,6 +176,7 @@ export default function Stadium() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Back link */}
       <section className="py-8 bg-white border-t border-gray-100">

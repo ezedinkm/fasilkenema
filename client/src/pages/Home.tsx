@@ -6,7 +6,9 @@ import { ArrowRight, Trophy, ShoppingBag } from "lucide-react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import GONDER_IMAGE_URL from "@/assets/gonder/gonder.webp";
+import { getLocalAssetUrl } from "@/lib/localAssets";
+
+const GONDER_IMAGE_URL = getLocalAssetUrl("gonder/gonder.webp");
 
 function Gonder() {
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -41,7 +43,7 @@ function Gonder() {
       <div className="container px-4 max-w-6xl mx-auto">
         <div
           ref={rootRef}
-          className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+          className={`grid grid-cols-1 ${GONDER_IMAGE_URL ? "md:grid-cols-2" : ""} gap-10 items-center`}
         >
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-100">
@@ -118,7 +120,7 @@ function Gonder() {
             </div>
           </div>
 
-          <div className="relative">
+          <div className={GONDER_IMAGE_URL ? "relative" : "hidden"}>
             <div className="absolute -inset-2 bg-gradient-to-r from-red-600/15 to-amber-500/15 rounded-[2rem] blur-[10px]" />
             <div className="relative rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm">
               <div className="aspect-[4/3] bg-gray-100 relative">

@@ -1,27 +1,22 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import PublicLayout from "@/components/PublicLayout";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 
 interface Partner {
   id: number;
   name: string;
-  image: string;
+  image?: string;
   alt: string;
   category: string;
 }
 
-import partner1 from '@/assets/partners/1.jpg';
-import partner2 from '@/assets/partners/2.jpg';
-import partner3 from '@/assets/partners/3.jpg';
-import partner4 from '@/assets/partners/4.jpg';
-import partner5 from '@/assets/partners/vcardet_logo.jpg';
-
 const partners: Partner[] = [
-  { id: 1, name: 'TechCorp', image: partner1, alt: 'Technology Partner', category: 'Technology' },
-  { id: 2, name: 'InnovateLabs', image: partner2, alt: 'Innovation Partner', category: 'Innovation' },
-  { id: 3, name: 'FutureSoft', image: partner3, alt: 'Software Partner', category: 'Software' },
-  { id: 4, name: 'GlobalTech', image: partner4, alt: 'Global Partner', category: 'Global' },
-  { id: 5, name: 'EliteGroup', image: partner5, alt: 'Premium Partner', category: 'Premium' },
+  { id: 1, name: 'TechCorp', image: getLocalAssetUrl('partners/1.jpg'), alt: 'Technology Partner', category: 'Technology' },
+  { id: 2, name: 'InnovateLabs', image: getLocalAssetUrl('partners/2.jpg'), alt: 'Innovation Partner', category: 'Innovation' },
+  { id: 3, name: 'FutureSoft', image: getLocalAssetUrl('partners/3.jpg'), alt: 'Software Partner', category: 'Software' },
+  { id: 4, name: 'GlobalTech', image: getLocalAssetUrl('partners/4.jpg'), alt: 'Global Partner', category: 'Global' },
+  { id: 5, name: 'EliteGroup', image: getLocalAssetUrl('partners/vcardet_logo.jpg'), alt: 'Premium Partner', category: 'Premium' },
 ];
 
 const Partners: React.FC = () => {
@@ -153,29 +148,31 @@ const Partners: React.FC = () => {
                           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 to-red-600" />
                           
                           {/* Image Container */}
-                          <div className="relative aspect-square overflow-hidden bg-gray-50 p-3">
-                            <motion.img
-                              src={partner.image}
-                              alt={partner.alt}
-                              className={`w-full h-full ${
-                                partner.id === 2 ? 'object-contain' : 'object-cover'
-                              }`}
-                              loading="lazy"
-                              draggable={false}
-                              animate={{
-                                scale: activeId === partner.id ? 1.05 : 1,
-                              }}
-                              transition={{ duration: 0.3 }}
-                            />
+                          {partner.image && (
+                            <div className="relative aspect-square overflow-hidden bg-gray-50 p-3">
+                              <motion.img
+                                src={partner.image}
+                                alt={partner.alt}
+                                className={`w-full h-full ${
+                                  partner.id === 2 ? 'object-contain' : 'object-cover'
+                                }`}
+                                loading="lazy"
+                                draggable={false}
+                                animate={{
+                                  scale: activeId === partner.id ? 1.05 : 1,
+                                }}
+                                transition={{ duration: 0.3 }}
+                              />
 
-                            <motion.div
-                              animate={{
-                                opacity: activeId === partner.id ? 0.05 : 0,
-                              }}
-                              transition={{ duration: 0.2 }}
-                              className="absolute inset-0 bg-red-500"
-                            />
-                          </div>
+                              <motion.div
+                                animate={{
+                                  opacity: activeId === partner.id ? 0.05 : 0,
+                                }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute inset-0 bg-red-500"
+                              />
+                            </div>
+                          )}
                           {/* Corner Accent */}
                           <div className="absolute top-2 right-2 w-2 h-2">
                             <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-400 rounded-full opacity-60" />

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { useQuery } from "@tanstack/react-query";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 
 const WORD_LIMIT = 120;
 
@@ -14,14 +15,13 @@ function getFirstWords(text: string, n: number): string {
   if (words.length <= n) return text;
   return words.slice(0, n).join(" ") + " ";
 }
-import historyImage1 from "@/assets/History/full team new.jpg";
-import historyImage2 from "@/assets/History/copy.jpg";
-import historyImage3 from "@/assets/History/fasilligue.jpg";
-import historyImage4 from "@/assets/History/tigilfire.jpg";
-import historyImage5 from "@/assets/History/1966.jpg";
-import historyImage6 from "@/assets/History/higherligue.png";
-import historyImage7 from "@/assets/History/ligue2009.jpg";
-import historyImage8 from "@/assets/History/betkingwinner2013.jpg";
+const historyImage1 = getLocalAssetUrl("History/full team new.jpg");
+const historyImage2 = getLocalAssetUrl("History/copy.jpg");
+const historyImage3 = getLocalAssetUrl("History/fasilligue.jpg");
+const historyImage4 = getLocalAssetUrl("History/tigilfire.jpg");
+const historyImage5 = getLocalAssetUrl("History/1966.jpg");
+const historyImage7 = getLocalAssetUrl("History/ligue2009.jpg");
+const historyImage8 = getLocalAssetUrl("History/betkingwinner2013.jpg");
 
 const SECTIONS = [
   {
@@ -149,7 +149,7 @@ export default function About() {
           >
             <div className="container px-4 max-w-6xl mx-auto">
               <div
-                className={`grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center ${
+                className={`grid grid-cols-1 ${section.image ? "lg:grid-cols-2" : ""} gap-10 lg:gap-14 items-center ${
                   index % 2 === 1 ? "lg:flex-row-reverse" : ""
                 }`}
               >
@@ -205,19 +205,21 @@ export default function About() {
                     })()}
                   </div>
                 </div>
-                <div
+                {section.image && (
+                  <div
                   className={`rounded-2xl overflow-hidden shadow-lg bg-gray-100 ${index % 2 === 1 ? "lg:order-1" : ""}`}
-                >
-                  <div className="aspect-[4/3]">
-                    <img
-                      src={section.image}
-                      alt={
-                        isEnglishVersion ? section.title_english : section.title
-                      }
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
+                  >
+                    <div className="aspect-[4/3]">
+                      <img
+                        src={section.image}
+                        alt={
+                          isEnglishVersion ? section.title_english : section.title
+                        }
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </section>

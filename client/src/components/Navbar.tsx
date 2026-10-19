@@ -14,11 +14,13 @@ import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import partner1 from '@/assets/partners/1.jpg';
-import partner2 from '@/assets/partners/2.jpg';
-import partner3 from '@/assets/partners/3.jpg';
-import partner4 from '@/assets/partners/4.jpg';
-import partner5 from '@/assets/partners/vcardet_logo.jpg';
+import { getLocalAssetUrl } from '@/lib/localAssets';
+
+const partner1 = getLocalAssetUrl('partners/1.jpg');
+const partner2 = getLocalAssetUrl('partners/2.jpg');
+const partner3 = getLocalAssetUrl('partners/3.jpg');
+const partner4 = getLocalAssetUrl('partners/4.jpg');
+const partner5 = getLocalAssetUrl('partners/vcardet_logo.jpg');
 
 const SECONDARY_LINKS = [
   { href: '/meetings-events', label: 'MEETINGS & EVENTS' },
@@ -330,7 +332,7 @@ function buildNavLinks(t: (key: string) => string): NavLinkItem[] {
       ],
       megaContent: [
         { title: 'Quick links', description: 'Stay up to date with matches and club updates.', items: [
-          { label: 'Latest News', href: '/blog' },,
+          { label: 'Latest News', href: '/blog' },
           { label: 'League Table', href: '/epl' },
         ]},
         { title: 'Shop', description: 'Official club gear and partners.', items: [
@@ -503,7 +505,7 @@ function buildNavLinks(t: (key: string) => string): NavLinkItem[] {
         partner3,
         partner4,
         partner5,
-      ],
+      ].filter((logo): logo is string => Boolean(logo)),
       sublinks: [],
     },
   ];
@@ -1004,7 +1006,7 @@ export default function Navbar() {
         )}
 
         {/* Partners panel — 5 logos marquee (right to left), no route */}
-        {!searchOpen && activeNavIndex !== null && navLinks[activeNavIndex]?.isPartners && navLinks[activeNavIndex].partnerLogos && (
+        {!searchOpen && activeNavIndex !== null && navLinks[activeNavIndex]?.isPartners && navLinks[activeNavIndex].partnerLogos?.length && (
           <div
             ref={navPanelRef}
             className="absolute left-0 right-0 top-full z-40 w-full bg-white shadow-xl border-t border-gray-100 overflow-hidden"

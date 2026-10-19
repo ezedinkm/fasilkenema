@@ -1,9 +1,10 @@
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
-
-import heroImage from "@/assets/box/1.jpg";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 import { listTeamPlayers, type TeamPlayer } from "@/lib/teamAdminApi";
+
+const heroImage = getLocalAssetUrl("box/1.jpg");
 
 const ABOUT_TEXT = `The boxing program at Fasil Kenema Sport Club builds discipline, fitness, and competitive spirit. We offer training for beginners and support athletes who compete at regional and national level. Our coaches focus on technique, conditioning, and mental strength. The program is open to youth and adults, with separate sessions for competitive boxers and fitness-oriented participants.`;
 
@@ -32,14 +33,16 @@ export default function Boxing() {
     <PublicLayout>
       {/* Hero */}
       <section className="relative bg-gray-900 text-white min-h-[50vh] flex items-end">
-        <img
-          src={heroImage}
-          alt="Boxing at Fasil Kenema"
-          loading="eager"
-          decoding="async"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
-        />
+        {heroImage && (
+          <img
+            src={heroImage}
+            alt="Boxing at Fasil Kenema"
+            loading="eager"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 w-full h-full object-cover opacity-60"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/30" />
         <div className="container px-4 py-16 md:py-24 max-w-4xl mx-auto relative z-10 text-center">
           <p className="text-red-300 text-sm font-semibold uppercase tracking-wider mb-2">
@@ -100,6 +103,7 @@ export default function Boxing() {
       </section>
 
       {/* Single general photo */}
+      {heroImage && (
       <section className="py-12 md:py-16 bg-white">
         <div className="container px-4 max-w-4xl mx-auto">
           <div className="rounded-2xl overflow-hidden shadow-lg aspect-[16/10] bg-gray-100">
@@ -114,6 +118,7 @@ export default function Boxing() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Back link */}
       <section className="py-8 bg-gray-50 border-t border-gray-100">

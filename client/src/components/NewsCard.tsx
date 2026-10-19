@@ -16,7 +16,7 @@ type NormalizedNewsPost = {
   title: string;
   excerpt: string;
   date: string;
-  image: string;
+  image?: string;
   category: string;
 };
 
@@ -79,6 +79,7 @@ function NewsCardItem({ post }: { post: NormalizedNewsPost }) {
   return (
     <Link href={`/blog/${post.slug}`}>
       <Card className="group overflow-hidden border-none shadow-md hover:shadow-xl transition-all duration-300 h-full flex flex-col bg-card cursor-pointer">
+        {post.image && (
         <div ref={wrapperRef} className="relative h-56 overflow-hidden">
           <div className="absolute top-3 left-3 z-10">
             <Badge
@@ -102,6 +103,7 @@ function NewsCardItem({ post }: { post: NormalizedNewsPost }) {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
         </div>
+        )}
 
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2 font-medium">

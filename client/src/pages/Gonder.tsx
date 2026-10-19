@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import GONDER_IMAGE_URL from "@/assets/gonder/Gonder.webp";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
+
+const GONDER_IMAGE_URL = getLocalAssetUrl("gonder/Gonder.webp");
+
 export default function Gonder() {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [shouldLoadImage, setShouldLoadImage] = useState(false);
@@ -36,7 +39,7 @@ export default function Gonder() {
         <div className="container px-4 max-w-6xl mx-auto">
           <div
             ref={rootRef}
-            className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center"
+            className={`grid grid-cols-1 ${GONDER_IMAGE_URL ? "md:grid-cols-2" : ""} gap-10 items-center`}
           >
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 text-red-700 border border-red-100">
@@ -119,7 +122,7 @@ export default function Gonder() {
               </div>
             </div>
 
-            <div className="relative">
+            <div className={GONDER_IMAGE_URL ? "relative" : "hidden"}>
               <div className="absolute -inset-2 bg-gradient-to-r from-red-600/15 to-amber-500/15 rounded-[2rem] blur-[10px]" />
               <div className="relative rounded-3xl overflow-hidden border border-gray-100 bg-white shadow-sm">
                 <div className="aspect-[4/3] bg-gray-100 relative">

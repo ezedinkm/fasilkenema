@@ -1,20 +1,21 @@
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 
-import trophy1 from "@/assets/Trophies and honors/trophy (1).jpg";
-import trophy3 from "@/assets/Trophies and honors/trophy (3).jpg";
-import trophy4 from "@/assets/Trophies and honors/trophy (4).jpg";
-import trophy5 from "@/assets/Trophies and honors/trophy (5).jpg";
-import trophy6 from "@/assets/Trophies and honors/trophy (6).jpg";
-import trophy7 from "@/assets/Trophies and honors/trophy (7).jpg";
-import trophy10 from "@/assets/Trophies and honors/trophy (10).jpg";
-import celebrating2013 from "@/assets/Trophies and honors/ቤትኪንግ የኢትዮጵያ ፕሪሚየር ሊግ በ2013 ዓ.ም አሸናፊ። (2013 ዓ.ም) copy 2.jpg";
-import addisAbabaCup from "@/assets/Trophies and honors/18ኛዉ የአዲስአበባ ከተማ ዋንጫ አሸናፊ .jpg";
-import premierLeagueChampions from "@/assets/Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የአሸናፊዎች አሸናፊ ዋንጫ .jpg";
-import mensKnockoutCup from "@/assets/Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የወንዶች ጥሎ ማለፍ ዋንጫ አሸናፊ.jpg";
-import federationHighLeagueChampions from "@/assets/Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ የአሸናፊዎች አሸናፊ.jpg";
-import federationHighLeagueGroupA from "@/assets/Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ ምድብ ሀ  አሸናፊ.png";
-import nationalLeagueNorthGroupL from "@/assets/Trophies and honors/የብሔራዊ ሊግ በሰሜን ዞን ምድብ ለ አሸናፊ.png";
+const trophy1 = getLocalAssetUrl("Trophies and honors/trophy (1).jpg");
+const trophy3 = getLocalAssetUrl("Trophies and honors/trophy (3).jpg");
+const trophy4 = getLocalAssetUrl("Trophies and honors/trophy (4).jpg");
+const trophy5 = getLocalAssetUrl("Trophies and honors/trophy (5).jpg");
+const trophy6 = getLocalAssetUrl("Trophies and honors/trophy (6).jpg");
+const trophy7 = getLocalAssetUrl("Trophies and honors/trophy (7).jpg");
+const trophy10 = getLocalAssetUrl("Trophies and honors/trophy (10).jpg");
+const celebrating2013 = getLocalAssetUrl("Trophies and honors/ቤትኪንግ የኢትዮጵያ ፕሪሚየር ሊግ በ2013 ዓ.ም አሸናፊ። (2013 ዓ.ም) copy 2.jpg");
+const addisAbabaCup = getLocalAssetUrl("Trophies and honors/18ኛዉ የአዲስአበባ ከተማ ዋንጫ አሸናፊ .jpg");
+const premierLeagueChampions = getLocalAssetUrl("Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የአሸናፊዎች አሸናፊ ዋንጫ .jpg");
+const mensKnockoutCup = getLocalAssetUrl("Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የወንዶች ጥሎ ማለፍ ዋንጫ አሸናፊ.jpg");
+const federationHighLeagueChampions = getLocalAssetUrl("Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ የአሸናፊዎች አሸናፊ.jpg");
+const federationHighLeagueGroupA = getLocalAssetUrl("Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ ምድብ ሀ  አሸናፊ.png");
+const nationalLeagueNorthGroupL = getLocalAssetUrl("Trophies and honors/የብሔራዊ ሊግ በሰሜን ዞን ምድብ ለ አሸናፊ.png");
 
 type Trophy = {
   no: number;
@@ -101,7 +102,7 @@ const CELEBRATIONS = [
     title: "National League North Zone Group “L” Winners",
     image: nationalLeagueNorthGroupL,
   },
-];
+].filter((item): item is { title: string; image: string } => Boolean(item.image));
 
 export default function Trophies() {
   return (
@@ -187,6 +188,7 @@ export default function Trophies() {
         </div>
       </section>
 
+      {CELEBRATIONS.length > 0 && (
       <section className="py-12 md:py-20 bg-gray-50">
         <div className="container px-4 max-w-6xl mx-auto">
           <div className="text-center mb-10 md:mb-14">
@@ -224,6 +226,7 @@ export default function Trophies() {
           </div>
         </div>
       </section>
+      )}
 
       <section className="py-8 bg-gray-50 border-t border-gray-100">
         <div className="container px-4 max-w-6xl mx-auto text-center">

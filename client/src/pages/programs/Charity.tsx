@@ -1,13 +1,14 @@
 import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 
-import ambassadorsImage from "@/assets/charity work/Ambasadors.jpg";
-import bloodDonationImage from "@/assets/charity work/blood donation.jpg";
-import environmentalWorkImage from "@/assets/charity work/enviromental work.jpg";
-import supportElderlyImage from "@/assets/charity work/support for  Elderly ).jpg";
-import supportStudents1Image from "@/assets/charity work/support for students (1).jpg";
-import supportStudents2Image from "@/assets/charity work/support for students (2).jpg";
+const ambassadorsImage = getLocalAssetUrl("charity work/Ambasadors.jpg");
+const bloodDonationImage = getLocalAssetUrl("charity work/blood donation.jpg");
+const environmentalWorkImage = getLocalAssetUrl("charity work/enviromental work.jpg");
+const supportElderlyImage = getLocalAssetUrl("charity work/support for  Elderly ).jpg");
+const supportStudents1Image = getLocalAssetUrl("charity work/support for students (1).jpg");
+const supportStudents2Image = getLocalAssetUrl("charity work/support for students (2).jpg");
 
 const ABOUT_TEXT = `Beyond sport, FASIL S.C Sport Club gives back through dedicated charity work. We support underprivileged youth with access to sport and education, run health and community outreach initiatives, and partner with local organisations to strengthen our community. Our charity arm focuses on youth development, equipment donations to schools, and events that bring people together. Together we build a stronger, healthier community.`;
 
@@ -18,7 +19,7 @@ const GALLERY_IMAGES = [
   supportElderlyImage,
   supportStudents1Image,
   supportStudents2Image,
-];
+].filter((image): image is string => Boolean(image));
 
 export default function Charity() {
   const [loadedImageIndexes, setLoadedImageIndexes] = useState<boolean[]>(() =>
@@ -100,6 +101,7 @@ export default function Charity() {
       </section>
 
       {/* Gallery — 6 images */}
+      {GALLERY_IMAGES.length > 0 && (
       <section className="py-12 md:py-20 bg-gray-50">
         <div className="container px-4 max-w-6xl mx-auto">
           <h2 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2 text-center">
@@ -130,6 +132,7 @@ export default function Charity() {
           </div>
         </div>
       </section>
+      )}
 
       {/* Back link */}
       <section className="py-8 bg-white border-t border-gray-100">

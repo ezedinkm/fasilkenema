@@ -13,18 +13,19 @@ import { LogOut, User, FileImage, FileText, RefreshCw } from "lucide-react";
 import { getSettingByKey } from "@/lib/api";
 import { getMembershipTiers } from "@/lib/membershipTiers";
 import { MEMBERSHIP_TIERS } from "@/lib/mockData";
+import { getLocalAssetUrl } from "@/lib/localAssets";
 
 /** Asset order: 120 → 600 → 2000 → … → 36000; aligned 1:1 with `ID_CARD_TIER_ORDER` (low → high). */
-import idCardImg120 from "@/assets/ID/120corrected.jpg";
-import idCardImg600 from "@/assets/ID/600corrected.jpg";
-import idCardImg2000 from "@/assets/ID/2000corrected.jpg";
-import idCardImg3000 from "@/assets/ID/3000corrected.jpg";
-import idCardImg4000 from "@/assets/ID/4000corrected.jpg";
-import idCardImg6000 from "@/assets/ID/6000corrected.jpg";
-import idCardImg8000 from "@/assets/ID/8000correected.jpg";
-import idCardImg12000 from "@/assets/ID/12000corrected.jpg";
-import idCardImg15000 from "@/assets/ID/15000corrected.jpg";
-import idCardImg36000 from "@/assets/ID/36000corrected.jpg";
+const idCardImg120 = getLocalAssetUrl("ID/120corrected.jpg");
+const idCardImg600 = getLocalAssetUrl("ID/600corrected.jpg");
+const idCardImg2000 = getLocalAssetUrl("ID/2000corrected.jpg");
+const idCardImg3000 = getLocalAssetUrl("ID/3000corrected.jpg");
+const idCardImg4000 = getLocalAssetUrl("ID/4000corrected.jpg");
+const idCardImg6000 = getLocalAssetUrl("ID/6000corrected.jpg");
+const idCardImg8000 = getLocalAssetUrl("ID/8000correected.jpg");
+const idCardImg12000 = getLocalAssetUrl("ID/12000corrected.jpg");
+const idCardImg15000 = getLocalAssetUrl("ID/15000corrected.jpg");
+const idCardImg36000 = getLocalAssetUrl("ID/36000corrected.jpg");
 
 /** Canonical membership tiers (same order as image files above). */
 const ID_CARD_TIER_ORDER = [
@@ -56,7 +57,7 @@ const ID_CARD_TEMPLATES_ORDERED = [
 const ID_CARD_TEMPLATE_DEFAULT = ID_CARD_TEMPLATES_ORDERED[ID_CARD_TEMPLATES_ORDERED.length - 1];
 
 /** Tier id → card art (order matches `ID_CARD_TIER_ORDER` ↔ `ID_CARD_TEMPLATES_ORDERED`). */
-const ID_CARD_TEMPLATE_BY_TIER_ID: Record<string, string> = Object.fromEntries(
+const ID_CARD_TEMPLATE_BY_TIER_ID: Record<string, string | undefined> = Object.fromEntries(
   ID_CARD_TIER_ORDER.map((entry, index) => [entry.id.toLowerCase(), ID_CARD_TEMPLATES_ORDERED[index]]),
 );
 
@@ -730,11 +731,13 @@ export default function MemberDashboard() {
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <div className="relative h-full w-full">
-                  <img
-                    src={selectedTemplateUrl}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  {selectedTemplateUrl && (
+                    <img
+                      src={selectedTemplateUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
 
                   {/* Dynamic overlay (member data only) */}
                   <div className="absolute inset-0">
@@ -806,11 +809,13 @@ export default function MemberDashboard() {
                 }}
               >
                 <div className="relative h-full w-full">
-                  <img
-                    src={selectedTemplateUrl}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  {selectedTemplateUrl && (
+                    <img
+                      src={selectedTemplateUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
 
                   {/* Back overlay: QR bottom-right above the red footer */}
                   <div className="absolute inset-0">

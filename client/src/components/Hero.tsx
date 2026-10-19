@@ -4,8 +4,10 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Banner1 from "@/assets/banner/Banner1.jpg";
-import Banner2 from "@/assets/banner/Banner2.jpg";
+import { getLocalAssetUrl } from "@/lib/localAssets";
+
+const Banner1 = getLocalAssetUrl("banner/Banner1.jpg");
+const Banner2 = getLocalAssetUrl("banner/Banner2.jpg");
 
 const HERO_SLIDES = [
   {
@@ -31,6 +33,7 @@ export default function Hero() {
   useEffect(() => {
     // Preload banners so slide background switches feel instant.
     HERO_SLIDES.forEach((slide) => {
+      if (!slide.image) return;
       const img = new Image();
       img.src = slide.image;
     });
@@ -60,9 +63,9 @@ export default function Hero() {
 
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-black pb-10">
-      {HERO_SLIDES.map((slide, index) => (
+      {HERO_SLIDES.map((slide, index) => slide.image && (
         <motion.div
-          key={slide.image}
+          key={slide.title}
           initial={false}
           animate={{ opacity: index === currentSlide ? 0.6 : 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}

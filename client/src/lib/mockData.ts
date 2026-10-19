@@ -1,3 +1,5 @@
+import { getLocalAssetUrl } from "./localAssets";
+
 export const LANGUAGES = [
   { code: "en", label: "English", flag: "🇬🇧" },
   { code: "am", label: "አማርኛ", flag: "🇪🇹" },
@@ -5,12 +7,12 @@ export const LANGUAGES = [
   { code: "om", label: "Afaan Oromoo", flag: "🇪🇹" },
   { code: "so", label: "Soomaali", flag: "🇸🇴" },
 ];
-import news1 from "@/assets/stadium/1 (1).jpg";
-import news2 from "@/assets/stadium/1 (2).jpg";
-import news3 from "@/assets/stadium/1 (3).jpg";
-import news4 from "@/assets/stadium/1 (4).jpg";
-import news5 from "@/assets/stadium/1 (5).jpg";
-import news6 from "@/assets/stadium/1 (6).jpg";
+const news1 = getLocalAssetUrl("stadium/1 (1).jpg");
+const news2 = getLocalAssetUrl("stadium/1 (2).jpg");
+const news3 = getLocalAssetUrl("stadium/1 (3).jpg");
+const news4 = getLocalAssetUrl("stadium/1 (4).jpg");
+const news5 = getLocalAssetUrl("stadium/1 (5).jpg");
+const news6 = getLocalAssetUrl("stadium/1 (6).jpg");
 
 export const MEMBERSHIP_TIERS = [
   {

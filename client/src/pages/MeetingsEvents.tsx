@@ -10,7 +10,6 @@ import {
   Coffee,
 } from "lucide-react";
 import { Link } from "wouter";
-import news1 from "@/assets/banner/Banner1.jpg";
 
 export default function MeetingsEvents() {
   return (
