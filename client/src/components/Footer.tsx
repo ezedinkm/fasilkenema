@@ -6,12 +6,14 @@ import playStoreBadge from '@assets/generated_images/google_play_badge.png';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [error, setError] = useState('');
+  const { toast } = useToast();
 
   const { data: settings } = useQuery<any[]>({
     queryKey: ['/api/public/settings'],
@@ -55,6 +57,13 @@ export default function Footer() {
     setTimeout(() => {
       setIsSubscribed(false);
     }, 5500);
+  };
+
+  const handleAppBadgeClick = () => {
+    toast({
+      title: 'Coming soon',
+      description: 'The FASIL S.C mobile app will be available soon.',
+    });
   };
 
   return (
@@ -122,12 +131,22 @@ export default function Footer() {
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">Get The App</span>
               </div>
               <div className="flex flex-wrap gap-3">
-                <a href="#" className="transition-transform hover:scale-105 duration-200">
+                <button
+                  type="button"
+                  onClick={handleAppBadgeClick}
+                  aria-label="App Store — coming soon"
+                  className="transition-transform hover:scale-105 duration-200 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                >
                   <img src={appStoreBadge} alt="Download on the App Store" className="h-10 w-auto" />
-                </a>
-                <a href="#" className="transition-transform hover:scale-105 duration-200">
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAppBadgeClick}
+                  aria-label="Google Play — coming soon"
+                  className="transition-transform hover:scale-105 duration-200 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600"
+                >
                   <img src={playStoreBadge} alt="Get it on Google Play" className="h-10 w-auto" />
-                </a>
+                </button>
               </div>
             </div>
           </div>
