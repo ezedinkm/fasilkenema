@@ -248,6 +248,8 @@ export const membershipTiers = pgTable("membership_tiers", {
   monthlyPriceUsd: numeric("monthly_price_usd", { precision: 10, scale: 2 })
     .notNull()
     .default("0"),
+  frontBackgroundUrl: text("front_background_url"),
+  backBackgroundUrl: text("back_background_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

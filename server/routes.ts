@@ -738,6 +738,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priceUsd: Number(tier.priceUsd),
         monthlyPriceEtb: Number((tier as any).monthlyPriceEtb ?? 0),
         monthlyPriceUsd: Number((tier as any).monthlyPriceUsd ?? 0),
+        frontBackgroundUrl: tier.frontBackgroundUrl ?? null,
+        backBackgroundUrl: tier.backBackgroundUrl ?? null,
       }));
 
       res.json(normalizedTiers);

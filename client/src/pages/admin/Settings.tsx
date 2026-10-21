@@ -47,6 +47,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApp } from "@/lib/context";
+import MembershipCardBackgroundFields from "@/components/admin/MembershipCardBackgroundFields";
 
 const DEFAULT_THEME = {
   primaryColor: "#E31E24",
@@ -131,6 +132,8 @@ export default function AdminSettings() {
       priceUsd: number;
       monthlyPriceEtb: number;
       monthlyPriceUsd: number;
+      frontBackgroundUrl: string;
+      backBackgroundUrl: string;
     }[]
   >([]);
   const [isAddTierOpen, setIsAddTierOpen] = useState(false);
@@ -144,6 +147,8 @@ export default function AdminSettings() {
     priceUsd: "",
     monthlyPriceEtb: "",
     monthlyPriceUsd: "",
+    frontBackgroundUrl: "",
+    backBackgroundUrl: "",
   });
   /** String drafts while editing tier prices (keeps leading zeros until blur / Done). */
   const [tierPriceDrafts, setTierPriceDrafts] = useState<
@@ -274,6 +279,8 @@ export default function AdminSettings() {
           priceUsd: Number(tier.priceUsd) || 0,
           monthlyPriceEtb: Number(tier.monthlyPriceEtb) || 0,
           monthlyPriceUsd: Number(tier.monthlyPriceUsd) || 0,
+          frontBackgroundUrl: String(tier.frontBackgroundUrl ?? ""),
+          backBackgroundUrl: String(tier.backBackgroundUrl ?? ""),
         })),
       );
     }
@@ -577,6 +584,8 @@ export default function AdminSettings() {
           priceUsd,
           monthlyPriceEtb,
           monthlyPriceUsd,
+          frontBackgroundUrl: newTier.frontBackgroundUrl || null,
+          backBackgroundUrl: newTier.backBackgroundUrl || null,
         }),
       });
       if (!response.ok) {
@@ -591,6 +600,8 @@ export default function AdminSettings() {
         priceUsd: "",
         monthlyPriceEtb: "",
         monthlyPriceUsd: "",
+        frontBackgroundUrl: "",
+        backBackgroundUrl: "",
       });
       setIsAddTierOpen(false);
       toast({ title: "Tier Added", description: `${id} has been added.` });
@@ -662,6 +673,8 @@ export default function AdminSettings() {
               priceUsd: tier.priceUsd,
               monthlyPriceEtb: tier.monthlyPriceEtb,
               monthlyPriceUsd: tier.monthlyPriceUsd,
+              frontBackgroundUrl: tier.frontBackgroundUrl || null,
+              backBackgroundUrl: tier.backBackgroundUrl || null,
             }),
           }).then(async (response) => {
             if (!response.ok) {
@@ -1946,7 +1959,7 @@ export default function AdminSettings() {
                       <Plus className="mr-2 h-4 w-4" /> Add Tier
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Add New Tier</DialogTitle>
                     </DialogHeader>
@@ -2052,6 +2065,17 @@ export default function AdminSettings() {
                           />
                         </div>
                       </div>
+                      <MembershipCardBackgroundFields
+                        token={token}
+                        frontBackgroundUrl={newTier.frontBackgroundUrl}
+                        backBackgroundUrl={newTier.backBackgroundUrl}
+                        onChange={(field, url) =>
+                          setNewTier((current) => ({
+                            ...current,
+                            [field]: url,
+                          }))
+                        }
+                      />
                     </div>
                     <DialogFooter>
                       <Button
@@ -2210,6 +2234,20 @@ export default function AdminSettings() {
                           );
                         })}
                       </div>
+                      <MembershipCardBackgroundFields
+                        token={token}
+                        frontBackgroundUrl={tier.frontBackgroundUrl}
+                        backBackgroundUrl={tier.backBackgroundUrl}
+                        onChange={(field, url) =>
+                          setTiers((current) =>
+                            current.map((currentTier) =>
+                              currentTier.originalId === tier.originalId
+                                ? { ...currentTier, [field]: url }
+                                : currentTier,
+                            ),
+                          )
+                        }
+                      />
                     </div>
                   ))}
                 </div>
@@ -2219,7 +2257,7 @@ export default function AdminSettings() {
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleSaveMembershipTiers}
                 >
-                  <Save className="mr-2 h-4 w-4" /> Update Pricing
+                  <Save className="mr-2 h-4 w-4" /> Save Tier Changes
                 </Button>
               </CardFooter>
             </Card>

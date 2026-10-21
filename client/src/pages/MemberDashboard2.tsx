@@ -11,7 +11,10 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { LogOut, User, FileImage, FileText, RefreshCw } from "lucide-react";
 import { getSettingByKey } from "@/lib/api";
-import { getMembershipTiers } from "@/lib/membershipTiers";
+import {
+  getMembershipTiers,
+  type MembershipTier,
+} from "@/lib/membershipTiers";
 import { MEMBERSHIP_TIERS } from "@/lib/mockData";
 import { getLocalAssetUrl } from "@/lib/localAssets";
 
@@ -81,16 +84,23 @@ export default function MemberDashboard() {
   const { toast } = useToast();
   const [member, setMember] = useState<MemberData | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [availableTiers, setAvailableTiers] = useState<
-    Array<{
-      id: string;
-      name: string;
-      priceEtbAnnual: number;
-      priceUsdAnnual: number;
-      priceEtbMonthly: number;
-      priceUsdMonthly: number;
-    }>
-  >([]);
+  const { data: membershipTierRows = [] } = useQuery<MembershipTier[]>({
+    queryKey: ["/api/membership-tiers"],
+    queryFn: getMembershipTiers,
+    staleTime: 5 * 60 * 1000,
+  });
+  const availableTiers = useMemo(
+    () =>
+      membershipTierRows.map((tier) => ({
+        id: tier.id,
+        name: tier.name || tier.id,
+        priceEtbAnnual: Number(tier.price.etb) || 0,
+        priceUsdAnnual: Number(tier.price.usd) || 0,
+        priceEtbMonthly: Number(tier.monthlyPrice.etb) || 0,
+        priceUsdMonthly: Number(tier.monthlyPrice.usd) || 0,
+      })),
+    [membershipTierRows],
+  );
   const [renewTier, setRenewTier] = useState("");
   const [renewCurrency, setRenewCurrency] = useState<"ETB" | "USD">("ETB");
   const [renewBillingCycle, setRenewBillingCycle] = useState<"annual" | "monthly">("annual");
@@ -413,26 +423,6 @@ export default function MemberDashboard() {
   }, [setLocation, toast]);
 
   useEffect(() => {
-    const loadTiers = async () => {
-      try {
-        const tiers = await getMembershipTiers();
-        const mapped = (Array.isArray(tiers) ? tiers : []).map((tier: any) => ({
-          id: String(tier.id),
-          name: String(tier.name || tier.id),
-          priceEtbAnnual: Number(tier.price?.etb) || 0,
-          priceUsdAnnual: Number(tier.price?.usd) || 0,
-          priceEtbMonthly: Number(tier.monthlyPrice?.etb) || 0,
-          priceUsdMonthly: Number(tier.monthlyPrice?.usd) || 0,
-        }));
-        setAvailableTiers(mapped);
-      } catch {
-        setAvailableTiers([]);
-      }
-    };
-    void loadTiers();
-  }, []);
-
-  useEffect(() => {
     if (member?.tier) {
       setRenewTier(String(member.tier));
     }
@@ -675,6 +665,30 @@ export default function MemberDashboard() {
     return ID_CARD_TEMPLATE_DEFAULT;
   }, [member, membershipTiersSetting]);
 
+  const selectedCardTier = useMemo(() => {
+    if (!member) return undefined;
+    const normalize = (value: unknown) =>
+      String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-level$/g, "")
+        .replace(/level$/g, "")
+        .replace(/-/g, "");
+    const memberTier = normalize(member.tier);
+    return membershipTierRows.find(
+      (tier) =>
+        normalize(tier.id) === memberTier ||
+        normalize(tier.name) === memberTier ||
+        normalize(tier.amharicVersion) === memberTier,
+    );
+  }, [member, membershipTierRows]);
+
+  const frontCardBackgroundUrl =
+    selectedCardTier?.frontBackgroundUrl || selectedTemplateUrl;
+  const backCardBackgroundUrl =
+    selectedCardTier?.backBackgroundUrl || selectedTemplateUrl;
+
   if (!member) {
     return (
       <PublicLayout>
@@ -731,9 +745,9 @@ export default function MemberDashboard() {
                 style={{ backfaceVisibility: "hidden" }}
               >
                 <div className="relative h-full w-full">
-                  {selectedTemplateUrl && (
+                  {frontCardBackgroundUrl && (
                     <img
-                      src={selectedTemplateUrl}
+                      src={frontCardBackgroundUrl}
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover"
                     />
@@ -809,9 +823,9 @@ export default function MemberDashboard() {
                 }}
               >
                 <div className="relative h-full w-full">
-                  {selectedTemplateUrl && (
+                  {backCardBackgroundUrl && (
                     <img
-                      src={selectedTemplateUrl}
+                      src={backCardBackgroundUrl}
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover"
                     />

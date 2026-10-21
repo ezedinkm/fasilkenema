@@ -5,10 +5,11 @@ import QRCode from "react-qr-code";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { FileImage, FileText, User } from "lucide-react";
+import { getMembershipTiers, type MembershipTier } from "@/lib/membershipTiers";
 
 interface MemberData {
   membershipNumber: string;
@@ -47,6 +48,33 @@ export default function DigitalCard() {
     },
     enabled: !!membershipNumber,
   });
+
+  const { data: membershipTierRows = [] } = useQuery<MembershipTier[]>({
+    queryKey: ["/api/membership-tiers"],
+    queryFn: getMembershipTiers,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const memberTier = useMemo(() => {
+    if (!member) return undefined;
+    const normalize = (value: unknown) =>
+      String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        .replace(/-level$/g, "")
+        .replace(/level$/g, "")
+        .replace(/-/g, "");
+    const memberTierId = normalize(member.tier);
+    return membershipTierRows.find(
+      (tier) =>
+        normalize(tier.id) === memberTierId ||
+        normalize(tier.name) === memberTierId ||
+        normalize(tier.amharicVersion) === memberTierId,
+    );
+  }, [member, membershipTierRows]);
+  const cardBackgroundUrl =
+    memberTier?.frontBackgroundUrl || cardBackground;
 
   const handleDownloadPNG = async () => {
     if (!cardRef.current || !member) return;
@@ -194,7 +222,7 @@ export default function DigitalCard() {
             style={{ width: "540px", height: "340px" }}
           >
             <img
-              src={cardBackground}
+              src={cardBackgroundUrl}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
             />

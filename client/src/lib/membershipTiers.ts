@@ -4,6 +4,8 @@ export interface MembershipTier {
   id: string;
   name: string;
   amharicVersion: string;
+  frontBackgroundUrl?: string | null;
+  backBackgroundUrl?: string | null;
   price: { etb: number; usd: number };
   monthlyPrice: { etb: number; usd: number };
   benefits: string[];
@@ -18,6 +20,8 @@ interface MembershipTierApiRow {
   priceUsd: number | string;
   monthlyPriceEtb?: number | string;
   monthlyPriceUsd?: number | string;
+  frontBackgroundUrl?: string | null;
+  backBackgroundUrl?: string | null;
 }
 
 const levelThemeById: Record<string, string> = {
@@ -129,6 +133,8 @@ export async function getMembershipTiers(): Promise<MembershipTier[]> {
       id,
       name: formatTierName(id),
       amharicVersion,
+      frontBackgroundUrl: row.frontBackgroundUrl ?? null,
+      backBackgroundUrl: row.backBackgroundUrl ?? null,
       price: {
         etb: Number(row.priceEtb) || 0,
         usd: Number(row.priceUsd) || 0,

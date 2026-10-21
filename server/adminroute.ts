@@ -6,6 +6,7 @@ import { authenticateToken } from "./middleware/authMiddleware";
 import { sendSms } from "./iconicSms";
 import { storage } from "./storage";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
+import { upload } from "./middleware/multerConfig";
 
 type DashboardGrowthPoint = {
   name: string;
@@ -423,6 +424,26 @@ export function registerAdminRoutes(app: Express): void {
   );
 
   app.post(
+    "/api/admin/membership-tiers/upload-background",
+    authenticateToken,
+    (req, res) => {
+      upload.single("photo")(req, res, (error) => {
+        if (error) {
+          return res.status(400).json({
+            error: error instanceof Error ? error.message : "Image upload failed",
+          });
+        }
+        if (!req.file) {
+          return res.status(400).json({ error: "No image uploaded" });
+        }
+        return res.status(201).json({
+          photoUrl: `/uploads/${req.file.filename}`,
+        });
+      });
+    },
+  );
+
+  app.post(
     "/api/admin/membership-tiers",
     authenticateToken,
     async (req, res) => {
@@ -436,6 +457,10 @@ export function registerAdminRoutes(app: Express): void {
           priceUsd: String(req.body?.priceUsd ?? ""),
           monthlyPriceEtb: Number(req.body?.monthlyPriceEtb),
           monthlyPriceUsd: String(req.body?.monthlyPriceUsd ?? ""),
+          frontBackgroundUrl:
+            String(req.body?.frontBackgroundUrl ?? "").trim() || null,
+          backBackgroundUrl:
+            String(req.body?.backBackgroundUrl ?? "").trim() || null,
         };
 
         if (!payload.id) {
@@ -483,6 +508,8 @@ export function registerAdminRoutes(app: Express): void {
             priceUsd: payload.priceUsd,
             monthlyPriceEtb: payload.monthlyPriceEtb,
             monthlyPriceUsd: payload.monthlyPriceUsd,
+            frontBackgroundUrl: payload.frontBackgroundUrl,
+            backBackgroundUrl: payload.backBackgroundUrl,
           })
           .returning();
 
@@ -513,6 +540,8 @@ export function registerAdminRoutes(app: Express): void {
           priceUsd: string;
           monthlyPriceEtb: number;
           monthlyPriceUsd: string;
+          frontBackgroundUrl: string | null;
+          backBackgroundUrl: string | null;
         }> = {};
         if (req.body?.id !== undefined) {
           const nextId = String(req.body.id).trim();
@@ -565,6 +594,14 @@ export function registerAdminRoutes(app: Express): void {
               .json({ error: "monthlyPriceUsd must be a valid number" });
           }
           updates.monthlyPriceUsd = String(value);
+        }
+        if (req.body?.frontBackgroundUrl !== undefined) {
+          updates.frontBackgroundUrl =
+            String(req.body.frontBackgroundUrl ?? "").trim() || null;
+        }
+        if (req.body?.backBackgroundUrl !== undefined) {
+          updates.backBackgroundUrl =
+            String(req.body.backBackgroundUrl ?? "").trim() || null;
         }
 
         if (Object.keys(updates).length === 0) {
