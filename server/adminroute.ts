@@ -459,8 +459,6 @@ export function registerAdminRoutes(app: Express): void {
           monthlyPriceUsd: String(req.body?.monthlyPriceUsd ?? ""),
           frontBackgroundUrl:
             String(req.body?.frontBackgroundUrl ?? "").trim() || null,
-          backBackgroundUrl:
-            String(req.body?.backBackgroundUrl ?? "").trim() || null,
         };
 
         if (!payload.id) {
@@ -509,7 +507,6 @@ export function registerAdminRoutes(app: Express): void {
             monthlyPriceEtb: payload.monthlyPriceEtb,
             monthlyPriceUsd: payload.monthlyPriceUsd,
             frontBackgroundUrl: payload.frontBackgroundUrl,
-            backBackgroundUrl: payload.backBackgroundUrl,
           })
           .returning();
 
@@ -541,7 +538,6 @@ export function registerAdminRoutes(app: Express): void {
           monthlyPriceEtb: number;
           monthlyPriceUsd: string;
           frontBackgroundUrl: string | null;
-          backBackgroundUrl: string | null;
         }> = {};
         if (req.body?.id !== undefined) {
           const nextId = String(req.body.id).trim();
@@ -598,10 +594,6 @@ export function registerAdminRoutes(app: Express): void {
         if (req.body?.frontBackgroundUrl !== undefined) {
           updates.frontBackgroundUrl =
             String(req.body.frontBackgroundUrl ?? "").trim() || null;
-        }
-        if (req.body?.backBackgroundUrl !== undefined) {
-          updates.backBackgroundUrl =
-            String(req.body.backBackgroundUrl ?? "").trim() || null;
         }
 
         if (Object.keys(updates).length === 0) {

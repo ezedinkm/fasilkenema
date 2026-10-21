@@ -1,33 +1,27 @@
-import { useRef, useState, type RefObject } from "react";
+import { useRef, useState } from "react";
 import { Image as ImageIcon, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-export type MembershipCardBackgroundField =
-  | "frontBackgroundUrl"
-  | "backBackgroundUrl";
+export type MembershipCardBackgroundField = "frontBackgroundUrl";
 
 interface MembershipCardBackgroundFieldsProps {
   token: string | null | undefined;
   frontBackgroundUrl: string;
-  backBackgroundUrl: string;
   onChange: (field: MembershipCardBackgroundField, url: string) => void;
 }
 
 export default function MembershipCardBackgroundFields({
   token,
   frontBackgroundUrl,
-  backBackgroundUrl,
   onChange,
 }: MembershipCardBackgroundFieldsProps) {
   const { toast } = useToast();
   const frontInputRef = useRef<HTMLInputElement>(null);
-  const backInputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState<"front" | "back" | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (
-    side: "front" | "back",
     file?: File,
   ): Promise<void> => {
     if (!file) return;
@@ -56,7 +50,7 @@ export default function MembershipCardBackgroundFields({
       return;
     }
 
-    setUploading(side);
+    setUploading(true);
     try {
       const formData = new FormData();
       formData.append("photo", file);
@@ -73,12 +67,9 @@ export default function MembershipCardBackgroundFields({
         throw new Error(result.error || "Could not upload the image.");
       }
 
-      onChange(
-        side === "front" ? "frontBackgroundUrl" : "backBackgroundUrl",
-        result.photoUrl,
-      );
+      onChange("frontBackgroundUrl", result.photoUrl);
       toast({
-        title: `${side === "front" ? "Front" : "Back"} background uploaded`,
+        title: "Front background uploaded",
         description: "Save the tier to apply this card design.",
       });
     } catch (error) {
@@ -89,26 +80,25 @@ export default function MembershipCardBackgroundFields({
         variant: "destructive",
       });
     } finally {
-      setUploading(null);
+      setUploading(false);
     }
   };
 
-  const renderSide = (
-    side: "front" | "back",
-    url: string,
-    inputRef: RefObject<HTMLInputElement | null>,
-  ) => {
-    const label = side === "front" ? "Front background" : "Back background";
-    const isUploading = uploading === side;
-
-    return (
-      <div className="space-y-2">
-        <Label>{label}</Label>
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-medium">Front card background</p>
+        <p className="text-xs text-muted-foreground">
+          Use a landscape image (about 540 × 340 px). Maximum file size: 5 MB.
+        </p>
+      </div>
+      <div className="max-w-md space-y-2">
+        <Label>Front background</Label>
         <div className="aspect-[16/10] overflow-hidden rounded-md border bg-white">
-          {url ? (
+          {frontBackgroundUrl ? (
             <img
-              src={url}
-              alt={`${label} preview`}
+              src={frontBackgroundUrl}
+              alt="Front card background preview"
               className="h-full w-full object-cover"
             />
           ) : (
@@ -119,14 +109,14 @@ export default function MembershipCardBackgroundFields({
           )}
         </div>
         <input
-          ref={inputRef}
+          ref={frontInputRef}
           type="file"
           accept="image/png,image/jpeg,image/webp"
           className="hidden"
-          aria-label={`Upload ${label.toLowerCase()}`}
+          aria-label="Upload front card background"
           onChange={(event) => {
             const file = event.target.files?.[0];
-            void handleUpload(side, file);
+            void handleUpload(file);
             event.target.value = "";
           }}
         />
@@ -135,47 +125,25 @@ export default function MembershipCardBackgroundFields({
             type="button"
             size="sm"
             variant="outline"
-            disabled={uploading !== null}
-            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            onClick={() => frontInputRef.current?.click()}
           >
             <Upload className="mr-2 h-4 w-4" />
-            {isUploading ? "Uploading…" : "Choose image"}
+            {uploading ? "Uploading…" : "Choose image"}
           </Button>
-          {url && (
+          {frontBackgroundUrl && (
             <Button
               type="button"
               size="sm"
               variant="ghost"
-              disabled={uploading !== null}
-              onClick={() =>
-                onChange(
-                  side === "front"
-                    ? "frontBackgroundUrl"
-                    : "backBackgroundUrl",
-                  "",
-                )
-              }
+              disabled={uploading}
+              onClick={() => onChange("frontBackgroundUrl", "")}
             >
               <X className="mr-1 h-4 w-4" />
               Remove
             </Button>
           )}
         </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-2">
-      <div>
-        <p className="text-sm font-medium">Membership card backgrounds</p>
-        <p className="text-xs text-muted-foreground">
-          Use landscape images (about 540 × 340 px). Maximum file size: 5 MB.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {renderSide("front", frontBackgroundUrl, frontInputRef)}
-        {renderSide("back", backBackgroundUrl, backInputRef)}
       </div>
     </div>
   );

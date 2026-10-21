@@ -133,7 +133,6 @@ export default function AdminSettings() {
       monthlyPriceEtb: number;
       monthlyPriceUsd: number;
       frontBackgroundUrl: string;
-      backBackgroundUrl: string;
     }[]
   >([]);
   const [isAddTierOpen, setIsAddTierOpen] = useState(false);
@@ -148,7 +147,6 @@ export default function AdminSettings() {
     monthlyPriceEtb: "",
     monthlyPriceUsd: "",
     frontBackgroundUrl: "",
-    backBackgroundUrl: "",
   });
   /** String drafts while editing tier prices (keeps leading zeros until blur / Done). */
   const [tierPriceDrafts, setTierPriceDrafts] = useState<
@@ -280,7 +278,6 @@ export default function AdminSettings() {
           monthlyPriceEtb: Number(tier.monthlyPriceEtb) || 0,
           monthlyPriceUsd: Number(tier.monthlyPriceUsd) || 0,
           frontBackgroundUrl: String(tier.frontBackgroundUrl ?? ""),
-          backBackgroundUrl: String(tier.backBackgroundUrl ?? ""),
         })),
       );
     }
@@ -585,7 +582,6 @@ export default function AdminSettings() {
           monthlyPriceEtb,
           monthlyPriceUsd,
           frontBackgroundUrl: newTier.frontBackgroundUrl || null,
-          backBackgroundUrl: newTier.backBackgroundUrl || null,
         }),
       });
       if (!response.ok) {
@@ -601,7 +597,6 @@ export default function AdminSettings() {
         monthlyPriceEtb: "",
         monthlyPriceUsd: "",
         frontBackgroundUrl: "",
-        backBackgroundUrl: "",
       });
       setIsAddTierOpen(false);
       toast({ title: "Tier Added", description: `${id} has been added.` });
@@ -674,7 +669,6 @@ export default function AdminSettings() {
               monthlyPriceEtb: tier.monthlyPriceEtb,
               monthlyPriceUsd: tier.monthlyPriceUsd,
               frontBackgroundUrl: tier.frontBackgroundUrl || null,
-              backBackgroundUrl: tier.backBackgroundUrl || null,
             }),
           }).then(async (response) => {
             if (!response.ok) {
@@ -2068,7 +2062,6 @@ export default function AdminSettings() {
                       <MembershipCardBackgroundFields
                         token={token}
                         frontBackgroundUrl={newTier.frontBackgroundUrl}
-                        backBackgroundUrl={newTier.backBackgroundUrl}
                         onChange={(field, url) =>
                           setNewTier((current) => ({
                             ...current,
@@ -2237,7 +2230,6 @@ export default function AdminSettings() {
                       <MembershipCardBackgroundFields
                         token={token}
                         frontBackgroundUrl={tier.frontBackgroundUrl}
-                        backBackgroundUrl={tier.backBackgroundUrl}
                         onChange={(field, url) =>
                           setTiers((current) =>
                             current.map((currentTier) =>

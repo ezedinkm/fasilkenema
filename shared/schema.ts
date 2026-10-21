@@ -249,7 +249,6 @@ export const membershipTiers = pgTable("membership_tiers", {
     .notNull()
     .default("0"),
   frontBackgroundUrl: text("front_background_url"),
-  backBackgroundUrl: text("back_background_url"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

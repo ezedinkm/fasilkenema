@@ -686,8 +686,6 @@ export default function MemberDashboard() {
 
   const frontCardBackgroundUrl =
     selectedCardTier?.frontBackgroundUrl || selectedTemplateUrl;
-  const backCardBackgroundUrl =
-    selectedCardTier?.backBackgroundUrl || selectedTemplateUrl;
 
   if (!member) {
     return (
@@ -823,9 +821,9 @@ export default function MemberDashboard() {
                 }}
               >
                 <div className="relative h-full w-full">
-                  {backCardBackgroundUrl && (
+                  {selectedTemplateUrl && (
                     <img
-                      src={backCardBackgroundUrl}
+                      src={selectedTemplateUrl}
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover"
                     />
