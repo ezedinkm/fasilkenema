@@ -1,11 +1,11 @@
 import { Router } from "express";
 
 import { isEplScrapeRunning, scrapeEthiopianLeague } from "../scraper/eplScraper.js";
-import { authenticateAdmin } from "../middleware/authMiddleware.ts";
+import { authenticateAdminPermission } from "../middleware/authMiddleware.ts";
 
 const router = Router();
 
-router.post("/scrape", authenticateAdmin, async (_req, res) => {
+router.post("/scrape", authenticateAdminPermission("league"), async (_req, res) => {
   try {
     const alreadyRunning = isEplScrapeRunning();
     const result = await scrapeEthiopianLeague();

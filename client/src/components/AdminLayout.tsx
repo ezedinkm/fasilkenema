@@ -18,12 +18,20 @@ import {
   Briefcase,
   Share2,
   ListOrdered,
+  UserCog,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ASSETS } from "@/lib/mockData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MobileBottomNav from "./MobileBottomNav";
+import {
+  ADMIN_ROLE_LABELS,
+  canAccessAdminPermission,
+  getAdminPagePermission,
+  type AdminPermission,
+} from "@shared/adminAccess";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -32,31 +40,64 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [location, setLocation] = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { logout, user } = useApp();
+  const { logout, admin, token } = useApp();
 
   useEffect(() => {
     setMobileNavOpen(false);
   }, [location]);
 
-  if (!user || user.role !== "admin") {
-    // Parent routes typically handle redirect; avoid layout flash where possible.
-  }
+  useEffect(() => {
+    if (!token) {
+      setLocation("/admin/login");
+      return;
+    }
+    if (!admin) return;
+    const permission = getAdminPagePermission(location);
+    if (!permission || !canAccessAdminPermission(admin.role, permission)) {
+      setLocation("/admin/dashboard");
+    }
+  }, [admin, location, setLocation, token]);
 
   const sidebarItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard" },
-    { icon: Users, label: "Members", href: "/admin/members" },
-    { icon: CreditCard, label: "Payments", href: "/admin/payments" },
-    { icon: FileText, label: "Content", href: "/admin/content" },
-    { icon: Briefcase, label: "Careers", href: "/admin/careers" },
-    { icon: Share2, label: "Social Links", href: "/admin/social-links" },
-    { icon: ListOrdered, label: "League Table", href: "/admin/league-table" },
-    { icon: Mail, label: "Newsletter", href: "/admin/newsletter" },
-    { icon: MessageSquare, label: "SMS & Comms", href: "/admin/sms" },
-    { icon: PlayCircle, label: "Watch Reviews", href: "/admin/watchreview" },
-    { icon: Mail, label: "User Message", href: "/admin/usermessage" },
-    { icon: UserPlus, label: "TEAM", href: "/admin/team" },
-    { icon: Settings, label: "Settings", href: "/admin/settings" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", permission: "dashboard" },
+    { icon: Users, label: "Members", href: "/admin/members", permission: "members" },
+    { icon: CreditCard, label: "Payments", href: "/admin/payments", permission: "payments" },
+    { icon: FileText, label: "Content", href: "/admin/content", permission: "content" },
+    { icon: Briefcase, label: "Careers", href: "/admin/careers", permission: "careers" },
+    { icon: Share2, label: "Social Links", href: "/admin/social-links", permission: "social_links" },
+    { icon: ListOrdered, label: "League Table", href: "/admin/league-table", permission: "league" },
+    { icon: Mail, label: "Newsletter", href: "/admin/newsletter", permission: "newsletter" },
+    { icon: MessageSquare, label: "SMS & Comms", href: "/admin/sms", permission: "sms" },
+    { icon: PlayCircle, label: "Watch Reviews", href: "/admin/watchreview", permission: "reviews" },
+    { icon: Mail, label: "User Message", href: "/admin/usermessage", permission: "messages" },
+    { icon: UserPlus, label: "TEAM", href: "/admin/team", permission: "team" },
+    { icon: Settings, label: "Settings", href: "/admin/settings", permission: "settings" },
+    { icon: UserCog, label: "User Management", href: "/admin/users", permission: "user_management" },
+    { icon: History, label: "Audit Logs", href: "/admin/audit-logs", permission: "audit_logs" },
   ];
+  const visibleSidebarItems = admin
+    ? sidebarItems.filter((item) =>
+        canAccessAdminPermission(
+          admin.role,
+          item.permission as AdminPermission,
+        ),
+      )
+    : [];
+  const currentPermission = getAdminPagePermission(location);
+  const currentPageAllowed =
+    !!admin &&
+    !!currentPermission &&
+    canAccessAdminPermission(admin.role, currentPermission);
+
+  if (!token || !admin || !currentPageAllowed) return null;
+
+  const initials = admin.fullName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((name) => name[0])
+    .join("")
+    .toUpperCase();
 
   const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
     <div className="flex flex-col h-full bg-[#9B0F06] text-white border-r border-white/20">
@@ -79,7 +120,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       </div>
 
       <nav className="flex-1 py-4 sm:py-6 px-2 sm:px-3 space-y-1 overflow-y-auto">
-        {sidebarItems.map((item) => (
+        {visibleSidebarItems.map((item) => (
           <Link key={item.href} href={item.href}>
             <Button
               type="button"
@@ -104,14 +145,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <Avatar className="h-9 w-9 border border-white/30 shrink-0">
             <AvatarImage src="" />
             <AvatarFallback className="bg-red-600 text-white">
-              AD
+              {initials || "AD"}
             </AvatarFallback>
           </Avatar>
           <div className="overflow-hidden min-w-0">
             <p className="text-sm font-medium truncate text-white">
-              Administrator
+              {admin.fullName}
             </p>
-            <p className="text-xs text-white/80 truncate">admin@gmail.com</p>
+            <p className="text-xs text-white/80 truncate">{ADMIN_ROLE_LABELS[admin.role]}</p>
           </div>
         </div>
         <Button
@@ -170,6 +211,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </Button>
           </div>
         </header>
+        {admin.role === "read_only" && (
+          <div className="mx-3 mt-3 rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-900 sm:mx-4 md:mx-6 lg:mx-8">
+            Read-only account: changes are blocked by the server.
+          </div>
+        )}
         <div
           className={cn(
             "flex-1 min-w-0 px-3 sm:px-4 md:px-6 lg:px-8",

@@ -158,12 +158,10 @@ export interface IStorage {
 
 export class DbStorage implements IStorage {
   async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
-    console.log("emanuel getAdminByEmail", email);
     const result = await db
       .select()
       .from(schema.adminUsers)
-      .where(eq(schema.adminUsers.email, email.trim()));
-    console.log("emanuel result", result);
+      .where(eq(schema.adminUsers.email, email.trim().toLowerCase()));
     return result[0];
   }
 

@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { LANGUAGES } from './mockData';
 import { useQuery } from '@tanstack/react-query';
+import { isAdminRole, type AdminRole } from '@shared/adminAccess';
 
 interface Admin {
   id: number;
   email: string;
   fullName: string;
+  role: AdminRole;
 }
 
 interface ThemeColors {
@@ -100,11 +102,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [settings]);
 
   useEffect(() => {
-    if (token) {
+    if (!token) {
+      setAdmin(null);
+      return;
+    }
+
+    try {
       const storedAdmin = localStorage.getItem('admin_user');
-      if (storedAdmin) {
-        setAdmin(JSON.parse(storedAdmin));
+      const parsedAdmin = storedAdmin ? JSON.parse(storedAdmin) : null;
+      if (
+        parsedAdmin &&
+        Number.isSafeInteger(parsedAdmin.id) &&
+        isAdminRole(parsedAdmin.role)
+      ) {
+        setAdmin(parsedAdmin);
+      } else {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        setAdmin(null);
+        setToken(null);
       }
+    } catch {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      setAdmin(null);
+      setToken(null);
     }
   }, [token]);
 
@@ -122,6 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (response.ok) {
         const data = await response.json();
+        if (!data.admin || !isAdminRole(data.admin.role)) return false;
         setToken(data.token);
         setAdmin(data.admin);
         localStorage.setItem('admin_token', data.token);

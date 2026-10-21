@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
@@ -45,13 +45,15 @@ import crypto from "crypto";
 import { eq, and, gt, asc, desc, sql } from "drizzle-orm";
 import {
   JWT_SECRET,
-  authenticateAdmin,
-  authenticateToken,
+  authenticateAdminPermission,
 } from "./middleware/authMiddleware";
 import { upload, uploadsDir } from "./middleware/multerConfig";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
 import { registerNewsletterRoutes } from "./newsletterRoutes";
+import { registerAdminAccessRoutes } from "./adminAccessRoutes";
+import { recordAdminAuditEvent } from "./adminAudit";
+import { isAdminRole } from "@shared/adminAccess";
 import { getResendEmailConfig, sendResendTestEmail } from "./email";
 import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
@@ -808,9 +810,18 @@ async function finalizeChapaReturnRenewal(
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const authenticateSettingMutation: RequestHandler = (req, res, next) => {
+    const bodyKey =
+      req.body && typeof req.body.key === "string" ? req.body.key : "";
+    const key = bodyKey || req.params.key || "";
+    const permission = key === "social.links" ? "social_links" : "settings";
+    return authenticateAdminPermission(permission)(req, res, next);
+  };
+
   const express = await import("express");
   app.use("/uploads", express.default.static(uploadsDir));
 
+  registerAdminAccessRoutes(app);
   registerTeamAdminRoutes(app);
   registerAdminRoutes(app);
   registerNewsletterRoutes(app);
@@ -940,30 +951,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/login", async (req, res) => {
     try {
-      console.log("emanuel");
-      const { email, password } = req.body;
+      const validation = z
+        .object({
+          email: z.string().trim().email().max(254),
+          password: z.string().min(1).max(200),
+        })
+        .safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const email = validation.data.email.toLowerCase();
       const admin = await storage.getAdminByEmail(email);
+      const validPassword =
+        !!admin &&
+        admin.isActive &&
+        (await bcrypt.compare(validation.data.password, admin.password));
 
-      console.log("email, password", email, password);
-      console.log("admin", admin);
-
-      if (!admin) {
+      if (!validPassword || !admin || !isAdminRole(admin.role)) {
+        await recordAdminAuditEvent({
+          actorAdminId: admin?.id ?? null,
+          actorEmail: email,
+          action: "login_failed",
+          resource: "/api/auth/login",
+          statusCode: 401,
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"],
+        });
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // const validPassword = await bcrypt.compare(password, admin.password);
-      // if (!validPassword) {
-      //   return res.status(401).json({ error: 'Invalid credentials' });
-      // }
-
       const token = jwt.sign(
-        { id: admin.id, email: admin.email, role: "admin" },
+        {
+          id: admin.id,
+          email: admin.email,
+          role: admin.role,
+          type: "admin",
+          sessionVersion: admin.sessionVersion,
+        },
         JWT_SECRET,
         { expiresIn: "24h" },
       );
+
+      await recordAdminAuditEvent({
+        actorAdminId: admin.id,
+        actorEmail: admin.email,
+        action: "login",
+        resource: "/api/auth/login",
+        statusCode: 200,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      });
       res.json({
         token,
-        admin: { id: admin.id, email: admin.email, fullName: admin.fullName },
+        admin: {
+          id: admin.id,
+          email: admin.email,
+          fullName: admin.fullName,
+          role: admin.role,
+        },
       });
     } catch (error) {
       res.status(500).json({ error: "Login failed" });
@@ -1393,20 +1439,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const { email, password, fullName } = req.body;
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const admin = await storage.createAdmin({
-        email,
-        password: hashedPassword,
-        fullName,
-      });
-      res.json({ id: admin.id, email: admin.email, fullName: admin.fullName });
-    } catch (error) {
-      res.status(500).json({ error: "Registration failed" });
-    }
-  });
+  app.post("/api/auth/register", (_req, res) =>
+    res.status(410).json({
+      error: "Public administrator registration is disabled. Use User Management.",
+    }),
+  );
 
   app.post("/api/member/renewal/initialize-payment", async (req, res) => {
     let payment: any = null;
@@ -1601,7 +1638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members", authenticateToken, async (req, res) => {
+  app.get("/api/members", authenticateAdminPermission("members"), async (req, res) => {
     try {
       const members = await storage.getMembers();
       res.json(members);
@@ -1610,7 +1647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/:id", authenticateToken, async (req, res) => {
+  app.get("/api/members/:id", authenticateAdminPermission("members"), async (req, res) => {
     try {
       const member = await storage.getMemberById(parseInt(req.params.id));
       if (!member) {
@@ -1637,7 +1674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/members/:id", authenticateToken, async (req, res) => {
+  app.patch("/api/members/:id", authenticateAdminPermission("members"), async (req, res) => {
     try {
       const member = await storage.updateMember(
         parseInt(req.params.id),
@@ -1652,7 +1689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/members/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/members/:id", authenticateAdminPermission("members"), async (req, res) => {
     try {
       const success = await storage.deleteMember(parseInt(req.params.id));
       if (!success) {
@@ -1665,7 +1702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   /** Admin-only: create a member without going through Chapa (no payment). */
-  app.post("/api/admin/members", authenticateToken, async (req, res) => {
+  app.post("/api/admin/members", authenticateAdminPermission("members"), async (req, res) => {
     try {
       const body = req.body || {};
       const {
@@ -1809,7 +1846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/payments", authenticateToken, async (req, res) => {
+  app.get("/api/payments", authenticateAdminPermission("payments"), async (req, res) => {
     try {
       const payments = await storage.getPayments();
       res.json(payments);
@@ -1833,7 +1870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/payments/:id/status", async (req, res) => {
+  app.patch("/api/payments/:id/status", authenticateAdminPermission("payments"), async (req, res) => {
     try {
       const { status } = req.body;
       const payment = await storage.updatePaymentStatus(
@@ -1849,7 +1886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/donations", authenticateToken, async (req, res) => {
+  app.get("/api/donations", authenticateAdminPermission("payments"), async (req, res) => {
     try {
       const donations = await storage.getDonations();
       res.json(donations);
@@ -1873,7 +1910,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/donations/:id/status", async (req, res) => {
+  app.patch("/api/donations/:id/status", authenticateAdminPermission("payments"), async (req, res) => {
     try {
       const { status } = req.body;
       const donation = await storage.updateDonationStatus(
@@ -3125,7 +3162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/admin/post-categories",
-    authenticateToken,
+    authenticateAdminPermission("content"),
     async (req, res) => {
       try {
         await ensurePostContentSchema();
@@ -3189,7 +3226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts", authenticateToken, async (req, res) => {
+  app.post("/api/posts", authenticateAdminPermission("content"), async (req, res) => {
     try {
       await ensurePostContentSchema();
       const validation = insertPostSchema.safeParse(req.body);
@@ -3225,7 +3262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/posts/:id", authenticateToken, async (req, res) => {
+  app.patch("/api/posts/:id", authenticateAdminPermission("content"), async (req, res) => {
     try {
       await ensurePostContentSchema();
       const updates =
@@ -3261,7 +3298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/posts/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/posts/:id", authenticateAdminPermission("content"), async (req, res) => {
     try {
       const success = await storage.deletePost(parseInt(req.params.id));
       if (!success) {
@@ -3273,7 +3310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/pages", authenticateToken, async (req, res) => {
+  app.get("/api/pages", authenticateAdminPermission("content"), async (req, res) => {
     try {
       const pages = await storage.getPages();
       res.json(pages);
@@ -3312,7 +3349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/pages", authenticateToken, async (req, res) => {
+  app.post("/api/pages", authenticateAdminPermission("content"), async (req, res) => {
     try {
       const validation = insertPageSchema.safeParse(req.body);
       if (!validation.success) {
@@ -3327,7 +3364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/pages/:id", authenticateToken, async (req, res) => {
+  app.patch("/api/pages/:id", authenticateAdminPermission("content"), async (req, res) => {
     try {
       const page = await storage.updatePage(parseInt(req.params.id), req.body);
       if (!page) {
@@ -3349,7 +3386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/careers", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/careers", authenticateAdminPermission("careers"), async (_req, res) => {
     try {
       const jobs = await storage.getCareerJobs();
       res.json(jobs);
@@ -3359,7 +3396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/careers", authenticateToken, async (req, res) => {
+  app.post("/api/admin/careers", authenticateAdminPermission("careers"), async (req, res) => {
     const validation = insertCareerJobSchema.safeParse(req.body);
     if (!validation.success) {
       return res
@@ -3376,7 +3413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/careers/:id", authenticateToken, async (req, res) => {
+  app.patch("/api/admin/careers/:id", authenticateAdminPermission("careers"), async (req, res) => {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id < 1) {
       return res.status(400).json({ error: "Invalid career opening ID" });
@@ -3403,7 +3440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete(
     "/api/admin/careers/:id",
-    authenticateToken,
+    authenticateAdminPermission("careers"),
     async (req, res) => {
       const id = Number(req.params.id);
       if (!Number.isInteger(id) || id < 1) {
@@ -3423,7 +3460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  app.get("/api/sms-templates", authenticateToken, async (req, res) => {
+  app.get("/api/sms-templates", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const templates = await storage.getSmsTemplates();
       res.json(templates);
@@ -3432,7 +3469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sms-templates", authenticateToken, async (req, res) => {
+  app.post("/api/sms-templates", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const validation = insertSmsTemplateSchema.safeParse(req.body);
       if (!validation.success) {
@@ -3447,7 +3484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/sms-templates/:id", authenticateToken, async (req, res) => {
+  app.patch("/api/sms-templates/:id", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const template = await storage.updateSmsTemplate(
         parseInt(req.params.id),
@@ -3462,7 +3499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/sms-templates/:id", authenticateToken, async (req, res) => {
+  app.delete("/api/sms-templates/:id", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const success = await storage.deleteSmsTemplate(parseInt(req.params.id));
       if (!success) {
@@ -3474,7 +3511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/sms-logs", authenticateToken, async (req, res) => {
+  app.get("/api/sms-logs", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const logs = await storage.getSmsLogs();
       res.json(logs);
@@ -3483,7 +3520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sms-logs", authenticateToken, async (req, res) => {
+  app.post("/api/sms-logs", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       const validation = insertSmsLogSchema.safeParse(req.body);
       if (!validation.success) {
@@ -3500,7 +3537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get(
     "/api/admin/email/resend-config",
-    authenticateAdmin,
+    authenticateAdminPermission("settings"),
     async (_req, res) => {
       try {
         res.json(await getResendEmailConfig());
@@ -3513,7 +3550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/admin/email/resend-config",
-    authenticateAdmin,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       const validation = z
         .object({
@@ -3548,7 +3585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(
     "/api/admin/email/resend-test",
-    authenticateAdmin,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       const validation = z
         .object({ toEmail: z.string().trim().email().max(254) })
@@ -3569,10 +3606,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  app.get("/api/settings", authenticateToken, async (req, res) => {
+  app.get("/api/settings", authenticateAdminPermission("settings"), async (req, res) => {
     try {
       const settings = (await storage.getSettings()).filter(
         (setting) =>
+          setting.key !== "branding.stamp2" &&
           setting.key !== SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted &&
           setting.key !== "email.resend.config",
       );
@@ -3595,6 +3633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ];
 
       const publicSettings = settings.filter((s: any) =>
+        s.key !== "branding.stamp2" &&
         allowedPrefixes.some((prefix) => String(s.key).startsWith(prefix)),
       );
       res.json(publicSettings);
@@ -3613,7 +3652,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "branding.signature",
         "branding.authorizedPersonName",
         "branding.stamp",
-        "branding.stamp2",
       ];
       const branding = settings.filter((s: any) =>
         brandingKeys.includes(s.key),
@@ -3624,7 +3662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/settings/:key", async (req, res) => {
+  app.get("/api/settings/:key", authenticateAdminPermission("settings"), async (req, res) => {
     try {
       if (
         req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted ||
@@ -3642,7 +3680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/settings", authenticateToken, async (req, res) => {
+  app.post("/api/settings", authenticateSettingMutation, async (req, res) => {
     try {
       const validation = insertSettingSchema.safeParse(req.body);
       if (!validation.success) {
@@ -3684,7 +3722,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/settings/:key", authenticateToken, async (req, res) => {
+  app.delete("/api/settings/:key", authenticateSettingMutation, async (req, res) => {
     try {
       if (req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted) {
         return res
@@ -3706,7 +3744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/stats/revenue", authenticateToken, async (req, res) => {
+  app.get("/api/stats/revenue", authenticateAdminPermission("dashboard"), async (req, res) => {
     try {
       const stats = await storage.getRevenueStats();
       res.json(stats);

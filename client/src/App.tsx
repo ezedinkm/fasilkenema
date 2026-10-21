@@ -33,6 +33,8 @@ import AdminSocialLinks from "@/pages/admin/SocialLinks";
 import AdminLeagueTable from "@/pages/admin/LeagueTable";
 import AdminUserMessage from "@/pages/admin/UserMessage";
 import AdminWatchReview from "@/pages/admin/WatchReview";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminAuditLogs from "@/pages/admin/AdminAuditLogs";
 import MemberLogin from "@/pages/MemberLogin";
 import MemberDashboard from "@/pages/MemberDashboard2";
 import ForgotPassword from "@/pages/ForgotPassword";
@@ -124,6 +126,8 @@ function Router() {
       <Route path="/admin/careers" component={AdminCareers} />
       <Route path="/admin/social-links" component={AdminSocialLinks} />
       <Route path="/admin/league-table" component={AdminLeagueTable} />
+      <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/audit-logs" component={AdminAuditLogs} />
 
       <Route path="/not-found" component={NotFound} />
       

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { authenticateToken } from "./middleware/authMiddleware";
+import { authenticateAdminPermission } from "./middleware/authMiddleware";
 import {
   encryptIconicSmsApiKey,
   getIconicSmsApiKeyStatus,
@@ -280,7 +280,7 @@ async function processSmsQueue(): Promise<void> {
 export function registerAdminRoutes(app: Express): void {
   app.get(
     "/api/admin/sms/provider-status",
-    authenticateToken,
+    authenticateAdminPermission("sms"),
     async (_req, res) => {
       try {
         const senderSetting = await storage.getSettingByKey(
@@ -299,7 +299,7 @@ export function registerAdminRoutes(app: Express): void {
   );
   app.put(
     "/api/admin/sms/api-key",
-    authenticateToken,
+    authenticateAdminPermission("sms"),
     async (req, res) => {
       const apiKey = String(req.body?.apiKey ?? "").trim();
       if (!apiKey || apiKey.length > 4096) {
@@ -323,7 +323,7 @@ export function registerAdminRoutes(app: Express): void {
   );
   app.delete(
     "/api/admin/sms/api-key",
-    authenticateToken,
+    authenticateAdminPermission("sms"),
     async (_req, res) => {
       try {
         const deleted = await storage.deleteSetting(
@@ -338,7 +338,7 @@ export function registerAdminRoutes(app: Express): void {
   );
   app.post(
     "/api/admin/sms/test-connection",
-    authenticateToken,
+    authenticateAdminPermission("sms"),
     async (_req, res) => {
       const result = await testIconicSmsConnection();
       res.status(result.success ? 200 : 502).json(result);
@@ -348,7 +348,7 @@ export function registerAdminRoutes(app: Express): void {
     console.error("[adminroute] sms_logs.category migration", err),
   );
 
-  app.get("/api/admin/watch-reviews", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/watch-reviews", authenticateAdminPermission("reviews"), async (_req, res) => {
     try {
       await ensureWatchReviewsTableExists();
       const rows = await db
@@ -362,7 +362,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/watch-reviews", authenticateToken, async (req, res) => {
+  app.post("/api/admin/watch-reviews", authenticateAdminPermission("reviews"), async (req, res) => {
     try {
       await ensureWatchReviewsTableExists();
       const title = String(req.body?.title ?? "").trim();
@@ -387,7 +387,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.patch(
     "/api/admin/watch-reviews/:id",
-    authenticateToken,
+    authenticateAdminPermission("reviews"),
     async (req, res) => {
       try {
         await ensureWatchReviewsTableExists();
@@ -435,7 +435,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.delete(
     "/api/admin/watch-reviews/:id",
-    authenticateToken,
+    authenticateAdminPermission("reviews"),
     async (req, res) => {
       try {
         await ensureWatchReviewsTableExists();
@@ -459,7 +459,7 @@ export function registerAdminRoutes(app: Express): void {
     },
   );
 
-  app.get("/api/admin/usermessages", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/usermessages", authenticateAdminPermission("messages"), async (_req, res) => {
     try {
       await ensureUserMessageTableExists();
 
@@ -477,7 +477,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.patch(
     "/api/admin/usermessages/:id/status",
-    authenticateToken,
+    authenticateAdminPermission("messages"),
     async (req, res) => {
       try {
         await ensureUserMessageTableExists();
@@ -516,7 +516,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.get(
     "/api/admin/membership-tiers",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (_req, res) => {
       try {
         await ensureMembershipTiersSchema();
@@ -536,7 +536,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.post(
     "/api/admin/membership-tiers/upload-background",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     (req, res) => {
       upload.single("photo")(req, res, (error) => {
         if (error) {
@@ -556,7 +556,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.post(
     "/api/admin/membership-tiers",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       try {
         await ensureMembershipTiersSchema();
@@ -631,7 +631,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.patch(
     "/api/admin/membership-tiers/:id",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       try {
         await ensureMembershipTiersSchema();
@@ -733,7 +733,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.delete(
     "/api/admin/membership-tiers/:id",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       try {
         await ensureMembershipTiersSchema();
@@ -760,7 +760,7 @@ export function registerAdminRoutes(app: Express): void {
     },
   );
 
-  app.get("/api/admin/sms/stats", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/sms/stats", authenticateAdminPermission("sms"), async (_req, res) => {
     try {
       await ensureSmsLogsCategoryColumn();
       const stats = await storage.getSmsSendStats();
@@ -771,7 +771,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/sms/audiences", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/sms/audiences", authenticateAdminPermission("sms"), async (_req, res) => {
     try {
       const members = await db
         .select({
@@ -824,7 +824,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/sms/broadcasts", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/sms/broadcasts", authenticateAdminPermission("sms"), async (_req, res) => {
     try {
       await ensureSmsBroadcastTables();
       const jobs = await db
@@ -840,7 +840,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/sms/broadcasts", authenticateToken, async (req, res) => {
+  app.post("/api/admin/sms/broadcasts", authenticateAdminPermission("sms"), async (req, res) => {
     try {
       await ensureSmsBroadcastTables();
       const targetTypeRaw = String(req.body?.targetType ?? "")
@@ -953,7 +953,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/donation-tiers", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/donation-tiers", authenticateAdminPermission("settings"), async (_req, res) => {
     try {
       await ensureDonationTiersTableExists();
 
@@ -972,7 +972,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/donation-tiers", authenticateToken, async (req, res) => {
+  app.post("/api/admin/donation-tiers", authenticateAdminPermission("settings"), async (req, res) => {
     try {
       await ensureDonationTiersTableExists();
 
@@ -1014,7 +1014,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.patch(
     "/api/admin/donation-tiers/:id",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       try {
         await ensureDonationTiersTableExists();
@@ -1081,7 +1081,7 @@ export function registerAdminRoutes(app: Express): void {
 
   app.delete(
     "/api/admin/donation-tiers/:id",
-    authenticateToken,
+    authenticateAdminPermission("settings"),
     async (req, res) => {
       try {
         await ensureDonationTiersTableExists();
@@ -1108,7 +1108,7 @@ export function registerAdminRoutes(app: Express): void {
     },
   );
 
-  app.get("/api/admin/payments", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/payments", authenticateAdminPermission("payments"), async (_req, res) => {
     try {
       const [genericPayments, legacyMembershipPayments, donations, members] =
         await Promise.all([
@@ -1258,7 +1258,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/dashboard", authenticateToken, async (_req, res) => {
+  app.get("/api/admin/dashboard", authenticateAdminPermission("dashboard"), async (_req, res) => {
     try {
       const now = new Date();
       const monthStart = startOfMonth(now);

@@ -42,9 +42,9 @@ export default function AdminSocialLinks() {
     isError,
     error,
   } = useQuery<SocialSetting[]>({
-    queryKey: ["/api/settings"],
+    queryKey: ["/api/public/settings"],
     queryFn: async () => {
-      const response = await fetchWithAuth("/api/settings");
+      const response = await fetchWithAuth("/api/public/settings");
       const result = await response.json().catch(() => []);
       if (!response.ok) {
         throw new Error(

@@ -545,10 +545,6 @@ export default function MemberDashboard() {
       (Array.isArray(branding)
         ? branding.find((s: any) => s.key === "branding.stamp")?.value
         : null) || null,
-    stamp2:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.stamp2")?.value
-        : null) || null,
   };
 
   const selectedTemplateUrl = useMemo(() => {

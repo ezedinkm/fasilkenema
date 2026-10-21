@@ -5,7 +5,7 @@ import { asc, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import * as schema from "@shared/schema";
 import { db } from "./db";
-import { authenticateToken } from "./middleware/authMiddleware";
+import { authenticateAdminPermission } from "./middleware/authMiddleware";
 import {
   teamPlayersUploadsDir,
   uploadsDir,
@@ -126,7 +126,7 @@ export function registerTeamAdminRoutes(app: Express): void {
     }
   });
 
-  app.get("/api/admin/team-players", authenticateToken, async (req, res) => {
+  app.get("/api/admin/team-players", authenticateAdminPermission("team"), async (req, res) => {
     try {
       console.log("this is emanuel");
       const teamKey = String(req.query.teamKey ?? "");
@@ -142,7 +142,7 @@ export function registerTeamAdminRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/admin/team-players", authenticateToken, async (req, res) => {
+  app.post("/api/admin/team-players", authenticateAdminPermission("team"), async (req, res) => {
     try {
       console.log("this is emanuel");
       const parsed = bodySchema.safeParse(req.body);
@@ -184,7 +184,7 @@ export function registerTeamAdminRoutes(app: Express): void {
   /** Multipart alternative: fields teamKey, name, position, nationality + file field `image`. */
   app.post(
     "/api/admin/team-players/upload",
-    authenticateToken,
+    authenticateAdminPermission("team"),
     teamPlayerImageUpload.single("image"),
     async (req, res) => {
       try {
@@ -224,7 +224,7 @@ export function registerTeamAdminRoutes(app: Express): void {
 
   app.patch(
     "/api/admin/team-players/:id",
-    authenticateToken,
+    authenticateAdminPermission("team"),
     async (req, res) => {
       try {
         const id = parseInt(req.params.id, 10);
@@ -289,7 +289,7 @@ export function registerTeamAdminRoutes(app: Express): void {
 
   app.delete(
     "/api/admin/team-players/:id",
-    authenticateToken,
+    authenticateAdminPermission("team"),
     async (req, res) => {
       try {
         const id = parseInt(req.params.id, 10);

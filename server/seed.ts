@@ -7,13 +7,23 @@ async function seed() {
   try {
     const existingAdmin = await storage.getAdminByEmail("admin@gmail.com");
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("112233", 10);
-      await storage.createAdmin({
-        email: "admin@gmail.com",
-        password: hashedPassword,
-        fullName: "Admin User",
-      });
-      console.log("Created default admin user (admin@gmail.com / 112233)");
+      const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+      if (!initialAdminPassword) {
+        console.log(
+          "No administrator exists. Configure ADMIN_INITIAL_PASSWORD to create the first Super Admin.",
+        );
+      } else {
+        const hashedPassword = await bcrypt.hash(initialAdminPassword, 12);
+        await storage.createAdmin({
+          email: "admin@gmail.com",
+          password: hashedPassword,
+          fullName: "Admin User",
+          role: "super_admin",
+          isActive: true,
+          sessionVersion: 0,
+        });
+        console.log("Created the initial Super Admin account.");
+      }
     }
 
     const membershipTiers = await storage.getSettingByKey("membership_tiers");

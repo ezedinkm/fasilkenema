@@ -54,7 +54,8 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const responseKeys = Object.keys(capturedJsonResponse).join(",");
+        logLine += ` :: ${responseKeys}`;
       }
 
       if (logLine.length > 80) {
@@ -72,13 +73,21 @@ async function ensureAdminExists() {
   try {
     const existingAdmin = await storage.getAdminByEmail("admin@gmail.com");
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("112233", 10);
-      await storage.createAdmin({
-        email: "admin@gmail.com",
-        password: hashedPassword,
-        fullName: "Admin User",
-      });
-      log("Created default admin user (admin@gmail.com)");
+      const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+      if (!initialAdminPassword) {
+        log("No administrator exists. Configure ADMIN_INITIAL_PASSWORD to create the first Super Admin.");
+      } else {
+        const hashedPassword = await bcrypt.hash(initialAdminPassword, 12);
+        await storage.createAdmin({
+          email: "admin@gmail.com",
+          password: hashedPassword,
+          fullName: "Admin User",
+          role: "super_admin",
+          isActive: true,
+          sessionVersion: 0,
+        });
+        log("Created the initial Super Admin account.");
+      }
     }
 
     // Also ensure default branding settings exist

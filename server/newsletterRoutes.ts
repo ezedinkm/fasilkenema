@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { and, count, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import crypto from "crypto";
 import { db } from "./db";
-import { authenticateToken } from "./middleware/authMiddleware";
+import { authenticateAdminPermission } from "./middleware/authMiddleware";
 import { sendNewsletterEmailBatch } from "./email";
 import { newsletterSubscribers, posts } from "@shared/schema";
 
@@ -187,7 +187,7 @@ export function registerNewsletterRoutes(app: Express): void {
 
   app.get(
     "/api/admin/newsletter/subscribers",
-    authenticateToken,
+    authenticateAdminPermission("newsletter"),
     async (req, res) => {
       try {
         await ensureNewsletterSchema();
@@ -253,7 +253,7 @@ export function registerNewsletterRoutes(app: Express): void {
 
   app.post(
     "/api/admin/newsletter/unsubscribe",
-    authenticateToken,
+    authenticateAdminPermission("newsletter"),
     async (req, res) => {
       try {
         await ensureNewsletterSchema();
@@ -293,7 +293,7 @@ export function registerNewsletterRoutes(app: Express): void {
 
   app.post(
     "/api/admin/newsletter/send",
-    authenticateToken,
+    authenticateAdminPermission("newsletter"),
     async (req, res) => {
       try {
         await ensureNewsletterSchema();
@@ -351,7 +351,7 @@ export function registerNewsletterRoutes(app: Express): void {
 
   app.post(
     "/api/admin/newsletter/send-post",
-    authenticateToken,
+    authenticateAdminPermission("newsletter"),
     async (req, res) => {
       try {
         await ensureNewsletterSchema();

@@ -9,6 +9,7 @@ import {
   numeric,
   boolean,
   jsonb,
+  index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -19,6 +20,9 @@ export const adminUsers = pgTable("admin_users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
+  role: text("role").notNull().default("super_admin"),
+  isActive: boolean("is_active").notNull().default(true),
+  sessionVersion: integer("session_version").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -28,6 +32,27 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
 });
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
+
+export const adminAuditLogs = pgTable(
+  "admin_audit_logs",
+  {
+    id: serial("id").primaryKey(),
+    actorAdminId: integer("actor_admin_id").references(() => adminUsers.id, {
+      onDelete: "set null",
+    }),
+    actorEmail: text("actor_email").notNull().default(""),
+    action: text("action").notNull(),
+    resource: text("resource").notNull(),
+    statusCode: integer("status_code").notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("admin_audit_logs_created_at_idx").on(table.createdAt),
+    index("admin_audit_logs_actor_admin_id_idx").on(table.actorAdminId),
+  ],
+);
 
 export const members = pgTable("members", {
   id: serial("id").primaryKey(),

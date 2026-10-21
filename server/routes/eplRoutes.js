@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { pool } from "../db.ts";
-import { authenticateAdmin } from "../middleware/authMiddleware.ts";
+import { authenticateAdminPermission } from "../middleware/authMiddleware.ts";
 import { ensureLeagueSchema } from "../shared/leagueSchema.js";
 
 const router = Router();
@@ -91,7 +91,7 @@ const standingSelect = `
   JOIN clubs c ON c.id = s.club_id
 `;
 
-router.get("/admin/epl/standings", authenticateAdmin, async (_req, res) => {
+router.get("/admin/epl/standings", authenticateAdminPermission("league"), async (_req, res) => {
   try {
     await ensureLeagueSchema(pool);
     const result = await pool.query(
@@ -109,7 +109,7 @@ router.get("/admin/epl/standings", authenticateAdmin, async (_req, res) => {
   }
 });
 
-router.post("/admin/epl/standings", authenticateAdmin, async (req, res) => {
+router.post("/admin/epl/standings", authenticateAdminPermission("league"), async (req, res) => {
   let input;
   try {
     input = parseStandingInput(req.body);
@@ -193,7 +193,7 @@ router.post("/admin/epl/standings", authenticateAdmin, async (req, res) => {
 
 router.patch(
   "/admin/epl/standings/:clubId",
-  authenticateAdmin,
+  authenticateAdminPermission("league"),
   async (req, res) => {
     const clubId = Number(req.params.clubId);
     if (!Number.isSafeInteger(clubId) || clubId < 1) {
@@ -269,7 +269,7 @@ router.patch(
 
 router.delete(
   "/admin/epl/standings/:clubId",
-  authenticateAdmin,
+  authenticateAdminPermission("league"),
   async (req, res) => {
     const clubId = Number(req.params.clubId);
     if (!Number.isSafeInteger(clubId) || clubId < 1) {

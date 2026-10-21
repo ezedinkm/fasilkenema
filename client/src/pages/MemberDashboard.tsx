@@ -163,10 +163,6 @@ export default function MemberDashboard() {
       (Array.isArray(branding)
         ? branding.find((s: any) => s.key === "branding.stamp")?.value
         : null) || null,
-    stamp2:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.stamp2")?.value
-        : null) || null,
   };
 
   if (!member) {
@@ -319,15 +315,6 @@ export default function MemberDashboard() {
 
                   <div className="flex flex-col items-center justify-between flex-shrink-0">
                     <div className="flex items-center gap-1">
-                      {brandingSettings.stamp2 && (
-                        <div style={{ width: "75px", height: "75px" }}>
-                          <img
-                            src={brandingSettings.stamp2}
-                            alt="Stamp 2"
-                            className="w-full h-full object-contain rounded-full drop-shadow-lg"
-                          />
-                        </div>
-                      )}
                       {brandingSettings.stamp && (
                         <div style={{ width: "75px", height: "75px" }}>
                           <img

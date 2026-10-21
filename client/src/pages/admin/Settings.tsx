@@ -159,7 +159,6 @@ export default function AdminSettings() {
   const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
   const [stampPreview, setStampPreview] = useState<string | null>(null);
-  const [stamp2Preview, setStamp2Preview] = useState<string | null>(null);
   const [authorizedPersonName, setAuthorizedPersonName] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [faviconFile, setFaviconFile] = useState<File | null>(null);
@@ -167,7 +166,6 @@ export default function AdminSettings() {
   const faviconInputRef = useRef<HTMLInputElement>(null);
   const signatureInputRef = useRef<HTMLInputElement>(null);
   const stampInputRef = useRef<HTMLInputElement>(null);
-  const stamp2InputRef = useRef<HTMLInputElement>(null);
 
   // State for donation tiers
   const [donationTiers, setDonationTiers] = useState<
@@ -346,9 +344,6 @@ export default function AdminSettings() {
       const stampSetting = settings.find(
         (s: any) => s.key === "branding.stamp",
       );
-      const stamp2Setting = settings.find(
-        (s: any) => s.key === "branding.stamp2",
-      );
       const authorizedNameSetting = settings.find(
         (s: any) => s.key === "branding.authorizedPersonName",
       );
@@ -358,7 +353,6 @@ export default function AdminSettings() {
       if (faviconSetting) setFaviconPreview(faviconSetting.value);
       if (signatureSetting) setSignaturePreview(signatureSetting.value);
       if (stampSetting) setStampPreview(stampSetting.value);
-      if (stamp2Setting) setStamp2Preview(stamp2Setting.value);
       if (authorizedNameSetting)
         setAuthorizedPersonName(authorizedNameSetting.value);
       const notificationPhoneSetting = settings.find(
@@ -809,25 +803,6 @@ export default function AdminSettings() {
     }
   };
 
-  const handleStamp2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 500000) {
-        toast({
-          title: "File Too Large",
-          description: "Stamp image must be under 500KB",
-          variant: "destructive",
-        });
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setStamp2Preview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSaveBranding = async () => {
     try {
       const mutations = [];
@@ -935,24 +910,6 @@ export default function AdminSettings() {
         mutations.push(
           saveBrandingMutation.mutateAsync({
             key: "branding.stamp",
-            value: "",
-            delete: true,
-          }),
-        );
-      }
-
-      if (stamp2Preview) {
-        mutations.push(
-          saveBrandingMutation.mutateAsync({
-            key: "branding.stamp2",
-            value: stamp2Preview,
-            description: "Second stamp image for membership cards (base64)",
-          }),
-        );
-      } else {
-        mutations.push(
-          saveBrandingMutation.mutateAsync({
-            key: "branding.stamp2",
             value: "",
             delete: true,
           }),
@@ -2044,7 +2001,7 @@ export default function AdminSettings() {
                   <Separator />
 
                   <div>
-                    <Label>Stamp 1 / Seal Watermark</Label>
+                    <Label>Seal Watermark</Label>
                     <p className="text-xs text-muted-foreground mb-3">
                       Upload a circular stamp or seal image (recommended:
                       transparent PNG, max 500KB)
@@ -2077,7 +2034,7 @@ export default function AdminSettings() {
                           onClick={() => stampInputRef.current?.click()}
                           data-testid="button-upload-stamp"
                         >
-                          <Upload className="mr-2 h-4 w-4" /> Choose Stamp 1
+                          <Upload className="mr-2 h-4 w-4" /> Choose Seal
                         </Button>
                         {stampPreview && (
                           <Button
@@ -2093,57 +2050,6 @@ export default function AdminSettings() {
                     </div>
                   </div>
 
-                  <Separator />
-
-                  <div>
-                    <Label>Stamp 2 / Second Seal</Label>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Upload a second stamp or seal image for membership cards
-                      (recommended: transparent PNG, max 500KB)
-                    </p>
-                    <div className="flex items-start gap-4">
-                      <div className="w-24 h-24 border-2 border-dashed border-zinc-300 rounded-full flex items-center justify-center bg-zinc-50 overflow-hidden">
-                        {stamp2Preview ? (
-                          <img
-                            src={stamp2Preview}
-                            alt="Stamp 2 preview"
-                            className="w-full h-full object-contain p-1"
-                          />
-                        ) : (
-                          <span className="text-xs text-zinc-400 text-center px-2">
-                            No Stamp
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <input
-                          type="file"
-                          ref={stamp2InputRef}
-                          onChange={handleStamp2Change}
-                          accept="image/png,image/jpeg"
-                          className="hidden"
-                          data-testid="input-stamp2-file"
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() => stamp2InputRef.current?.click()}
-                          data-testid="button-upload-stamp2"
-                        >
-                          <Upload className="mr-2 h-4 w-4" /> Choose Stamp 2
-                        </Button>
-                        {stamp2Preview && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setStamp2Preview(null)}
-                            data-testid="button-remove-stamp2"
-                          >
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">
