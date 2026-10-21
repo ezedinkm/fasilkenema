@@ -23,6 +23,7 @@ import {
   watchReviews,
   LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
   PUBLIC_SITE_BASE_URL_SETTING_KEY,
+  SMS_ICONIC_SETTING_KEYS,
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
 import { fromZodError } from "zod-validation-error";
@@ -3169,7 +3170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/settings", authenticateToken, async (req, res) => {
     try {
-      const settings = await storage.getSettings();
+      const settings = (await storage.getSettings()).filter(
+        (setting) => setting.key !== SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted,
+      );
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
@@ -3220,6 +3223,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/settings/:key", async (req, res) => {
     try {
+      if (req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
       const setting = await storage.getSettingByKey(req.params.key);
       if (!setting) {
         return res.status(404).json({ error: "Setting not found" });
@@ -3238,6 +3244,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(400)
           .json({ error: fromZodError(validation.error).message });
       }
+      if (validation.data.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted) {
+        return res
+          .status(403)
+          .json({ error: "Use the protected SMS credential endpoint." });
+      }
       const setting = await storage.upsertSetting(validation.data);
       res.json(setting);
     } catch (error) {
@@ -3247,6 +3258,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/settings/:key", authenticateToken, async (req, res) => {
     try {
+      if (req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted) {
+        return res
+          .status(403)
+          .json({ error: "Use the protected SMS credential endpoint." });
+      }
       const success = await storage.deleteSetting(req.params.key);
       if (!success) {
         return res.status(404).json({ error: "Setting not found" });

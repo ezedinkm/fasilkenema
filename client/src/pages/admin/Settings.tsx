@@ -204,6 +204,8 @@ export default function AdminSettings() {
   const [chapaKeysConfigured, setChapaKeysConfigured] = useState(false);
 
   const [iconicSmsSenderId, setIconicSmsSenderId] = useState("");
+  const [iconicSmsApiKey, setIconicSmsApiKey] = useState("");
+  const [isSavingSmsSettings, setIsSavingSmsSettings] = useState(false);
   const [publicSiteBaseUrl, setPublicSiteBaseUrl] = useState("");
 
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
@@ -213,7 +215,10 @@ export default function AdminSettings() {
   });
 
   const { data: smsProviderStatus, refetch: refetchSmsProviderStatus } =
-    useQuery<{ apiKeyConfigured: boolean }>({
+    useQuery<{
+      apiKeyConfigured: boolean;
+      keySource: "settings" | "environment" | "none";
+    }>({
       queryKey: ["/api/admin/sms/provider-status"],
       enabled: !!token,
       queryFn: async () => {
@@ -1228,7 +1233,24 @@ export default function AdminSettings() {
   };
 
   const handleSaveSmsGatewaySettings = async () => {
+    setIsSavingSmsSettings(true);
     try {
+      const apiKey = iconicSmsApiKey.trim();
+      if (apiKey) {
+        const response = await fetch("/api/admin/sms/api-key", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ apiKey }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to save IconicSMS API key");
+        }
+      }
+
       const senderId = iconicSmsSenderId.trim();
       await saveBrandingMutation.mutateAsync(
         senderId
@@ -1251,19 +1273,57 @@ export default function AdminSettings() {
       await queryClient.invalidateQueries({
         queryKey: ["/api/settings"],
       });
-      await refetchSmsProviderStatus();
+      setIconicSmsApiKey("");
+      const refreshedStatus = await refetchSmsProviderStatus();
       toast({
         title: "SMS settings saved",
-        description: smsProviderStatus?.apiKeyConfigured
+        description: refreshedStatus.data?.apiKeyConfigured
           ? "IconicSMS is ready to accept messages."
-          : "Add ICONIC_SMS_API_KEY in Replit Secrets to enable SMS sending.",
+          : "Add an IconicSMS API key to enable SMS sending.",
       });
-    } catch {
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save SMS gateway settings",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save SMS gateway settings",
         variant: "destructive",
       });
+    } finally {
+      setIsSavingSmsSettings(false);
+    }
+  };
+
+  const handleRemoveSavedSmsApiKey = async () => {
+    setIsSavingSmsSettings(true);
+    try {
+      const response = await fetch("/api/admin/sms/api-key", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to remove saved API key");
+      }
+      const refreshedStatus = await refetchSmsProviderStatus();
+      toast({
+        title: "Saved API key removed",
+        description: refreshedStatus.data?.apiKeyConfigured
+          ? "IconicSMS will use the Replit Secret key."
+          : "No IconicSMS API key is configured.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to remove saved API key",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSmsSettings(false);
     }
   };
 
@@ -2468,11 +2528,11 @@ export default function AdminSettings() {
                     IconicSMS Integration
                   </h4>
                   <p className="text-xs text-blue-700">
-                    SMS is sent through IconicSMS. Add{" "}
-                    <span className="font-medium">ICONIC_SMS_API_KEY</span> to
-                    Replit Secrets, then optionally set an approved sender ID
-                    in the <span className="font-medium">Payments &amp; SMS</span>{" "}
-                    tab.
+                    SMS is sent through IconicSMS. Add the key in the{" "}
+                    <span className="font-medium">Payments &amp; SMS</span> tab
+                    or set <span className="font-medium">ICONIC_SMS_API_KEY</span>{" "}
+                    in Replit Secrets. You can also set an approved sender ID
+                    there.
                   </p>
                 </div>
               </CardContent>
@@ -2819,6 +2879,44 @@ export default function AdminSettings() {
 
                       <div className="grid gap-3 border-t border-zinc-200/60 pt-4">
                         <div className="grid gap-2">
+                          <Label htmlFor="iconic-sms-api-key">
+                            IconicSMS API key
+                          </Label>
+                          <Input
+                            id="iconic-sms-api-key"
+                            type="password"
+                            value={iconicSmsApiKey}
+                            onChange={(e) =>
+                              setIconicSmsApiKey(e.target.value)
+                            }
+                            placeholder={
+                              smsProviderStatus?.apiKeyConfigured
+                                ? "Configured — enter a new key to replace"
+                                : "Enter your IconicSMS API key"
+                            }
+                            className="font-mono text-sm"
+                            data-testid="input-iconic-sms-api-key"
+                            autoComplete="new-password"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            The saved key is encrypted on the server and is
+                            never shown again. Leave blank to keep the current
+                            key.
+                          </p>
+                          {smsProviderStatus?.keySource === "settings" && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="justify-self-start"
+                              onClick={() => void handleRemoveSavedSmsApiKey()}
+                              disabled={isSavingSmsSettings}
+                            >
+                              Remove saved API key
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid gap-2">
                           <Label htmlFor="iconic-sms-sender">
                             Sender ID (optional)
                           </Label>
@@ -2838,10 +2936,10 @@ export default function AdminSettings() {
                       </div>
 
                       <p className="text-xs text-muted-foreground border-t border-zinc-200/60 pt-3">
-                        Store the API key as the Replit Secret{" "}
-                        <span className="font-mono">ICONIC_SMS_API_KEY</span>.
-                        The key stays on the server; without a sender ID,
-                        IconicSMS uses your account default.
+                        You can save a key here or use the Replit Secret{" "}
+                        <span className="font-mono">ICONIC_SMS_API_KEY</span> as
+                        a fallback. Without a sender ID, IconicSMS uses your
+                        account default.
                       </p>
                     </div>
                   </div>
@@ -2862,11 +2960,13 @@ export default function AdminSettings() {
                   variant="outline"
                   className="w-full sm:w-auto sm:min-w-[11rem] order-2 sm:order-2"
                   onClick={handleSaveSmsGatewaySettings}
-                  disabled={saveBrandingMutation.isPending}
+                  disabled={
+                    saveBrandingMutation.isPending || isSavingSmsSettings
+                  }
                   data-testid="button-save-sms-gateway"
                 >
                   <MessageSquare className="mr-2 h-4 w-4 shrink-0" />
-                  Save SMS gateway
+                  {isSavingSmsSettings ? "Saving..." : "Save SMS gateway"}
                 </Button>
                 <Button
                   className="w-full sm:w-auto sm:min-w-[11rem] bg-primary hover:bg-primary/90 order-1 sm:order-3"

@@ -3,6 +3,12 @@ import {
   normalizeEthiopianMobileLocal,
 } from "@shared/ethiopianPhone";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+} from "node:crypto";
 
 interface SendSmsResult {
   success: boolean;
@@ -30,6 +36,112 @@ export type OtpPurpose = "registration" | "password_reset";
 
 const ICONIC_SMS_SEND_URL = "https://api.iconicsms.et/api/v1/sms/send";
 const SMS_FETCH_MS = 28_000;
+const ICONIC_SMS_KEY_ENCRYPTION_VERSION = 1;
+
+type EncryptedIconicSmsKey = {
+  version: 1;
+  iv: string;
+  authTag: string;
+  ciphertext: string;
+};
+
+function getIconicSmsEncryptionKey(): Buffer {
+  const masterKey = String(process.env.CHAPA_ENCRYPTION_KEY ?? "").trim();
+  if (!masterKey) {
+    throw new Error("SMS API key encryption is not configured");
+  }
+
+  return createHash("sha256")
+    .update("fasil-club:iconic-sms-api-key:v1:")
+    .update(masterKey)
+    .digest();
+}
+
+export function encryptIconicSmsApiKey(apiKey: string): EncryptedIconicSmsKey {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv(
+    "aes-256-gcm",
+    getIconicSmsEncryptionKey(),
+    iv,
+  );
+  const ciphertext = Buffer.concat([
+    cipher.update(apiKey, "utf8"),
+    cipher.final(),
+  ]);
+
+  return {
+    version: ICONIC_SMS_KEY_ENCRYPTION_VERSION,
+    iv: iv.toString("base64"),
+    authTag: cipher.getAuthTag().toString("base64"),
+    ciphertext: ciphertext.toString("base64"),
+  };
+}
+
+export function decryptIconicSmsApiKey(value: unknown): string {
+  if (!value || typeof value !== "object") {
+    throw new Error("Invalid saved IconicSMS API key");
+  }
+  const encrypted = value as Partial<EncryptedIconicSmsKey>;
+  if (
+    encrypted.version !== ICONIC_SMS_KEY_ENCRYPTION_VERSION ||
+    typeof encrypted.iv !== "string" ||
+    typeof encrypted.authTag !== "string" ||
+    typeof encrypted.ciphertext !== "string"
+  ) {
+    throw new Error("Invalid saved IconicSMS API key");
+  }
+
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    getIconicSmsEncryptionKey(),
+    Buffer.from(encrypted.iv, "base64"),
+  );
+  decipher.setAuthTag(Buffer.from(encrypted.authTag, "base64"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(encrypted.ciphertext, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
+}
+
+type IconicSmsCredential = {
+  apiKey: string;
+  source: "settings" | "environment" | "none";
+};
+
+async function getIconicSmsCredential(): Promise<IconicSmsCredential> {
+  const { storage } = await import("./storage");
+  const savedKey = await storage.getSettingByKey(
+    SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted,
+  );
+
+  if (savedKey) {
+    return {
+      apiKey: decryptIconicSmsApiKey(savedKey.value).trim(),
+      source: "settings",
+    };
+  }
+
+  const environmentKey = String(process.env.ICONIC_SMS_API_KEY ?? "").trim();
+  return {
+    apiKey: environmentKey,
+    source: environmentKey ? "environment" : "none",
+  };
+}
+
+export async function getIconicSmsApiKeyStatus(): Promise<{
+  apiKeyConfigured: boolean;
+  keySource: "settings" | "environment" | "none";
+}> {
+  try {
+    const credential = await getIconicSmsCredential();
+    return {
+      apiKeyConfigured: Boolean(credential.apiKey),
+      keySource: credential.source,
+    };
+  } catch {
+    return { apiKeyConfigured: false, keySource: "none" };
+  }
+}
 
 function otpPurposeToCategory(purpose: OtpPurpose): SmsOutboundCategory {
   return purpose === "password_reset"
@@ -101,7 +213,13 @@ export async function sendSms(
   message: string,
   options?: SendSmsOptions,
 ): Promise<SendSmsResult> {
-  const apiKey = String(process.env.ICONIC_SMS_API_KEY ?? "").trim();
+  let apiKey: string;
+  try {
+    apiKey = (await getIconicSmsCredential()).apiKey;
+  } catch {
+    console.error("[iconicSms] Saved API key could not be decrypted");
+    return { success: false, error: "SMS configuration error" };
+  }
   if (!apiKey) return { success: false, error: "SMS not configured" };
 
   const recipient = formatEthiopianPhone(phone);

@@ -233,6 +233,7 @@ export type Setting = typeof settings.$inferSelect;
 
 export const SMS_ICONIC_SETTING_KEYS = {
   senderId: "sms.iconic.shortcodeId",
+  apiKeyEncrypted: "sms.iconic.apiKeyEncrypted",
 } as const;
 
 export const PUBLIC_SITE_BASE_URL_SETTING_KEY = "public.siteBaseUrl";

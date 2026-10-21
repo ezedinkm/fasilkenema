@@ -3,7 +3,11 @@ import { asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import { authenticateToken } from "./middleware/authMiddleware";
-import { sendSms } from "./iconicSms";
+import {
+  encryptIconicSmsApiKey,
+  getIconicSmsApiKeyStatus,
+  sendSms,
+} from "./iconicSms";
 import { storage } from "./storage";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
 import { upload } from "./middleware/multerConfig";
@@ -261,14 +265,51 @@ export function registerAdminRoutes(app: Express): void {
         );
         res.json({
           provider: "IconicSMS",
-          apiKeyConfigured: Boolean(
-            String(process.env.ICONIC_SMS_API_KEY ?? "").trim(),
-          ),
+          ...await getIconicSmsApiKeyStatus(),
           senderId: String(senderSetting?.value ?? ""),
         });
       } catch (error) {
         console.error("[adminroute] SMS provider status", error);
         res.status(500).json({ error: "Failed to read SMS provider status" });
+      }
+    },
+  );
+  app.put(
+    "/api/admin/sms/api-key",
+    authenticateToken,
+    async (req, res) => {
+      const apiKey = String(req.body?.apiKey ?? "").trim();
+      if (!apiKey || apiKey.length > 4096) {
+        return res.status(400).json({
+          error: "Enter an IconicSMS API key up to 4096 characters long.",
+        });
+      }
+
+      try {
+        await storage.upsertSetting({
+          key: SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted,
+          value: encryptIconicSmsApiKey(apiKey),
+          description: "Encrypted IconicSMS API key",
+        });
+        res.json({ success: true, configured: true });
+      } catch (error) {
+        console.error("[adminroute] Failed to save IconicSMS API key");
+        res.status(500).json({ error: "Failed to save IconicSMS API key" });
+      }
+    },
+  );
+  app.delete(
+    "/api/admin/sms/api-key",
+    authenticateToken,
+    async (_req, res) => {
+      try {
+        const deleted = await storage.deleteSetting(
+          SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted,
+        );
+        const status = await getIconicSmsApiKeyStatus();
+        res.json({ success: true, deleted, ...status });
+      } catch {
+        res.status(500).json({ error: "Failed to remove saved SMS API key" });
       }
     },
   );
