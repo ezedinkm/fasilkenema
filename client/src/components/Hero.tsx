@@ -4,21 +4,30 @@ import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getLocalAssetUrl } from "@/lib/localAssets";
+import cityRunImage from "@/assets/banner/city-run.webp";
+import paradeImage from "@/assets/banner/gondar-parade.webp";
+import stadiumImage from "@/assets/banner/stadium-support.webp";
+import fanRunImage from "@/assets/banner/fan-run.webp";
+import teamCastleImage from "@/assets/banner/team-castle.webp";
+import teamArchiveImage from "@/assets/banner/team-archive-2009.webp";
 
-const Banner1 = getLocalAssetUrl("banner/Banner1.jpg");
-const Banner2 = getLocalAssetUrl("banner/Banner2.jpg");
+const HERO_IMAGES = [
+  cityRunImage,
+  paradeImage,
+  stadiumImage,
+  fanRunImage,
+  teamCastleImage,
+  teamArchiveImage,
+];
 
-const HERO_SLIDES = [
+const HERO_CONTENT = [
   {
-    image: Banner1,
     title: "We Are",
     highlight: "FASIL S.C",
     subtitle:
       "Join the official FASIL S.C fan community and be part of Ethiopian football excellence.",
   },
   {
-    image: Banner2,
     title: "Welcome To",
     highlight: "Our Home",
     subtitle:
@@ -29,19 +38,19 @@ const HERO_SLIDES = [
 export default function Hero() {
   const { t } = useApp();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const currentContent = HERO_CONTENT[currentSlide % HERO_CONTENT.length];
 
   useEffect(() => {
     // Preload banners so slide background switches feel instant.
-    HERO_SLIDES.forEach((slide) => {
-      if (!slide.image) return;
+    HERO_IMAGES.forEach((image) => {
       const img = new Image();
-      img.src = slide.image;
+      img.src = image;
     });
   }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
@@ -53,24 +62,24 @@ export default function Hero() {
 
   const prevSlide = () => {
     setCurrentSlide(
-      (prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length,
+      (prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
     );
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
   };
 
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-black pb-10">
-      {HERO_SLIDES.map((slide, index) => slide.image && (
+      {HERO_IMAGES.map((image, index) => (
         <motion.div
-          key={slide.title}
+          key={image}
           initial={false}
           animate={{ opacity: index === currentSlide ? 0.6 : 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${slide.image})` }}
+          style={{ backgroundImage: `url(${image})` }}
         />
       ))}
 
@@ -88,14 +97,14 @@ export default function Hero() {
           </span>
 
           <h1 className="font-heading text-4xl md:text-6xl lg:text-6xl font-black text-white leading-[0.85] mb-6 uppercase tracking-tighter">
-            {HERO_SLIDES[currentSlide].title} <br />
+            {currentContent.title} <br />
             <span className="text-red-600 drop-shadow-2xl">
-              {HERO_SLIDES[currentSlide].highlight}
+              {currentContent.highlight}
             </span>
           </h1>
 
           <p className="text-xl md:text-2xl lg:text-3xl text-gray-100 mb-10 max-w-3xl font-light border-l-4 border-red-600 pl-8 leading-relaxed">
-            {HERO_SLIDES[currentSlide].subtitle}
+            {currentContent.subtitle}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -136,7 +145,7 @@ export default function Hero() {
       </button>
 
       <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-        {HERO_SLIDES.map((_, index) => (
+        {HERO_IMAGES.map((_, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
