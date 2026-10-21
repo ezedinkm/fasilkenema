@@ -36,6 +36,7 @@ export type OtpPurpose = "registration" | "password_reset";
 
 const ICONIC_SMS_SEND_URL = "https://api.iconicsms.et/api/v1/sms/send";
 const ICONIC_SMS_BALANCE_URL = "https://api.iconicsms.et/api/v1/balance";
+const FASIL_WEBSITE_URL = "https://fasilkenemasc.et/";
 const SMS_FETCH_MS = 28_000;
 const ICONIC_SMS_KEY_ENCRYPTION_VERSION = 1;
 
@@ -276,6 +277,18 @@ async function persistOutboundSms(params: {
   }
 }
 
+function appendFasilWebsiteLink(message: string): string {
+  const trimmedMessage = message.trim();
+  const alreadyHasWebsite = /(?:https?:\/\/)?(?:www\.)?fasilkenemasc\.et(?:[/?#\s]|$)/i.test(
+    trimmedMessage,
+  );
+
+  if (alreadyHasWebsite) return trimmedMessage;
+  return trimmedMessage
+    ? `${trimmedMessage}\n${FASIL_WEBSITE_URL}`
+    : FASIL_WEBSITE_URL;
+}
+
 /** A successful result means IconicSMS accepted the SMS into its queue. */
 export async function sendSms(
   phone: string,
@@ -291,17 +304,26 @@ export async function sendSms(
   }
   if (!apiKey) return { success: false, error: "SMS not configured" };
 
+  const outgoingMessage = appendFasilWebsiteLink(message);
   const recipient = formatEthiopianPhone(phone);
   const category = options?.category ?? "general";
   const shouldLog = options?.skipDbLog !== true;
   const log = async (status: "sent" | "failed") => {
     if (shouldLog) {
-      await persistOutboundSms({ recipient, message, status, category });
+      await persistOutboundSms({
+        recipient,
+        message: outgoingMessage,
+        status,
+        category,
+      });
     }
   };
 
   const senderId = await getSenderId();
-  const body: Record<string, string> = { phone: recipient, msg: message };
+  const body: Record<string, string> = {
+    phone: recipient,
+    msg: outgoingMessage,
+  };
   if (senderId) body.shortcode_id = senderId;
 
   const controller = new AbortController();
