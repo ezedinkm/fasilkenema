@@ -55,6 +55,12 @@ import { registerAdminAccessRoutes } from "./adminAccessRoutes";
 import { recordAdminAuditEvent } from "./adminAudit";
 import { isAdminRole } from "@shared/adminAccess";
 import { getResendEmailConfig, sendResendTestEmail } from "./email";
+import {
+  getResendApiKeyStatus,
+  removeResendApiKey,
+  RESEND_API_KEY_SETTING_KEY,
+  saveResendApiKey,
+} from "./resendCredentials";
 import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
@@ -3540,7 +3546,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticateAdminPermission("settings"),
     async (_req, res) => {
       try {
-        res.json(await getResendEmailConfig());
+        const [config, credentialStatus] = await Promise.all([
+          getResendEmailConfig(),
+          getResendApiKeyStatus(),
+        ]);
+        res.json({ ...config, ...credentialStatus });
       } catch (error) {
         console.error("Failed to load Resend email configuration:", error);
         res.status(500).json({ error: "Failed to load email configuration" });
@@ -3560,6 +3570,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             z.literal(""),
             z.string().trim().email().max(254),
           ]),
+          apiKey: z.string().trim().max(500).optional(),
+          clearApiKey: z.boolean().optional(),
         })
         .safeParse(req.body);
 
@@ -3569,13 +3581,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: fromZodError(validation.error).message });
       }
 
+      const apiKey = validation.data.apiKey?.trim() || "";
+      const clearApiKey = validation.data.clearApiKey === true;
+      if (apiKey && clearApiKey) {
+        return res.status(400).json({
+          error: "Choose either a new API key or the connected Replit integration.",
+        });
+      }
+
       try {
+        if (clearApiKey) {
+          await removeResendApiKey();
+        } else if (apiKey) {
+          await saveResendApiKey(apiKey);
+        }
+
         await storage.upsertSetting({
           key: "email.resend.config",
-          value: validation.data,
+          value: {
+            fromName: validation.data.fromName,
+            fromEmail: validation.data.fromEmail,
+            replyTo: validation.data.replyTo,
+          },
           description: "Resend sender name, verified sender, and reply-to",
         });
-        res.json(validation.data);
+        const credentialStatus = await getResendApiKeyStatus();
+        res.json({
+          fromName: validation.data.fromName,
+          fromEmail: validation.data.fromEmail,
+          replyTo: validation.data.replyTo,
+          ...credentialStatus,
+        });
       } catch (error) {
         console.error("Failed to save Resend email configuration:", error);
         res.status(500).json({ error: "Failed to save email configuration" });
@@ -3610,6 +3646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = (await storage.getSettings()).filter(
         (setting) =>
+          setting.key !== RESEND_API_KEY_SETTING_KEY &&
           setting.key !== "branding.stamp2" &&
           setting.key !== SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted &&
           setting.key !== "email.resend.config",
@@ -3666,6 +3703,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (
         req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted ||
+        req.params.key === RESEND_API_KEY_SETTING_KEY ||
         req.params.key === "email.resend.config"
       ) {
         return res.status(404).json({ error: "Setting not found" });
@@ -3692,6 +3730,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(403)
           .json({ error: "Use the protected SMS credential endpoint." });
+      }
+      if (validation.data.key === RESEND_API_KEY_SETTING_KEY) {
+        return res
+          .status(403)
+          .json({ error: "Use the protected Resend configuration endpoint." });
       }
       if (validation.data.key === "email.resend.config") {
         return res.status(403).json({
@@ -3728,6 +3771,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(403)
           .json({ error: "Use the protected SMS credential endpoint." });
+      }
+      if (req.params.key === RESEND_API_KEY_SETTING_KEY) {
+        return res
+          .status(403)
+          .json({ error: "Use the protected Resend configuration endpoint." });
       }
       if (req.params.key === "email.resend.config") {
         return res.status(403).json({

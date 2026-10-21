@@ -187,6 +187,8 @@ export default function AdminSettings() {
   const [resendFromName, setResendFromName] = useState("");
   const [resendFromEmail, setResendFromEmail] = useState("");
   const [resendReplyTo, setResendReplyTo] = useState("");
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [clearResendApiKey, setClearResendApiKey] = useState(false);
   const [resendTestRecipient, setResendTestRecipient] = useState("");
   const [isSavingResendConfig, setIsSavingResendConfig] = useState(false);
   const [isSendingResendTest, setIsSendingResendTest] = useState(false);
@@ -241,7 +243,13 @@ export default function AdminSettings() {
     data: resendEmailConfig,
     refetch: refetchResendEmailConfig,
     isLoading: isLoadingResendEmailConfig,
-  } = useQuery<{ fromName: string; fromEmail: string; replyTo: string }>({
+  } = useQuery<{
+    fromName: string;
+    fromEmail: string;
+    replyTo: string;
+    apiKeyConfigured: boolean;
+    credentialSource: "admin" | "replit";
+  }>({
     queryKey: ["/api/admin/email/resend-config"],
     enabled: !!token,
     queryFn: async () => {
@@ -258,7 +266,9 @@ export default function AdminSettings() {
     !!resendEmailConfig &&
     (resendFromName.trim() !== resendEmailConfig.fromName ||
       resendFromEmail.trim() !== resendEmailConfig.fromEmail ||
-      resendReplyTo.trim() !== resendEmailConfig.replyTo);
+      resendReplyTo.trim() !== resendEmailConfig.replyTo ||
+      Boolean(resendApiKey.trim()) ||
+      clearResendApiKey);
 
   const { data: membershipTiersData, refetch: refetchMembershipTiers } =
     useQuery<any[]>({
@@ -1113,16 +1123,20 @@ export default function AdminSettings() {
           fromName: resendFromName,
           fromEmail: resendFromEmail,
           replyTo: resendReplyTo,
+          apiKey: resendApiKey.trim(),
+          clearApiKey: clearResendApiKey,
         }),
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         throw new Error(result.error || "Failed to save Resend configuration");
       }
+      setResendApiKey("");
+      setClearResendApiKey(false);
       await refetchResendEmailConfig();
       toast({
         title: "Resend Settings Saved",
-        description: "Sender details will be used for outgoing emails.",
+        description: "Resend credentials and sender details have been saved.",
       });
     } catch (error) {
       toast({
@@ -2712,9 +2726,64 @@ export default function AdminSettings() {
                       verified in Resend.
                     </p>
                     <p className="text-xs text-purple-800">
-                      The Resend API credential stays in the connected Replit
-                      integration and is never shown or stored on this page.
+                      Add a Resend API key here to use it for outgoing email.
+                      The key is encrypted on the server and never shown again.
+                      Leave it blank to keep the current key; without a saved
+                      key, the connected Replit integration is used.
                     </p>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="resend-api-key">Resend API key</Label>
+                    <Input
+                      id="resend-api-key"
+                      type="password"
+                      autoComplete="new-password"
+                      spellCheck={false}
+                      value={resendApiKey}
+                      onChange={(event) => {
+                        setResendApiKey(event.target.value);
+                        if (event.target.value) setClearResendApiKey(false);
+                      }}
+                      placeholder={
+                        resendEmailConfig?.apiKeyConfigured
+                          ? "Configured — enter a new key to replace"
+                          : "Paste your Resend API key"
+                      }
+                      maxLength={500}
+                      disabled={isLoadingResendEmailConfig}
+                      data-testid="input-resend-api-key"
+                    />
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs text-purple-800">
+                        {resendEmailConfig?.apiKeyConfigured
+                          ? "An admin-managed key is configured."
+                          : "No admin-managed key is saved; the Replit integration is used."}
+                      </p>
+                      {resendEmailConfig?.apiKeyConfigured && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setResendApiKey("");
+                            setClearResendApiKey((clearing) => !clearing);
+                          }}
+                          disabled={isLoadingResendEmailConfig}
+                          data-testid="button-resend-use-replit-integration"
+                        >
+                          {clearResendApiKey
+                            ? "Keep saved key"
+                            : "Use Replit integration"}
+                        </Button>
+                      )}
+                    </div>
+                    {clearResendApiKey && (
+                      <p className="text-xs text-amber-800">
+                        Save settings to remove the saved key and switch back
+                        to the Replit integration.
+                      </p>
+                    )}
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">

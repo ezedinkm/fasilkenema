@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { storage } from "./storage";
+import { getSavedResendApiKey } from "./resendCredentials";
 
 interface SendEmailResult {
   success: boolean;
@@ -54,10 +55,11 @@ function formatFromAddress(config: ResendEmailConfig): string {
   return name ? `${name} <${config.fromEmail}>` : config.fromEmail;
 }
 
-function getResend(): Resend {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
+async function getResend(): Promise<Resend> {
+  const savedApiKey = await getSavedResendApiKey();
+  const apiKey = savedApiKey?.trim() || process.env.RESEND_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error("RESEND_API_KEY is not set");
+    throw new Error("Resend API key is not configured");
   }
   return new Resend(apiKey);
 }
@@ -66,7 +68,7 @@ async function resendRequest(
   path: string,
   body: unknown,
 ): Promise<Record<string, any>> {
-  const resend = getResend();
+  const resend = await getResend();
 
   if (path === "/emails") {
     const payload = body as {
