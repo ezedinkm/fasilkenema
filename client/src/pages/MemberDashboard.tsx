@@ -1,5 +1,6 @@
 import PublicLayout from "@/components/PublicLayout";
 import { ASSETS } from "@/lib/mockData";
+import cardBackground from "@/assets/card-bg.jpg";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
@@ -204,7 +205,7 @@ export default function MemberDashboard() {
           >
             <div className="relative h-full">
               <img
-                src="/card-bg.jpg"
+                src={cardBackground}
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover"
               />

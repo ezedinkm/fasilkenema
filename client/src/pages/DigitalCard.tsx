@@ -1,5 +1,6 @@
 import PublicLayout from "@/components/PublicLayout";
 import { ASSETS } from "@/lib/mockData";
+import cardBackground from "@/assets/card-bg.jpg";
 import QRCode from "react-qr-code";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -193,7 +194,7 @@ export default function DigitalCard() {
             style={{ width: "540px", height: "340px" }}
           >
             <img
-              src="/card-bg.jpg"
+              src={cardBackground}
               alt=""
               className="absolute inset-0 w-full h-full object-cover"
             />

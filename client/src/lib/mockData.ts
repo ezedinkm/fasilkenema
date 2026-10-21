@@ -1,3 +1,5 @@
+import fasilLogo from "@/assets/fasillogo.png";
+
 import { getLocalAssetUrl } from "./localAssets";
 
 export const LANGUAGES = [
@@ -194,7 +196,7 @@ export const NEWS_POSTS = [
 ];
 
 export const ASSETS = {
-  logo: "/fasillogo.png",
+  logo: fasilLogo,
   hero: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80",
 };
 
