@@ -1,2 +1,3 @@
 - [Database schema updates](database-schema-updates.md) — Drizzle push encounters existing name conflicts; isolate additive changes rather than forcing unrelated renames.
 - [Safe Drizzle schema pushes](safe-drizzle-push.md) — verify key uniqueness and choose no-truncate when Drizzle warns on populated tables.
+- [Safe npm lockfile recovery](safe-npm-lockfile-recovery.md) — keep Express’s resolved proxy-addr release patched; the firewall blocks the vulnerable lock.

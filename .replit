@@ -58,3 +58,7 @@ JWT_SECRET = "fasil-kenema-fc-secure-jwt-secret-key-2024-emperors"
 
 [userenv.production]
 APP_BASE_URL = "https://mechalfc.com"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000
