@@ -1,5 +1,5 @@
-modules = ["nodejs-20", "web", "python-base-3.13", "postgresql-16"]
-run = "npm run dev"
+modules = ["nodejs-20", "web", "postgresql-16", "python-base-3.13"]
+run = "DATABASE_URL=\"$NEON_DATABASE_URL\" npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -41,8 +41,11 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "DATABASE_URL=\"$NEON_DATABASE_URL\" npm run dev"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [agent]
 mockupState = "FULLSTACK"
