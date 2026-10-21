@@ -511,6 +511,21 @@ function buildNavLinks(t: (key: string) => string): NavLinkItem[] {
   ];
 }
 
+const TOP_NOTICE_DISMISSED_STORAGE_KEY = "fasil-site-top-notice-dismissed";
+
+function isSafeAnnouncementHref(value: string): boolean {
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      Boolean(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function Navbar() {
   const [location, setLocation] = useLocation();
   const { language, setLanguage, t } = useApp();
@@ -520,6 +535,14 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFeedback, setSearchFeedback] = useState<string | null>(null);
+  const [dismissedTopNoticeRevision, setDismissedTopNoticeRevision] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      return window.localStorage.getItem(TOP_NOTICE_DISMISSED_STORAGE_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -528,8 +551,40 @@ export default function Navbar() {
 
   const { data: settings } = useQuery<any[]>({
     queryKey: ['/api/public/settings'],
-    staleTime: Infinity,
+    staleTime: 30_000,
   });
+
+  const topNoticeSetting = Array.isArray(settings)
+    ? settings.find((setting: any) => setting.key === "home.topNotice")
+    : undefined;
+  const topNotice =
+    topNoticeSetting?.value &&
+    typeof topNoticeSetting.value === "object" &&
+    !Array.isArray(topNoticeSetting.value)
+      ? topNoticeSetting.value
+      : {};
+  const topNoticeText =
+    typeof topNotice.text === "string" ? topNotice.text.trim() : "";
+  const topNoticeButtonText =
+    typeof topNotice.buttonText === "string"
+      ? topNotice.buttonText.trim()
+      : "";
+  const topNoticeLinkUrl =
+    typeof topNotice.linkUrl === "string" ? topNotice.linkUrl.trim() : "";
+  const topNoticeRevision = [
+    String(topNoticeSetting?.updatedAt ?? ""),
+    topNoticeText,
+    topNoticeButtonText,
+    topNoticeLinkUrl,
+  ].join("|");
+  const showTopNotice =
+    topNotice.enabled === true &&
+    Boolean(topNoticeText) &&
+    dismissedTopNoticeRevision !== topNoticeRevision;
+  const showTopNoticeButton =
+    Boolean(topNoticeButtonText) &&
+    Boolean(topNoticeLinkUrl) &&
+    isSafeAnnouncementHref(topNoticeLinkUrl);
 
   const brandingSettings = {
     headerText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.headerText')?.value : null) || 'FASIL S.C',
@@ -632,9 +687,49 @@ export default function Navbar() {
 
   const currentLang = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
 
+  const dismissTopNotice = () => {
+    try {
+      window.localStorage.setItem(
+        TOP_NOTICE_DISMISSED_STORAGE_KEY,
+        topNoticeRevision,
+      );
+    } catch {
+      // Keep the announcement dismissible if browser storage is unavailable.
+    }
+    setDismissedTopNoticeRevision(topNoticeRevision);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full shrink-0 bg-red-600 shadow-lg pt-4">
   {/* <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div> */}
+
+      {showTopNotice && (
+        <div className="border-b border-amber-300/80 bg-amber-300 text-zinc-950">
+          <div className="container flex max-w-screen-2xl flex-col gap-3 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="min-w-0 flex-1 text-sm font-medium leading-snug">
+              {topNoticeText}
+            </p>
+            <div className="flex shrink-0 items-center justify-between gap-2 sm:justify-end">
+              {showTopNoticeButton && (
+                <a
+                  href={topNoticeLinkUrl}
+                  className="inline-flex min-h-9 items-center justify-center rounded-md bg-zinc-950 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white transition-colors hover:bg-zinc-800"
+                >
+                  {topNoticeButtonText}
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={dismissTopNotice}
+                aria-label="Dismiss announcement"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-zinc-800 transition-colors hover:bg-black/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top tier: secondary / utility bar — red bg, white text */}
       <div className="w-full h-9 border-b border-red-500/50">

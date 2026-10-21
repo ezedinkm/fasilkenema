@@ -85,6 +85,7 @@ export function canAccessAdminPermission(
 export function getAdminPagePermission(path: string): AdminPermission | null {
   const pagePermissions: Record<string, AdminPermission> = {
     "/admin/dashboard": "dashboard",
+    "/admin/server-monitor": "settings",
     "/admin/members": "members",
     "/admin/payments": "payments",
     "/admin/content": "content",

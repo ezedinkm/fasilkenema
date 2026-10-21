@@ -26,6 +26,8 @@ import {
   postCategories,
   LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
   PUBLIC_SITE_BASE_URL_SETTING_KEY,
+  SITE_POPUP_SETTING_KEY,
+  TOP_NOTICE_SETTING_KEY,
   SMS_ICONIC_SETTING_KEYS,
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
@@ -51,6 +53,7 @@ import { upload, uploadsDir } from "./middleware/multerConfig";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
 import { registerNewsletterRoutes } from "./newsletterRoutes";
+import { registerAnalyticsRoutes } from "./analyticsRoutes";
 import { registerAdminAccessRoutes } from "./adminAccessRoutes";
 import { recordAdminAuditEvent } from "./adminAudit";
 import { isAdminRole } from "@shared/adminAccess";
@@ -65,6 +68,35 @@ import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
 type OtpPurpose = "registration" | "password_reset";
+
+const topNoticeSettingSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().trim().max(400),
+  buttonText: z.string().trim().max(40),
+  linkUrl: z.string().trim().max(2048),
+});
+
+const sitePopupSettingSchema = z.object({
+  enabled: z.boolean(),
+  text: z.string().trim().max(600),
+  imageUrl: z.string().trim().max(2048),
+  buttonText: z.string().trim().max(40),
+  linkUrl: z.string().trim().max(2048),
+});
+
+function isSafeTopNoticeLink(value: string): boolean {
+  if (!value) return true;
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    const url = new URL(value);
+    return (
+      (url.protocol === "https:" || url.protocol === "http:") &&
+      Boolean(url.hostname)
+    );
+  } catch {
+    return false;
+  }
+}
 
 type ChapaConfig = {
   publicKey: string;
@@ -335,6 +367,7 @@ function parseSettingValue(value: any): any {
 }
 
 function normalizeBillingCycle(raw: unknown): "annual" | "monthly" {
+  // Keep honoring the cycle stored on older, already-created payment records.
   return String(raw || "").toLowerCase() === "monthly" ? "monthly" : "annual";
 }
 
@@ -521,6 +554,71 @@ function queueMemberRenewalThankYouSms(
 }
 
 type ChapaReturnKind = "donation" | "membership" | "renewal";
+
+const FALLBACK_PUBLIC_SITE_ORIGIN = "https://fasilkenemasc.et";
+const SITEMAP_STATIC_PATHS = [
+  "/",
+  "/about",
+  "/stadium",
+  "/contact",
+  "/careers",
+  "/media",
+  "/blog",
+  "/news",
+  "/membership",
+  "/donate",
+  "/gonder",
+  "/shopping",
+  "/partners",
+  "/privacy-policy",
+  "/terms-of-service",
+  "/programs",
+  "/programs/basketball",
+  "/programs/boxing",
+  "/programs/handball",
+  "/programs/charity",
+  "/team/men",
+  "/team/women",
+  "/team/junior",
+  "/team/trophies",
+  "/epl",
+  "/women-fasil",
+  "/junior-fasil",
+  "/meetings-events",
+] as const;
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+async function getCanonicalPublicSiteOrigin(): Promise<string> {
+  const baseUrlSetting =
+    (await storage.getSettingByKey(PUBLIC_SITE_BASE_URL_SETTING_KEY)) ??
+    (await storage.getSettingByKey(LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY));
+  const fromDb = String(parseSettingValue(baseUrlSetting?.value) ?? "").trim();
+  const candidate =
+    fromDb || String(process.env.APP_BASE_URL ?? "").trim() || FALLBACK_PUBLIC_SITE_ORIGIN;
+
+  try {
+    const parsed = new URL(candidate);
+    if (
+      (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+      !parsed.username &&
+      !parsed.password
+    ) {
+      return parsed.origin;
+    }
+  } catch {
+    // Fall back to the club's canonical public origin when a setting is invalid.
+  }
+
+  return FALLBACK_PUBLIC_SITE_ORIGIN;
+}
 
 async function getPublicBaseUrlFromRequest(req: Request): Promise<string> {
   const baseUrlSetting =
@@ -828,11 +926,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/uploads", express.default.static(uploadsDir));
 
   registerAdminAccessRoutes(app);
+  registerAnalyticsRoutes(app);
   registerTeamAdminRoutes(app);
   registerAdminRoutes(app);
   registerNewsletterRoutes(app);
   app.use("/api", eplRoutes);
   app.use("/api", scrapeRoutes);
+
+  app.get("/robots.txt", async (_req, res) => {
+    const siteOrigin = await getCanonicalPublicSiteOrigin();
+    res
+      .type("text/plain")
+      .set("Cache-Control", "public, max-age=300")
+      .send(
+        [
+          "User-agent: *",
+          "Allow: /",
+          "Disallow: /admin/",
+          "Disallow: /member/",
+          "Disallow: /api/",
+          `Sitemap: ${siteOrigin}/sitemap.xml`,
+          "",
+        ].join("\n"),
+      );
+  });
+
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const siteOrigin = await getCanonicalPublicSiteOrigin();
+      const publishedPosts = (await storage.getPosts()).filter(
+        (post) => post.status === "published" && post.slug.trim().length > 0,
+      );
+      const staticEntries = SITEMAP_STATIC_PATHS.map(
+        (path) =>
+          `  <url><loc>${escapeXml(`${siteOrigin}${path}`)}</loc></url>`,
+      );
+      const postEntries = publishedPosts.map((post) => {
+        const loc = `${siteOrigin}/blog/${encodeURIComponent(post.slug)}`;
+        const modifiedAt = post.publishedAt ?? post.updatedAt;
+        const lastmod = modifiedAt
+          ? `<lastmod>${new Date(modifiedAt).toISOString().slice(0, 10)}</lastmod>`
+          : "";
+        return `  <url><loc>${escapeXml(loc)}</loc>${lastmod}</url>`;
+      });
+
+      res
+        .type("application/xml")
+        .set("Cache-Control", "public, max-age=300")
+        .send(
+          [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            ...staticEntries,
+            ...postEntries,
+            "</urlset>",
+            "",
+          ].join("\n"),
+        );
+    } catch (error) {
+      console.error("Failed to generate sitemap:", error);
+      res.status(500).type("text/plain").send("Unable to generate sitemap");
+    }
+  });
 
   app.post("/api/upload", upload.single("photo"), (req, res) => {
     try {
@@ -860,8 +1015,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amharicVersion: tier.amharicVersion,
         priceEtb: Number(tier.priceEtb),
         priceUsd: Number(tier.priceUsd),
-        monthlyPriceEtb: Number((tier as any).monthlyPriceEtb ?? 0),
-        monthlyPriceUsd: Number((tier as any).monthlyPriceUsd ?? 0),
         frontBackgroundUrl: tier.frontBackgroundUrl ?? null,
       }));
 
@@ -1474,7 +1627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Member not found" });
       }
 
-      const { currency, membershipTier, billingCycle, chapaPhone } =
+      const { currency, membershipTier, chapaPhone } =
         req.body || {};
       if (!membershipTier) {
         return res.status(400).json({ error: "membershipTier is required" });
@@ -1486,7 +1639,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(400)
           .json({ error: "Invalid currency. Use ETB or USD." });
       }
-      const normalizedBillingCycle = normalizeBillingCycle(billingCycle);
+      const normalizedBillingCycle = "annual" as const;
 
       const tierRows = await db
         .select()
@@ -1499,18 +1652,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const tierAmountRaw =
         paymentCurrency === "USD"
-          ? Number(
-              normalizedBillingCycle === "monthly"
-                ? ((selectedTier as any).monthlyPriceUsd ??
-                    selectedTier.priceUsd)
-                : selectedTier.priceUsd,
-            )
-          : Number(
-              normalizedBillingCycle === "monthly"
-                ? ((selectedTier as any).monthlyPriceEtb ??
-                    selectedTier.priceEtb)
-                : selectedTier.priceEtb,
-            );
+          ? Number(selectedTier.priceUsd)
+          : Number(selectedTier.priceEtb);
       if (!Number.isFinite(tierAmountRaw) || tierAmountRaw <= 0) {
         return res
           .status(400)
@@ -2106,7 +2249,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city,
         country,
         membershipTier,
-        billingCycle,
       } = req.body;
       console.log("Request body this is :", req.body);
       if (
@@ -2146,7 +2288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Invalid currency. Use ETB or USD." });
       }
 
-      const normalizedBillingCycle = normalizeBillingCycle(billingCycle);
+      const normalizedBillingCycle = "annual" as const;
 
       const tierRows = await db
         .select()
@@ -2159,18 +2301,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const tierAmountRaw =
         paymentCurrency === "USD"
-          ? Number(
-              normalizedBillingCycle === "monthly"
-                ? ((selectedTier as any).monthlyPriceUsd ??
-                    selectedTier.priceUsd)
-                : selectedTier.priceUsd,
-            )
-          : Number(
-              normalizedBillingCycle === "monthly"
-                ? ((selectedTier as any).monthlyPriceEtb ??
-                    selectedTier.priceEtb)
-                : selectedTier.priceEtb,
-            );
+          ? Number(selectedTier.priceUsd)
+          : Number(selectedTier.priceEtb);
       if (!Number.isFinite(tierAmountRaw) || tierAmountRaw <= 0) {
         return res
           .status(400)
@@ -3740,6 +3872,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({
           error: "Use the protected Resend configuration endpoint.",
         });
+      }
+
+      if (validation.data.key === TOP_NOTICE_SETTING_KEY) {
+        const notice = topNoticeSettingSchema.safeParse(validation.data.value);
+        if (!notice.success) {
+          return res.status(400).json({
+            error: fromZodError(notice.error).message,
+          });
+        }
+        if (notice.data.enabled && !notice.data.text) {
+          return res.status(400).json({
+            error: "Enter announcement text before enabling the top bar.",
+          });
+        }
+        if (Boolean(notice.data.buttonText) !== Boolean(notice.data.linkUrl)) {
+          return res.status(400).json({
+            error: "Enter both a button label and destination, or leave both blank.",
+          });
+        }
+        if (!isSafeTopNoticeLink(notice.data.linkUrl)) {
+          return res.status(400).json({
+            error: "Use an http(s) link or a site path beginning with /.",
+          });
+        }
+        const setting = await storage.upsertSetting({
+          ...validation.data,
+          value: notice.data,
+        });
+        return res.json(setting);
+      }
+
+      if (validation.data.key === SITE_POPUP_SETTING_KEY) {
+        const popup = sitePopupSettingSchema.safeParse(validation.data.value);
+        if (!popup.success) {
+          return res.status(400).json({
+            error: fromZodError(popup.error).message,
+          });
+        }
+        if (
+          popup.data.enabled &&
+          (!popup.data.text || !popup.data.imageUrl || !popup.data.linkUrl)
+        ) {
+          return res.status(400).json({
+            error: "Add popup text, an image URL, and a destination link before enabling it.",
+          });
+        }
+        if (
+          (popup.data.imageUrl && !isSafeTopNoticeLink(popup.data.imageUrl)) ||
+          (popup.data.linkUrl && !isSafeTopNoticeLink(popup.data.linkUrl))
+        ) {
+          return res.status(400).json({
+            error: "Use http(s) URLs or site paths beginning with / for the image and destination.",
+          });
+        }
+        if (popup.data.buttonText && !popup.data.linkUrl) {
+          return res.status(400).json({
+            error: "Add a destination link for the popup button.",
+          });
+        }
+        const setting = await storage.upsertSetting({
+          ...validation.data,
+          value: popup.data,
+        });
+        return res.json(setting);
       }
 
       if (validation.data.key === "social.links") {

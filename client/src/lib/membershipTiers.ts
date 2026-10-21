@@ -6,7 +6,6 @@ export interface MembershipTier {
   amharicVersion: string;
   frontBackgroundUrl?: string | null;
   price: { etb: number; usd: number };
-  monthlyPrice: { etb: number; usd: number };
   benefits: string[];
   color: string;
   recommended: boolean;
@@ -17,8 +16,6 @@ interface MembershipTierApiRow {
   amharicVersion?: string;
   priceEtb: number | string;
   priceUsd: number | string;
-  monthlyPriceEtb?: number | string;
-  monthlyPriceUsd?: number | string;
   frontBackgroundUrl?: string | null;
 }
 
@@ -48,7 +45,7 @@ const levelThemeById: Record<string, string> = {
 const benefitsByTierId: Record<string, string[]> = {
   "tewodros-level": [
     "Official digital membership card",
-    "Monthly supporters-only update email",
+    "Supporters-only update emails",
     "Early notice for club campaigns",
   ],
   "platinum-level": [
@@ -135,10 +132,6 @@ export async function getMembershipTiers(): Promise<MembershipTier[]> {
       price: {
         etb: Number(row.priceEtb) || 0,
         usd: Number(row.priceUsd) || 0,
-      },
-      monthlyPrice: {
-        etb: Number(row.monthlyPriceEtb) || 0,
-        usd: Number(row.monthlyPriceUsd) || 0,
       },
       benefits: benefitsByTierId[id] ?? [
         "Official digital membership card",

@@ -18,30 +18,20 @@ interface MembershipCardProps {
     name: string;
     amharicVersion?: string;
     price: { etb: number; usd: number };
-    monthlyPrice?: { etb: number; usd: number };
     benefits: string[];
     color: string;
     recommended: boolean;
   };
   currency: "etb" | "usd";
-  billingCycle?: "annual" | "monthly";
 }
 
-export default function MembershipCard({
-  tier,
-  currency,
-  billingCycle = "annual",
-}: MembershipCardProps) {
+export default function MembershipCard({ tier, currency }: MembershipCardProps) {
   const [, setLocation] = useLocation();
-  const selectedPrice =
-    billingCycle === "monthly" ? (tier.monthlyPrice ?? tier.price) : tier.price;
   const price =
-    currency === "etb" ? `${selectedPrice.etb} ETB` : `$${selectedPrice.usd}`;
+    currency === "etb" ? `${tier.price.etb} ETB` : `$${tier.price.usd}`;
 
   const handleSelect = () => {
-    setLocation(
-      `/membership/register?tier=${tier.id}&currency=${currency}&billing=${billingCycle}`,
-    );
+    setLocation(`/membership/register?tier=${tier.id}&currency=${currency}`);
   };
 
   return (
@@ -79,16 +69,14 @@ export default function MembershipCard({
             </p>
           )}
           <CardDescription className="mt-2 text-lg font-medium text-zinc-500">
-            {billingCycle === "monthly"
-              ? "Monthly Membership"
-              : "Annual Membership"}
+            Annual Membership
           </CardDescription>
           <div className="mt-5">
             <span className="font-display text-5xl font-bold text-zinc-950">
               {price}
             </span>
             <span className="text-base font-normal text-zinc-600">
-              {billingCycle === "monthly" ? "/month" : "/year"}
+              /year
             </span>
           </div>
         </CardHeader>

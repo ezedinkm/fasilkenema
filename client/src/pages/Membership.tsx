@@ -10,7 +10,6 @@ interface MembershipTier {
   name: string;
   amharicVersion?: string;
   price: { etb: number; usd: number };
-  monthlyPrice?: { etb: number; usd: number };
   benefits: string[];
   color: string;
   recommended: boolean;
@@ -18,9 +17,6 @@ interface MembershipTier {
 
 export default function Membership() {
   const [currency, setCurrency] = useState<"etb" | "usd">("etb");
-  const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">(
-    "annual",
-  );
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,26 +36,11 @@ export default function Membership() {
 
   const sortedTiers = useMemo(() => {
     return [...tiers].sort((a, b) => {
-      const aPrice =
-        billingCycle === "monthly"
-          ? currency === "etb"
-            ? (a.monthlyPrice?.etb ?? a.price.etb)
-            : (a.monthlyPrice?.usd ?? a.price.usd)
-          : currency === "etb"
-            ? a.price.etb
-            : a.price.usd;
-      const bPrice =
-        billingCycle === "monthly"
-          ? currency === "etb"
-            ? (b.monthlyPrice?.etb ?? b.price.etb)
-            : (b.monthlyPrice?.usd ?? b.price.usd)
-          : currency === "etb"
-            ? b.price.etb
-            : b.price.usd;
-
+      const aPrice = currency === "etb" ? a.price.etb : a.price.usd;
+      const bPrice = currency === "etb" ? b.price.etb : b.price.usd;
       return bPrice - aPrice;
     });
-  }, [tiers, currency, billingCycle]);
+  }, [tiers, currency]);
 
   return (
     <PublicLayout>
@@ -100,28 +81,6 @@ export default function Membership() {
               USD
             </Label>
           </div>
-          <div className="flex justify-center items-center space-x-4 mb-12 bg-white border border-zinc-200 rounded-xl px-6 py-4 max-w-md mx-auto shadow-sm">
-            <Label
-              htmlFor="billing-mode"
-              className={`text-lg font-bold ${billingCycle === "annual" ? "text-primary" : "text-muted-foreground"}`}
-            >
-              Annual
-            </Label>
-            <Switch
-              id="billing-mode"
-              checked={billingCycle === "monthly"}
-              onCheckedChange={(checked) =>
-                setBillingCycle(checked ? "monthly" : "annual")
-              }
-            />
-            <Label
-              htmlFor="billing-mode"
-              className={`text-lg font-bold ${billingCycle === "monthly" ? "text-primary" : "text-muted-foreground"}`}
-            >
-              Monthly
-            </Label>
-          </div>
-
           {loading ? (
             <div className="text-center py-12">
               Loading membership options...
@@ -136,7 +95,6 @@ export default function Membership() {
                   <MembershipCard
                     tier={tier}
                     currency={currency}
-                    billingCycle={billingCycle}
                   />
                 </div>
               ))}

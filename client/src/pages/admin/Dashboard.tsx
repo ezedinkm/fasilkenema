@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import VisitorAnalytics from "@/components/admin/VisitorAnalytics";
+import SearchConsoleSetup from "@/components/admin/SearchConsoleSetup";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, CreditCard, DollarSign } from "lucide-react";
 import {
@@ -209,6 +211,9 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <VisitorAnalytics />
+        <SearchConsoleSetup />
       </div>
     </AdminLayout>
   );

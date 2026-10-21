@@ -187,24 +187,19 @@ function getProviderError(payload: any, status: number): string {
   return `IconicSMS request failed (HTTP ${status})`;
 }
 
-export async function testIconicSmsConnection(): Promise<{
-  success: boolean;
-  message: string;
-}> {
+type IconicSmsBalancePayloadResult =
+  | { success: true; payload: any }
+  | { success: false; message: string };
+
+async function fetchIconicSmsBalancePayload(): Promise<IconicSmsBalancePayloadResult> {
   let apiKey: string;
   try {
     apiKey = (await getIconicSmsCredential()).apiKey;
   } catch {
-    return {
-      success: false,
-      message: "The saved SMS API key could not be read. Replace it in Settings.",
-    };
+    return { success: false, message: "The saved SMS API key could not be read. Replace it in Settings." };
   }
   if (!apiKey) {
-    return {
-      success: false,
-      message: "No IconicSMS API key is configured.",
-    };
+    return { success: false, message: "No IconicSMS API key is configured." };
   }
 
   const controller = new AbortController();
@@ -234,25 +229,115 @@ export async function testIconicSmsConnection(): Promise<{
         message: /invalid|missing/i.test(providerError) &&
           /api.?key|token/i.test(providerError)
           ? "IconicSMS rejected this API key. Replace it with the key from Developer → API Keys."
-          : `IconicSMS connection check failed (HTTP ${response.status}).`,
+          : `IconicSMS balance lookup failed (HTTP ${response.status}).`,
       };
     }
 
-    return {
-      success: true,
-      message: "IconicSMS accepted the API key. No SMS was sent by this check.",
-    };
+    return { success: true, payload };
   } catch (error) {
     return {
       success: false,
       message:
         error instanceof Error && /abort/i.test(error.name)
-          ? "IconicSMS connection check timed out."
+          ? "IconicSMS balance lookup timed out."
           : "Could not reach IconicSMS. Try again shortly.",
     };
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function parseBalanceValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().replace(/,/g, "");
+  if (!normalized || !/^[+-]?(?:\d+\.?\d*|\.\d+)$/.test(normalized)) {
+    return null;
+  }
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function extractIconicSmsBalance(payload: any): {
+  balance: number;
+  currency: string;
+} | null {
+  const candidates = [
+    payload?.data?.balance,
+    payload?.data?.available_balance,
+    payload?.data?.availableBalance,
+    payload?.data?.credits,
+    payload?.balance,
+    payload?.available_balance,
+    payload?.availableBalance,
+    payload?.credits,
+    payload?.data,
+  ];
+
+  for (const candidate of candidates) {
+    const value =
+      candidate && typeof candidate === "object"
+        ? candidate.amount ??
+          candidate.value ??
+          candidate.balance ??
+          candidate.available_balance ??
+          candidate.availableBalance ??
+          candidate.credits
+        : candidate;
+    const balance = parseBalanceValue(value);
+    if (balance === null) continue;
+
+    const currencyValue =
+      (candidate && typeof candidate === "object"
+        ? candidate.currency ?? candidate.unit
+        : undefined) ??
+      payload?.data?.currency ??
+      payload?.currency ??
+      "ETB";
+    const currency = String(currencyValue).trim().toUpperCase() || "ETB";
+    return { balance, currency };
+  }
+
+  return null;
+}
+
+export async function getIconicSmsBalance(): Promise<{
+  success: boolean;
+  balance?: number;
+  currency?: string;
+  checkedAt?: string;
+  message: string;
+}> {
+  const result = await fetchIconicSmsBalancePayload();
+  if (!result.success) return result;
+
+  const parsed = extractIconicSmsBalance(result.payload);
+  if (!parsed) {
+    return {
+      success: false,
+      message: "IconicSMS responded, but its balance value was not recognized.",
+    };
+  }
+
+  return {
+    success: true,
+    ...parsed,
+    checkedAt: new Date().toISOString(),
+    message: "Balance retrieved.",
+  };
+}
+
+export async function testIconicSmsConnection(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  const result = await fetchIconicSmsBalancePayload();
+  return result.success
+    ? {
+        success: true,
+        message: "IconicSMS accepted the API key. No SMS was sent by this check.",
+      }
+    : result;
 }
 
 async function persistOutboundSms(params: {

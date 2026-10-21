@@ -9,6 +9,7 @@ import express, {
 import bcrypt from "bcryptjs";
 import { registerRoutes } from "./routes";
 import { storage } from "./storage";
+import { serverMonitoringMiddleware } from "./serverMonitoring";
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -68,6 +69,7 @@ app.use((req, res, next) => {
 
   next();
 });
+app.use(serverMonitoringMiddleware);
 
 async function ensureAdminExists() {
   try {

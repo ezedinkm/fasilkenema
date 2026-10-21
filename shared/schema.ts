@@ -130,6 +130,59 @@ export const insertDonationSchema = createInsertSchema(donations).omit({
 export type InsertDonation = z.infer<typeof insertDonationSchema>;
 export type Donation = typeof donations.$inferSelect;
 
+export const visitorPageviews = pgTable(
+  "visitor_pageviews",
+  {
+    id: serial("id").primaryKey(),
+    sessionHash: varchar("session_hash", { length: 64 }).notNull(),
+    pagePath: varchar("page_path", { length: 512 }).notNull(),
+    referrerHost: varchar("referrer_host", { length: 255 }),
+    deviceCategory: varchar("device_category", { length: 16 })
+      .notNull()
+      .default("unknown"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("visitor_pageviews_created_at_idx").on(table.createdAt),
+    index("visitor_pageviews_session_created_idx").on(
+      table.sessionHash,
+      table.createdAt,
+    ),
+    index("visitor_pageviews_page_created_idx").on(
+      table.pagePath,
+      table.createdAt,
+    ),
+    index("visitor_pageviews_referrer_created_idx").on(
+      table.referrerHost,
+      table.createdAt,
+    ),
+  ],
+);
+
+export const visitorSessions = pgTable(
+  "visitor_sessions",
+  {
+    sessionHash: varchar("session_hash", { length: 64 }).primaryKey(),
+    currentPagePath: varchar("current_page_path", { length: 512 }).notNull(),
+    referrerHost: varchar("referrer_host", { length: 255 }),
+    deviceCategory: varchar("device_category", { length: 16 })
+      .notNull()
+      .default("unknown"),
+    startedAt: timestamp("started_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("visitor_sessions_last_seen_idx").on(table.lastSeenAt),
+    index("visitor_sessions_started_at_idx").on(table.startedAt),
+  ],
+);
+
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   slug: text("slug").notNull().unique(),
@@ -350,6 +403,8 @@ export const SMS_ICONIC_SETTING_KEYS = {
 } as const;
 
 export const PUBLIC_SITE_BASE_URL_SETTING_KEY = "public.siteBaseUrl";
+export const TOP_NOTICE_SETTING_KEY = "home.topNotice";
+export const SITE_POPUP_SETTING_KEY = "home.sitePopup";
 /** Legacy key is retained only as a read fallback for Chapa return URLs. */
 export const LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY = "sms.geez.baseUrl";
 

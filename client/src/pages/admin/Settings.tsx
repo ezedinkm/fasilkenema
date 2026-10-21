@@ -1,6 +1,7 @@
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,11 +30,14 @@ import {
   MessageSquare,
   CreditCard,
   Globe,
+  Megaphone,
 } from "lucide-react";
 import {
   LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
   PUBLIC_SITE_BASE_URL_SETTING_KEY,
+  SITE_POPUP_SETTING_KEY,
   SMS_ICONIC_SETTING_KEYS,
+  TOP_NOTICE_SETTING_KEY,
 } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import {
@@ -64,28 +68,17 @@ function isValidHttpOrHttpsUrl(value: string): boolean {
   }
 }
 
-type TierPriceField =
-  | "priceEtb"
-  | "priceUsd"
-  | "monthlyPriceEtb"
-  | "monthlyPriceUsd";
+type TierPriceField = "priceEtb" | "priceUsd";
 
-const TIER_PRICE_FIELDS: TierPriceField[] = [
-  "priceEtb",
-  "priceUsd",
-  "monthlyPriceEtb",
-  "monthlyPriceUsd",
-];
+const TIER_PRICE_FIELDS: TierPriceField[] = ["priceEtb", "priceUsd"];
 
 const TIER_PRICE_LABELS: [TierPriceField, string][] = [
   ["priceEtb", "Annual Price (ETB)"],
   ["priceUsd", "Annual Price (USD)"],
-  ["monthlyPriceEtb", "Monthly Price (ETB)"],
-  ["monthlyPriceUsd", "Monthly Price (USD)"],
 ];
 
 function isUsdTierField(field: TierPriceField): boolean {
-  return field === "priceUsd" || field === "monthlyPriceUsd";
+  return field === "priceUsd";
 }
 
 /** Whole ETB amounts: digits only, preserves leading zeros while typing. */
@@ -130,8 +123,6 @@ export default function AdminSettings() {
       amharicVersion: string;
       priceEtb: number;
       priceUsd: number;
-      monthlyPriceEtb: number;
-      monthlyPriceUsd: number;
       frontBackgroundUrl: string;
     }[]
   >([]);
@@ -144,8 +135,6 @@ export default function AdminSettings() {
     amharicVersion: "",
     priceEtb: "",
     priceUsd: "",
-    monthlyPriceEtb: "",
-    monthlyPriceUsd: "",
     frontBackgroundUrl: "",
   });
   /** String drafts while editing tier prices (keeps leading zeros until blur / Done). */
@@ -184,6 +173,17 @@ export default function AdminSettings() {
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] =
     useState(true);
   const [newEmail, setNewEmail] = useState("");
+  const [topNoticeEnabled, setTopNoticeEnabled] = useState(false);
+  const [topNoticeText, setTopNoticeText] = useState("");
+  const [topNoticeButtonText, setTopNoticeButtonText] = useState("");
+  const [topNoticeLinkUrl, setTopNoticeLinkUrl] = useState("");
+  const [isSavingTopNotice, setIsSavingTopNotice] = useState(false);
+  const [sitePopupEnabled, setSitePopupEnabled] = useState(false);
+  const [sitePopupText, setSitePopupText] = useState("");
+  const [sitePopupImageUrl, setSitePopupImageUrl] = useState("");
+  const [sitePopupButtonText, setSitePopupButtonText] = useState("");
+  const [sitePopupLinkUrl, setSitePopupLinkUrl] = useState("");
+  const [isSavingSitePopup, setIsSavingSitePopup] = useState(false);
   const [resendFromName, setResendFromName] = useState("");
   const [resendFromEmail, setResendFromEmail] = useState("");
   const [resendReplyTo, setResendReplyTo] = useState("");
@@ -318,8 +318,6 @@ export default function AdminSettings() {
           amharicVersion: String(tier.amharicVersion ?? ""),
           priceEtb: Number(tier.priceEtb) || 0,
           priceUsd: Number(tier.priceUsd) || 0,
-          monthlyPriceEtb: Number(tier.monthlyPriceEtb) || 0,
-          monthlyPriceUsd: Number(tier.monthlyPriceUsd) || 0,
           frontBackgroundUrl: String(tier.frontBackgroundUrl ?? ""),
         })),
       );
@@ -490,6 +488,35 @@ export default function AdminSettings() {
         );
       setIconicSmsSenderId(String(senderIdSetting?.value ?? ""));
       setPublicSiteBaseUrl(String(publicBaseUrlSetting?.value ?? "").trim());
+
+      const topNoticeSetting = settings.find(
+        (s: any) => s.key === TOP_NOTICE_SETTING_KEY,
+      );
+      const topNotice =
+        topNoticeSetting?.value &&
+        typeof topNoticeSetting.value === "object" &&
+        !Array.isArray(topNoticeSetting.value)
+          ? topNoticeSetting.value
+          : {};
+      setTopNoticeEnabled(topNotice.enabled === true);
+      setTopNoticeText(String(topNotice.text ?? ""));
+      setTopNoticeButtonText(String(topNotice.buttonText ?? ""));
+      setTopNoticeLinkUrl(String(topNotice.linkUrl ?? ""));
+
+      const sitePopupSetting = settings.find(
+        (s: any) => s.key === SITE_POPUP_SETTING_KEY,
+      );
+      const sitePopup =
+        sitePopupSetting?.value &&
+        typeof sitePopupSetting.value === "object" &&
+        !Array.isArray(sitePopupSetting.value)
+          ? sitePopupSetting.value
+          : {};
+      setSitePopupEnabled(sitePopup.enabled === true);
+      setSitePopupText(String(sitePopup.text ?? ""));
+      setSitePopupImageUrl(String(sitePopup.imageUrl ?? ""));
+      setSitePopupButtonText(String(sitePopup.buttonText ?? ""));
+      setSitePopupLinkUrl(String(sitePopup.linkUrl ?? ""));
     }
   }, [settings]);
 
@@ -541,6 +568,7 @@ export default function AdminSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/settings"] });
     },
   });
 
@@ -586,8 +614,6 @@ export default function AdminSettings() {
     const amharicVersion = newTier.amharicVersion.trim();
     const priceEtb = parseInt(newTier.priceEtb) || 0;
     const priceUsd = parseFloat(newTier.priceUsd) || 0;
-    const monthlyPriceEtb = parseInt(newTier.monthlyPriceEtb) || 0;
-    const monthlyPriceUsd = parseFloat(newTier.monthlyPriceUsd) || 0;
 
     if (!id) {
       toast({
@@ -618,8 +644,6 @@ export default function AdminSettings() {
           amharicVersion,
           priceEtb,
           priceUsd,
-          monthlyPriceEtb,
-          monthlyPriceUsd,
           frontBackgroundUrl: newTier.frontBackgroundUrl || null,
         }),
       });
@@ -633,8 +657,6 @@ export default function AdminSettings() {
         amharicVersion: "",
         priceEtb: "",
         priceUsd: "",
-        monthlyPriceEtb: "",
-        monthlyPriceUsd: "",
         frontBackgroundUrl: "",
       });
       setIsAddTierOpen(false);
@@ -705,8 +727,6 @@ export default function AdminSettings() {
               amharicVersion: tier.amharicVersion,
               priceEtb: tier.priceEtb,
               priceUsd: tier.priceUsd,
-              monthlyPriceEtb: tier.monthlyPriceEtb,
-              monthlyPriceUsd: tier.monthlyPriceUsd,
               frontBackgroundUrl: tier.frontBackgroundUrl || null,
             }),
           }).then(async (response) => {
@@ -1100,6 +1120,171 @@ export default function AdminSettings() {
         description: "Failed to save notification settings",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleSaveTopNotice = async () => {
+    const text = topNoticeText.trim();
+    const buttonText = topNoticeButtonText.trim();
+    const linkUrl = topNoticeLinkUrl.trim();
+
+    if (topNoticeEnabled && !text) {
+      toast({
+        title: "Announcement text required",
+        description: "Add announcement text before turning the top bar on.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (Boolean(buttonText) !== Boolean(linkUrl)) {
+      toast({
+        title: "Complete the announcement button",
+        description: "Enter both a button label and link, or leave both blank.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingTopNotice(true);
+    try {
+      await saveBrandingMutation.mutateAsync({
+        key: TOP_NOTICE_SETTING_KEY,
+        value: { enabled: topNoticeEnabled, text, buttonText, linkUrl },
+        description: "Public website top-bar announcement",
+      });
+      toast({
+        title: "Announcement saved",
+        description: topNoticeEnabled
+          ? "The top-bar announcement is live on the public website."
+          : "The top-bar announcement is saved but hidden.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not save announcement",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please check the text and link, then try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingTopNotice(false);
+    }
+  };
+
+  const handleRemoveTopNotice = async () => {
+    if (
+      !window.confirm(
+        "Remove the announcement and its button from the public website?",
+      )
+    ) {
+      return;
+    }
+    setIsSavingTopNotice(true);
+    try {
+      await saveBrandingMutation.mutateAsync({
+        key: TOP_NOTICE_SETTING_KEY,
+        value: null,
+        delete: true,
+      });
+      setTopNoticeEnabled(false);
+      setTopNoticeText("");
+      setTopNoticeButtonText("");
+      setTopNoticeLinkUrl("");
+      toast({
+        title: "Announcement removed",
+        description: "It is no longer shown on the public website.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not remove announcement",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingTopNotice(false);
+    }
+  };
+
+  const handleSaveSitePopup = async () => {
+    const text = sitePopupText.trim();
+    const imageUrl = sitePopupImageUrl.trim();
+    const buttonText = sitePopupButtonText.trim();
+    const linkUrl = sitePopupLinkUrl.trim();
+
+    if (sitePopupEnabled && (!text || !imageUrl || !linkUrl)) {
+      toast({
+        title: "Complete the popup details",
+        description:
+          "Add text, an image URL, and a destination link before enabling the popup.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingSitePopup(true);
+    try {
+      await saveBrandingMutation.mutateAsync({
+        key: SITE_POPUP_SETTING_KEY,
+        value: { enabled: sitePopupEnabled, text, imageUrl, buttonText, linkUrl },
+        description: "Public website popup notification",
+      });
+      toast({
+        title: "Popup notification saved",
+        description: sitePopupEnabled
+          ? "It will appear to visitors who have not dismissed this version."
+          : "The popup is saved but hidden.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not save popup",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Check the image and destination URLs, then try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSitePopup(false);
+    }
+  };
+
+  const handleRemoveSitePopup = async () => {
+    if (
+      !window.confirm(
+        "Remove this popup notification from the public website?",
+      )
+    ) {
+      return;
+    }
+    setIsSavingSitePopup(true);
+    try {
+      await saveBrandingMutation.mutateAsync({
+        key: SITE_POPUP_SETTING_KEY,
+        value: null,
+        delete: true,
+      });
+      setSitePopupEnabled(false);
+      setSitePopupText("");
+      setSitePopupImageUrl("");
+      setSitePopupButtonText("");
+      setSitePopupLinkUrl("");
+      toast({
+        title: "Popup notification removed",
+        description: "It is no longer shown on the public website.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not remove popup",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingSitePopup(false);
     }
   };
 
@@ -2084,7 +2269,7 @@ export default function AdminSettings() {
                 <div>
                   <CardTitle>Membership Tiers & Pricing</CardTitle>
                   <CardDescription>
-                    Update annual and monthly membership pricing.
+                    Set annual membership prices in ETB and USD.
                   </CardDescription>
                 </div>
                 <Dialog open={isAddTierOpen} onOpenChange={setIsAddTierOpen}>
@@ -2152,44 +2337,6 @@ export default function AdminSettings() {
                               setNewTier({
                                 ...newTier,
                                 priceUsd: sanitizeMoneyDecimalInput(
-                                  e.target.value,
-                                ),
-                              })
-                            }
-                            placeholder="0"
-                            className="tabular-nums"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Monthly Price (ETB)</Label>
-                          <Input
-                            type="text"
-                            inputMode="numeric"
-                            autoComplete="off"
-                            value={newTier.monthlyPriceEtb}
-                            onChange={(e) =>
-                              setNewTier({
-                                ...newTier,
-                                monthlyPriceEtb: sanitizeMoneyIntegerInput(
-                                  e.target.value,
-                                ),
-                              })
-                            }
-                            placeholder="0"
-                            className="tabular-nums"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Monthly Price (USD)</Label>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            autoComplete="off"
-                            value={newTier.monthlyPriceUsd}
-                            onChange={(e) =>
-                              setNewTier({
-                                ...newTier,
-                                monthlyPriceUsd: sanitizeMoneyDecimalInput(
                                   e.target.value,
                                 ),
                               })
@@ -2616,6 +2763,255 @@ export default function AdminSettings() {
                   </p>
                 </div>
               </CardContent>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Megaphone className="h-5 w-5" />
+                  Website top-bar announcement
+                </CardTitle>
+                <CardDescription>
+                  Show a short announcement above the site navigation. Visitors
+                  can dismiss it with the close button.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="top-notice-enabled">
+                      Show announcement on the website
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Turning this off hides it without deleting your text.
+                    </p>
+                  </div>
+                  <Switch
+                    id="top-notice-enabled"
+                    checked={topNoticeEnabled}
+                    onCheckedChange={setTopNoticeEnabled}
+                    disabled={isSavingTopNotice}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="top-notice-text">Announcement text</Label>
+                  <Textarea
+                    id="top-notice-text"
+                    value={topNoticeText}
+                    onChange={(event) => setTopNoticeText(event.target.value)}
+                    placeholder="Share an important update with website visitors"
+                    maxLength={400}
+                    rows={3}
+                    disabled={isSavingTopNotice}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {topNoticeText.length}/400 characters
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="top-notice-button-text">
+                      Button label (optional)
+                    </Label>
+                    <Input
+                      id="top-notice-button-text"
+                      value={topNoticeButtonText}
+                      onChange={(event) =>
+                        setTopNoticeButtonText(event.target.value)
+                      }
+                      placeholder="Learn more"
+                      maxLength={40}
+                      disabled={isSavingTopNotice}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="top-notice-link-url">
+                      Button link (optional)
+                    </Label>
+                    <Input
+                      id="top-notice-link-url"
+                      type="url"
+                      inputMode="url"
+                      value={topNoticeLinkUrl}
+                      onChange={(event) =>
+                        setTopNoticeLinkUrl(event.target.value)
+                      }
+                      placeholder="/news or https://example.com"
+                      maxLength={2048}
+                      disabled={isSavingTopNotice}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use a site path or an http(s) link. Add both the label and
+                      link to show the button.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex flex-col gap-3 border-t bg-zinc-50 sm:flex-row sm:justify-end">
+                {settings?.some(
+                  (setting: any) => setting.key === TOP_NOTICE_SETTING_KEY,
+                ) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleRemoveTopNotice()}
+                    disabled={isSavingTopNotice}
+                    className="w-full sm:w-auto"
+                  >
+                    Remove announcement
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={() => void handleSaveTopNotice()}
+                  disabled={isSavingTopNotice}
+                  className="w-full sm:w-auto"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSavingTopNotice ? "Saving…" : "Save announcement"}
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ImageIcon className="h-5 w-5" />
+                  Website popup notification
+                </CardTitle>
+                <CardDescription>
+                  Publish a dismissible popup with an image, message, and
+                  destination link. Visitors see it once until you update it.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="site-popup-enabled">
+                      Show popup to website visitors
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Turn it off to hide it without removing its content.
+                    </p>
+                  </div>
+                  <Switch
+                    id="site-popup-enabled"
+                    checked={sitePopupEnabled}
+                    onCheckedChange={setSitePopupEnabled}
+                    disabled={isSavingSitePopup}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="site-popup-text">Popup message</Label>
+                  <Textarea
+                    id="site-popup-text"
+                    value={sitePopupText}
+                    onChange={(event) => setSitePopupText(event.target.value)}
+                    placeholder="Write the message visitors should see"
+                    maxLength={600}
+                    rows={3}
+                    disabled={isSavingSitePopup}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {sitePopupText.length}/600 characters
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-popup-image-url">Image URL</Label>
+                    <Input
+                      id="site-popup-image-url"
+                      type="url"
+                      inputMode="url"
+                      value={sitePopupImageUrl}
+                      onChange={(event) =>
+                        setSitePopupImageUrl(event.target.value)
+                      }
+                      placeholder="https://example.com/announcement.jpg"
+                      maxLength={2048}
+                      disabled={isSavingSitePopup}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Use a publicly accessible image URL or a site path.
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="site-popup-link-url">
+                      Destination link
+                    </Label>
+                    <Input
+                      id="site-popup-link-url"
+                      type="url"
+                      inputMode="url"
+                      value={sitePopupLinkUrl}
+                      onChange={(event) =>
+                        setSitePopupLinkUrl(event.target.value)
+                      }
+                      placeholder="/news or https://example.com"
+                      maxLength={2048}
+                      disabled={isSavingSitePopup}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Clicking the image or button opens this destination.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="site-popup-button-text">
+                    Button label (optional)
+                  </Label>
+                  <Input
+                    id="site-popup-button-text"
+                    value={sitePopupButtonText}
+                    onChange={(event) =>
+                      setSitePopupButtonText(event.target.value)
+                    }
+                    placeholder="Learn more"
+                    maxLength={40}
+                    disabled={isSavingSitePopup}
+                  />
+                </div>
+
+                {sitePopupImageUrl.trim() && (
+                  <div className="overflow-hidden rounded-lg border bg-zinc-50">
+                    <img
+                      src={sitePopupImageUrl.trim()}
+                      alt="Popup image preview"
+                      className="max-h-56 w-full object-contain"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex flex-col gap-3 border-t bg-zinc-50 sm:flex-row sm:justify-end">
+                {settings?.some(
+                  (setting: any) => setting.key === SITE_POPUP_SETTING_KEY,
+                ) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void handleRemoveSitePopup()}
+                    disabled={isSavingSitePopup}
+                    className="w-full sm:w-auto"
+                  >
+                    Remove popup
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  onClick={() => void handleSaveSitePopup()}
+                  disabled={isSavingSitePopup}
+                  className="w-full sm:w-auto"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSavingSitePopup ? "Saving…" : "Save popup"}
+                </Button>
+              </CardFooter>
             </Card>
 
             <Card className="mt-6">

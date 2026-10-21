@@ -22,13 +22,16 @@ import {
   History,
   MessageSquare,
   CheckCircle2,
+  Wallet,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getMembershipTiers } from "@/lib/membershipTiers";
 import {
   getAdminSmsAudiences,
+  getAdminSmsBalance,
   getAdminSmsBroadcasts,
   getAdminSmsStats,
+  type AdminSmsBalance,
   type AdminSmsSendStats,
   queueAdminSmsBroadcast,
 } from "@/lib/api";
@@ -123,9 +126,12 @@ export default function AdminSMS() {
   const [tierNameById, setTierNameById] = useState<Record<string, string>>({});
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(true);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [smsStats, setSmsStats] = useState<AdminSmsSendStats | null>(null);
+  const [smsBalance, setSmsBalance] = useState<AdminSmsBalance | null>(null);
+  const [balanceError, setBalanceError] = useState("");
 
   const selectedAudienceCount = useMemo(() => {
     if (targetType === "all") {
@@ -191,8 +197,32 @@ export default function AdminSMS() {
     }
   }
 
+  async function loadBalance() {
+    setIsLoadingBalance(true);
+    setBalanceError("");
+    try {
+      const result = await getAdminSmsBalance();
+      if (!result.success || typeof result.balance !== "number") {
+        setSmsBalance(null);
+        setBalanceError(result.message || "Could not read the SMS balance.");
+        return;
+      }
+      setSmsBalance(result);
+    } catch (loadError) {
+      setSmsBalance(null);
+      setBalanceError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Could not load the SMS balance.",
+      );
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  }
+
   useEffect(() => {
     void loadData();
+    void loadBalance();
     const interval = window.setInterval(() => {
       void loadData();
     }, 8000);
@@ -267,15 +297,66 @@ export default function AdminSMS() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => void loadData()}
-            disabled={isLoading}
+            onClick={() => {
+              void loadData();
+              void loadBalance();
+            }}
+            disabled={isLoading || isLoadingBalance}
           >
             <RefreshCw
-              className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+              className={`h-4 w-4 mr-2 ${isLoading || isLoadingBalance ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
         </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Wallet className="h-5 w-5 text-primary" />
+                IconicSMS balance
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Current prepaid account balance from IconicSMS.
+              </CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void loadBalance()}
+              disabled={isLoadingBalance}
+            >
+              <RefreshCw
+                className={`mr-2 h-4 w-4 ${isLoadingBalance ? "animate-spin" : ""}`}
+              />
+              Refresh balance
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {smsBalance ? (
+              <div>
+                <p className="text-4xl font-bold tabular-nums text-zinc-900">
+                  {smsBalance.balance!.toLocaleString(undefined, {
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  <span className="text-2xl">{smsBalance.currency || "ETB"}</span>
+                </p>
+                {smsBalance.checkedAt && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Checked {new Date(smsBalance.checkedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {isLoadingBalance
+                  ? "Loading account balance…"
+                  : balanceError || "Balance is not available."}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="border-zinc-200 bg-zinc-50/80">
           <CardHeader>

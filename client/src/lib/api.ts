@@ -215,6 +215,53 @@ export async function getAdminDashboardStats() {
   return response.json();
 }
 
+export async function getAdminServerMonitor() {
+  const response = await fetchWithAuth("/api/admin/server-monitor");
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof json.error === "string"
+        ? json.error
+        : "Failed to fetch server monitor metrics",
+    );
+  }
+  return json;
+}
+
+export type VisitorAnalyticsRange = "24h" | "7d" | "30d" | "90d";
+
+export type VisitorAnalyticsResponse = {
+  range: VisitorAnalyticsRange;
+  updatedAt: string;
+  activeVisitors: number;
+  visitors: number;
+  pageviews: number;
+  bounceRate: number;
+  averageSessionSeconds: number;
+  trend: Array<{ bucket: string; pageviews: number; visitors: number }>;
+  topPages: Array<{ path: string; pageviews: number; visitors: number }>;
+  sources: Array<{ source: string; visits: number; pageviews: number }>;
+  devices: Array<{ device: string; visitors: number }>;
+  activePages: Array<{ path: string; visitors: number }>;
+};
+
+export async function getAdminVisitorAnalytics(
+  range: VisitorAnalyticsRange,
+): Promise<VisitorAnalyticsResponse> {
+  const response = await fetchWithAuth(
+    `/api/admin/analytics?range=${encodeURIComponent(range)}`,
+  );
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof json.error === "string"
+        ? json.error
+        : "Failed to load visitor analytics",
+    );
+  }
+  return json as VisitorAnalyticsResponse;
+}
+
 export async function getAdminPayments() {
   const response = await fetchWithAuth("/api/admin/payments");
   const json = await response.json().catch(() => []);
@@ -245,6 +292,27 @@ export async function getAdminSmsStats(): Promise<AdminSmsSendStats | null> {
   const response = await fetchWithAuth("/api/admin/sms/stats");
   if (!response.ok) return null;
   return response.json();
+}
+
+export type AdminSmsBalance = {
+  success: boolean;
+  balance?: number;
+  currency?: string;
+  checkedAt?: string;
+  message: string;
+};
+
+export async function getAdminSmsBalance(): Promise<AdminSmsBalance> {
+  const response = await fetchWithAuth("/api/admin/sms/balance");
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof json.message === "string"
+        ? json.message
+        : "Could not load the IconicSMS balance",
+    );
+  }
+  return json as AdminSmsBalance;
 }
 
 export async function queueAdminSmsBroadcast(data: {

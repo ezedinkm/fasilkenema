@@ -21,6 +21,7 @@ import DigitalCard from "@/pages/DigitalCard";
 import BlogPost from "@/pages/BlogPost";
 import AdminLogin from "@/pages/admin/Login";
 import AdminDashboard from "@/pages/admin/Dashboard";
+import AdminServerMonitor from "@/pages/admin/ServerMonitor";
 import AdminMembers from "@/pages/admin/Members";
 import AdminPayments from "@/pages/admin/Payments";
 import AdminContent from "@/pages/admin/Content";
@@ -56,6 +57,10 @@ import Gonder from "@/pages/Gonder";
 import Shopping from "@/pages/Shopping";
 import Partners from "@/pages/Partners";
 import { PrivacyPolicyPage, TermsOfServicePage } from "@/pages/StaticTextPage";
+import {
+  trackVisitorHeartbeat,
+  trackVisitorPageView,
+} from "@/lib/visitorAnalytics";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -64,6 +69,21 @@ function ScrollToTop() {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location]);
   
+  return null;
+}
+
+function VisitorAnalyticsTracker() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    trackVisitorPageView();
+  }, [location]);
+
+  useEffect(() => {
+    const heartbeat = window.setInterval(trackVisitorHeartbeat, 60_000);
+    return () => window.clearInterval(heartbeat);
+  }, []);
+
   return null;
 }
 
@@ -114,6 +134,7 @@ function Router() {
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route path="/admin/server-monitor" component={AdminServerMonitor} />
       <Route path="/admin/members" component={AdminMembers} />
       <Route path="/admin/payments" component={AdminPayments} />
       <Route path="/admin/content" component={AdminContent} />
@@ -141,6 +162,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AppProvider>
         <ScrollToTop />
+        <VisitorAnalyticsTracker />
         <Toaster />
         <Router />
       </AppProvider>

@@ -16,7 +16,6 @@ interface MembershipTier {
   id: string;
   name: string;
   price: { etb: number; usd: number };
-  monthlyPrice?: { etb: number; usd: number };
   benefits: string[];
   color: string;
   recommended: boolean;
@@ -27,9 +26,6 @@ export default function MembershipRegister() {
   const { toast } = useToast();
   const [selectedTier, setSelectedTier] = useState<MembershipTier | null>(null);
   const [currency, setCurrency] = useState<"etb" | "usd">("etb");
-  const [billingCycle, setBillingCycle] = useState<"annual" | "monthly">(
-    "annual",
-  );
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -74,7 +70,6 @@ export default function MembershipRegister() {
       const params = new URLSearchParams(window.location.search);
       const tierId = params.get("tier");
       const currencyParam = params.get("currency") as "etb" | "usd";
-      const billingParam = params.get("billing") as "annual" | "monthly" | null;
 
       if (!tierId) {
         setLocation("/membership");
@@ -93,9 +88,6 @@ export default function MembershipRegister() {
         setSelectedTier(tier);
         if (currencyParam === "etb" || currencyParam === "usd") {
           setCurrency(currencyParam);
-        }
-        if (billingParam === "monthly" || billingParam === "annual") {
-          setBillingCycle(billingParam);
         }
       } catch (error) {
         console.error("Failed to fetch membership tiers:", error);
@@ -191,7 +183,6 @@ export default function MembershipRegister() {
 
       const paymentData = {
         currency: currency.toUpperCase(),
-        billingCycle,
         firstName,
         lastName,
         phone: normalizeEthiopianMobileLocal(phone)!,
@@ -275,8 +266,8 @@ export default function MembershipRegister() {
 
   const price =
     currency === "etb"
-      ? `${billingCycle === "monthly" ? (selectedTier.monthlyPrice?.etb ?? selectedTier.price.etb) : selectedTier.price.etb} ETB`
-      : `$${billingCycle === "monthly" ? (selectedTier.monthlyPrice?.usd ?? selectedTier.price.usd) : selectedTier.price.usd} USD`;
+      ? `${selectedTier.price.etb} ETB`
+      : `$${selectedTier.price.usd} USD`;
 
   return (
     <PublicLayout>
@@ -294,8 +285,7 @@ export default function MembershipRegister() {
           <Card className="border-t-4 border-t-primary shadow-lg">
             <CardHeader>
               <CardTitle className="text-center font-display text-2xl">
-                {selectedTier.name} Membership - {price}/
-                {billingCycle === "monthly" ? "month" : "year"}
+                {selectedTier.name} Membership - {price}/year
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">

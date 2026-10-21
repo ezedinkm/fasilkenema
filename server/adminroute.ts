@@ -1,10 +1,12 @@
 import type { Express } from "express";
+import { performance } from "node:perf_hooks";
 import { asc, desc, eq, gte, inArray, sql } from "drizzle-orm";
-import { db } from "./db";
+import { db, pool } from "./db";
 import * as schema from "@shared/schema";
 import { authenticateAdminPermission } from "./middleware/authMiddleware";
 import {
   encryptIconicSmsApiKey,
+  getIconicSmsBalance,
   getIconicSmsApiKeyStatus,
   sendSms,
   testIconicSmsConnection,
@@ -12,6 +14,7 @@ import {
 import { storage } from "./storage";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
 import { upload } from "./middleware/multerConfig";
+import { getProcessMonitorMetrics } from "./serverMonitoring";
 
 type DashboardGrowthPoint = {
   name: string;
@@ -24,6 +27,19 @@ const USER_MESSAGE_STATUSES = [
   "rejected",
 ] as const;
 type UserMessageStatus = (typeof USER_MESSAGE_STATUSES)[number];
+
+function membershipTierAdminResponse(
+  tier: typeof schema.membershipTiers.$inferSelect,
+) {
+  return {
+    id: tier.id,
+    amharicVersion: tier.amharicVersion,
+    priceEtb: Number(tier.priceEtb),
+    priceUsd: Number(tier.priceUsd),
+    frontBackgroundUrl: tier.frontBackgroundUrl ?? null,
+    createdAt: tier.createdAt,
+  };
+}
 
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -279,6 +295,100 @@ async function processSmsQueue(): Promise<void> {
 
 export function registerAdminRoutes(app: Express): void {
   app.get(
+    "/api/admin/server-monitor",
+    authenticateAdminPermission("settings"),
+    async (_req, res) => {
+      try {
+        const [processMetrics, database] = await Promise.all([
+          getProcessMonitorMetrics(),
+          (async () => {
+            const startedAt = performance.now();
+            try {
+              await pool.query("SELECT 1");
+              return {
+                status: "healthy" as const,
+                latencyMs: Math.round(performance.now() - startedAt),
+              };
+            } catch {
+              return {
+                status: "unavailable" as const,
+                latencyMs: null,
+              };
+            }
+          })(),
+        ]);
+
+        const alerts: Array<{
+          severity: "warning" | "critical";
+          message: string;
+        }> = [];
+        if (database.status !== "healthy") {
+          alerts.push({
+            severity: "critical",
+            message: "Database health check failed.",
+          });
+        }
+        if (processMetrics.memory.heapUsagePercent >= 90) {
+          alerts.push({
+            severity: "critical",
+            message: "Node.js heap usage is above 90% of its configured limit.",
+          });
+        } else if (processMetrics.memory.heapUsagePercent >= 80) {
+          alerts.push({
+            severity: "warning",
+            message: "Node.js heap usage is above 80% of its configured limit.",
+          });
+        }
+        if (processMetrics.cpuPercent >= 85) {
+          alerts.push({
+            severity: "warning",
+            message: "Process CPU usage was high during the latest sample.",
+          });
+        }
+        if (
+          processMetrics.http.requestCount >= 20 &&
+          processMetrics.http.serverErrorRatePercent >= 5
+        ) {
+          alerts.push({
+            severity: "warning",
+            message: "At least 5% of recent requests returned server errors.",
+          });
+        }
+        if (pool.waitingCount > 0) {
+          alerts.push({
+            severity: "warning",
+            message: "Database queries are waiting for an available connection.",
+          });
+        }
+
+        const hasCriticalAlert = alerts.some(
+          (alert) => alert.severity === "critical",
+        );
+        res.json({
+          status: hasCriticalAlert
+            ? "critical"
+            : alerts.length > 0
+              ? "warning"
+              : "healthy",
+          checkedAt: new Date().toISOString(),
+          ...processMetrics,
+          database: {
+            ...database,
+            pool: {
+              total: pool.totalCount,
+              idle: pool.idleCount,
+              waiting: pool.waitingCount,
+            },
+          },
+          alerts,
+        });
+      } catch {
+        res.status(500).json({ error: "Failed to collect server metrics" });
+      }
+    },
+  );
+
+  app.get(
     "/api/admin/sms/provider-status",
     authenticateAdminPermission("sms"),
     async (_req, res) => {
@@ -295,6 +405,14 @@ export function registerAdminRoutes(app: Express): void {
         console.error("[adminroute] SMS provider status", error);
         res.status(500).json({ error: "Failed to read SMS provider status" });
       }
+    },
+  );
+  app.get(
+    "/api/admin/sms/balance",
+    authenticateAdminPermission("sms"),
+    async (_req, res) => {
+      const result = await getIconicSmsBalance();
+      res.status(result.success ? 200 : 502).json(result);
     },
   );
   app.put(
@@ -526,7 +644,7 @@ export function registerAdminRoutes(app: Express): void {
           .from(schema.membershipTiers)
           .orderBy(asc(schema.membershipTiers.createdAt));
 
-        res.json(tiers);
+        res.json(tiers.map(membershipTierAdminResponse));
       } catch (error) {
         console.error("[adminroute] membership tiers list", error);
         res.status(500).json({ error: "Failed to fetch membership tiers" });
@@ -566,8 +684,6 @@ export function registerAdminRoutes(app: Express): void {
           amharicVersion: String(req.body?.amharicVersion ?? "").trim(),
           priceEtb: Number(req.body?.priceEtb),
           priceUsd: String(req.body?.priceUsd ?? ""),
-          monthlyPriceEtb: Number(req.body?.monthlyPriceEtb),
-          monthlyPriceUsd: String(req.body?.monthlyPriceUsd ?? ""),
           frontBackgroundUrl:
             String(req.body?.frontBackgroundUrl ?? "").trim() || null,
         };
@@ -591,23 +707,6 @@ export function registerAdminRoutes(app: Express): void {
             .status(400)
             .json({ error: "priceUsd must be a valid number" });
         }
-        if (
-          !Number.isFinite(payload.monthlyPriceEtb) ||
-          payload.monthlyPriceEtb < 0
-        ) {
-          return res
-            .status(400)
-            .json({ error: "monthlyPriceEtb must be a valid number" });
-        }
-        if (
-          !Number.isFinite(Number(payload.monthlyPriceUsd)) ||
-          Number(payload.monthlyPriceUsd) < 0
-        ) {
-          return res
-            .status(400)
-            .json({ error: "monthlyPriceUsd must be a valid number" });
-        }
-
         const [created] = await db
           .insert(schema.membershipTiers)
           .values({
@@ -615,13 +714,11 @@ export function registerAdminRoutes(app: Express): void {
             amharicVersion: payload.amharicVersion,
             priceEtb: payload.priceEtb,
             priceUsd: payload.priceUsd,
-            monthlyPriceEtb: payload.monthlyPriceEtb,
-            monthlyPriceUsd: payload.monthlyPriceUsd,
             frontBackgroundUrl: payload.frontBackgroundUrl,
           })
           .returning();
 
-        res.status(201).json(created);
+        res.status(201).json(membershipTierAdminResponse(created));
       } catch (error) {
         console.error("[adminroute] membership tiers create", error);
         res.status(500).json({ error: "Failed to create membership tier" });
@@ -646,8 +743,6 @@ export function registerAdminRoutes(app: Express): void {
           amharicVersion: string;
           priceEtb: number;
           priceUsd: string;
-          monthlyPriceEtb: number;
-          monthlyPriceUsd: string;
           frontBackgroundUrl: string | null;
         }> = {};
         if (req.body?.id !== undefined) {
@@ -684,24 +779,6 @@ export function registerAdminRoutes(app: Express): void {
           }
           updates.priceUsd = String(value);
         }
-        if (req.body?.monthlyPriceEtb !== undefined) {
-          const value = Number(req.body.monthlyPriceEtb);
-          if (!Number.isFinite(value) || value < 0) {
-            return res
-              .status(400)
-              .json({ error: "monthlyPriceEtb must be a valid number" });
-          }
-          updates.monthlyPriceEtb = value;
-        }
-        if (req.body?.monthlyPriceUsd !== undefined) {
-          const value = Number(req.body.monthlyPriceUsd);
-          if (!Number.isFinite(value) || value < 0) {
-            return res
-              .status(400)
-              .json({ error: "monthlyPriceUsd must be a valid number" });
-          }
-          updates.monthlyPriceUsd = String(value);
-        }
         if (req.body?.frontBackgroundUrl !== undefined) {
           updates.frontBackgroundUrl =
             String(req.body.frontBackgroundUrl ?? "").trim() || null;
@@ -723,7 +800,7 @@ export function registerAdminRoutes(app: Express): void {
           return res.status(404).json({ error: "Membership tier not found" });
         }
 
-        res.json(updated);
+        res.json(membershipTierAdminResponse(updated));
       } catch (error) {
         console.error("[adminroute] membership tiers update", error);
         res.status(500).json({ error: "Failed to update membership tier" });

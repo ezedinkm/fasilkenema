@@ -20,6 +20,7 @@ import {
   ListOrdered,
   UserCog,
   History,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -60,6 +61,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/admin/dashboard", permission: "dashboard" },
+    { icon: Activity, label: "Server Monitor", href: "/admin/server-monitor", permission: "settings" },
     { icon: Users, label: "Members", href: "/admin/members", permission: "members" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments", permission: "payments" },
     { icon: FileText, label: "Content", href: "/admin/content", permission: "content" },

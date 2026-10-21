@@ -96,14 +96,11 @@ export default function MemberDashboard() {
         name: tier.name || tier.id,
         priceEtbAnnual: Number(tier.price.etb) || 0,
         priceUsdAnnual: Number(tier.price.usd) || 0,
-        priceEtbMonthly: Number(tier.monthlyPrice.etb) || 0,
-        priceUsdMonthly: Number(tier.monthlyPrice.usd) || 0,
       })),
     [membershipTierRows],
   );
   const [renewTier, setRenewTier] = useState("");
   const [renewCurrency, setRenewCurrency] = useState<"ETB" | "USD">("ETB");
-  const [renewBillingCycle, setRenewBillingCycle] = useState<"annual" | "monthly">("annual");
   const [renewPhone, setRenewPhone] = useState("");
   const [isRenewPhoneEdited, setIsRenewPhoneEdited] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
@@ -493,7 +490,7 @@ export default function MemberDashboard() {
         body: JSON.stringify({
           membershipTier: renewTier,
           currency: renewCurrency,
-          billingCycle: renewBillingCycle,
+          billingCycle: "annual",
           chapaPhone: renewPhone.trim() || String(member?.phone || "").trim(),
         }),
       });
@@ -924,9 +921,9 @@ export default function MemberDashboard() {
           <div className="mt-8 w-full max-w-2xl bg-white rounded-xl border p-4 shadow-sm">
             <h2 className="text-lg font-bold text-zinc-900 mb-3">Renew Membership</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Choose a tier and billing cycle to renew or upgrade your membership.
+              Choose a tier to renew or upgrade with annual membership.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Select value={renewTier} onValueChange={setRenewTier}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select tier" />
@@ -934,26 +931,13 @@ export default function MemberDashboard() {
                 <SelectContent>
                   {availableTiers.map((tier) => {
                     const fmt = (n: number) => (Number.isFinite(n) ? n.toLocaleString() : "0");
-                    const label =
-                      renewBillingCycle === "annual"
-                        ? `${tier.name} — ETB ${fmt(tier.priceEtbAnnual)} · USD ${fmt(tier.priceUsdAnnual)}`
-                        : `${tier.name} — ETB ${fmt(tier.priceEtbMonthly)}/mo · USD ${fmt(tier.priceUsdMonthly)}/mo`;
+                    const label = `${tier.name} — ETB ${fmt(tier.priceEtbAnnual)}/year · USD ${fmt(tier.priceUsdAnnual)}/year`;
                     return (
                       <SelectItem key={tier.id} value={tier.id}>
                         {label}
                       </SelectItem>
                     );
                   })}
-                </SelectContent>
-              </Select>
-
-              <Select value={renewBillingCycle} onValueChange={(v: "annual" | "monthly") => setRenewBillingCycle(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Billing" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="annual">Annual</SelectItem>
-                  <SelectItem value="monthly">Monthly</SelectItem>
                 </SelectContent>
               </Select>
 
