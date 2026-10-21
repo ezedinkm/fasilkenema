@@ -44,6 +44,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { icon: Users, label: "Members", href: "/admin/members" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments" },
     { icon: FileText, label: "Content", href: "/admin/content" },
+    { icon: Mail, label: "Newsletter", href: "/admin/newsletter" },
     { icon: MessageSquare, label: "SMS & Comms", href: "/admin/sms" },
     { icon: PlayCircle, label: "Watch Reviews", href: "/admin/watchreview" },
     { icon: Mail, label: "User Message", href: "/admin/usermessage" },

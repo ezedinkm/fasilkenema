@@ -18,11 +18,13 @@ type NormalizedNewsPost = {
   date: string;
   image?: string;
   category: string;
+  isFeatured?: boolean;
 };
 
 type NewsCardProps = {
   post?: NormalizedNewsPost;
   limit?: number;
+  featuredOnly?: boolean;
 };
 
 function normalizeApiPost(raw: any): NormalizedNewsPost {
@@ -34,6 +36,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
   const excerpt = String(raw?.contentEn ?? raw?.excerpt ?? "");
   const image = String(raw?.imageUrl ?? raw?.image ?? "");
   const category = String(raw?.category ?? "");
+  const isFeatured = Boolean(raw?.isFeatured ?? raw?.is_featured);
 
   const published =
     raw?.publishedAt ?? raw?.published_at ?? raw?.createdAt ?? raw?.created_at;
@@ -44,7 +47,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
         ? published.slice(0, 10)
         : new Date(published).toISOString().slice(0, 10);
 
-  return { id, slug, title, excerpt, image, category, date: dateStr };
+  return { id, slug, title, excerpt, image, category, date: dateStr, isFeatured };
 }
 
 function NewsCardItem({ post }: { post: NormalizedNewsPost }) {
@@ -131,7 +134,11 @@ function NewsCardItem({ post }: { post: NormalizedNewsPost }) {
   );
 }
 
-export default function NewsCard({ post, limit }: NewsCardProps) {
+export default function NewsCard({
+  post,
+  limit,
+  featuredOnly,
+}: NewsCardProps) {
   // Card mode (used by Blog pages): render the provided post.
   if (post) return <NewsCardItem post={post} />;
 
@@ -162,8 +169,21 @@ export default function NewsCard({ post, limit }: NewsCardProps) {
 
   if (!posts) return null;
 
+  const eligiblePosts = featuredOnly
+    ? posts.filter((item) => item.isFeatured)
+    : posts;
   const list =
-    typeof limit === "number" && limit > 0 ? posts.slice(0, limit) : posts;
+    typeof limit === "number" && limit > 0
+      ? eligiblePosts.slice(0, limit)
+      : eligiblePosts;
+
+  if (featuredOnly && list.length === 0) {
+    return (
+      <div className="col-span-full rounded-xl border border-dashed border-zinc-300 py-10 text-center text-sm text-muted-foreground">
+        No news has been featured on the home page yet.
+      </div>
+    );
+  }
   return (
     <>
       {list.map((p) => (

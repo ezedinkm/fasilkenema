@@ -18,6 +18,13 @@ type DashboardGrowthPoint = {
   members: number;
 };
 
+const USER_MESSAGE_STATUSES = [
+  "needs_contact",
+  "contacted",
+  "rejected",
+] as const;
+type UserMessageStatus = (typeof USER_MESSAGE_STATUSES)[number];
+
 function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
@@ -89,11 +96,26 @@ async function ensureUserMessageTableExists(): Promise<void> {
     CREATE TABLE IF NOT EXISTS usermessage (
       id serial PRIMARY KEY,
       full_name text NOT NULL,
-      email text NOT NULL,
+      phone text NOT NULL,
+      email text,
       subject text NOT NULL,
       message text NOT NULL,
+      status text NOT NULL DEFAULT 'needs_contact',
       created_at timestamp NOT NULL DEFAULT now()
     );
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ALTER COLUMN phone DROP DEFAULT,
+    ALTER COLUMN email DROP NOT NULL;
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'needs_contact';
   `);
 
   userMessageTableReady = true;
@@ -452,6 +474,45 @@ export function registerAdminRoutes(app: Express): void {
       res.status(500).json({ error: "Failed to fetch user messages" });
     }
   });
+
+  app.patch(
+    "/api/admin/usermessages/:id/status",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        await ensureUserMessageTableExists();
+
+        const id = Number(req.params.id);
+        const requestedStatus = req.body?.status;
+        if (!Number.isSafeInteger(id) || id <= 0) {
+          return res.status(400).json({ error: "Invalid message id" });
+        }
+        if (
+          typeof requestedStatus !== "string" ||
+          !USER_MESSAGE_STATUSES.includes(
+            requestedStatus as UserMessageStatus,
+          )
+        ) {
+          return res.status(400).json({
+            error: "Status must be needs_contact, contacted, or rejected",
+          });
+        }
+
+        const [updated] = await db
+          .update(schema.usermessage)
+          .set({ status: requestedStatus as UserMessageStatus })
+          .where(eq(schema.usermessage.id, id))
+          .returning();
+        if (!updated) {
+          return res.status(404).json({ error: "Message not found" });
+        }
+        res.json(updated);
+      } catch (error) {
+        console.error("[adminroute] usermessage status update", error);
+        res.status(500).json({ error: "Failed to update message status" });
+      }
+    },
+  );
 
   app.get(
     "/api/admin/membership-tiers",

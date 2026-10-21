@@ -93,6 +93,72 @@ export async function sendEmail(
   }
 }
 
+export interface NewsletterEmailMessage {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export interface NewsletterBatchResult {
+  sent: number;
+  failed: number;
+  errors: string[];
+}
+
+export async function sendNewsletterEmailBatch(
+  messages: NewsletterEmailMessage[],
+): Promise<NewsletterBatchResult> {
+  if (messages.length === 0) {
+    return { sent: 0, failed: 0, errors: [] };
+  }
+
+  let client: Resend;
+  let fromEmail: string;
+  try {
+    const credentials = await getCredentials();
+    client = new Resend(credentials.apiKey);
+    fromEmail = credentials.fromEmail;
+  } catch (error) {
+    return {
+      sent: 0,
+      failed: messages.length,
+      errors: [
+        error instanceof Error ? error.message : "Resend is not available",
+      ],
+    };
+  }
+
+  const result: NewsletterBatchResult = { sent: 0, failed: 0, errors: [] };
+  for (let offset = 0; offset < messages.length; offset += 100) {
+    const chunk = messages.slice(offset, offset + 100);
+    try {
+      const response = await client.batch.send(
+        chunk.map((message) => ({
+          from: fromEmail,
+          to: message.to,
+          subject: message.subject,
+          html: message.html,
+        })),
+      );
+      if (response.error) {
+        result.failed += chunk.length;
+        result.errors.push(response.error.message);
+        continue;
+      }
+      const sentCount = response.data.data.length;
+      result.sent += sentCount;
+      result.failed += Math.max(0, chunk.length - sentCount);
+    } catch (error) {
+      result.failed += chunk.length;
+      result.errors.push(
+        error instanceof Error ? error.message : "Newsletter batch failed",
+      );
+    }
+  }
+
+  return result;
+}
+
 export async function sendPaymentNotificationEmail(
   emails: string[],
   type: "membership" | "donation",

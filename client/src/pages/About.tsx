@@ -15,19 +15,22 @@ function getFirstWords(text: string, n: number): string {
   if (words.length <= n) return text;
   return words.slice(0, n).join(" ") + " ";
 }
-const historyImage1 = getLocalAssetUrl("History/full team new.jpg");
-const historyImage2 = getLocalAssetUrl("History/copy.jpg");
-const historyImage3 = getLocalAssetUrl("History/fasilligue.jpg");
-const historyImage4 = getLocalAssetUrl("History/tigilfire.jpg");
-const historyImage5 = getLocalAssetUrl("History/1966.jpg");
-const historyImage7 = getLocalAssetUrl("History/ligue2009.jpg");
-const historyImage8 = getLocalAssetUrl("History/betkingwinner2013.jpg");
+const historyImage1 = getLocalAssetUrl("history/team-overview.webp");
+const historyImage2 = getLocalAssetUrl("history/founding.webp");
+const historyImage3 = getLocalAssetUrl("history/premier-league.webp");
+const historyImage4 = getLocalAssetUrl("history/tigil-fre.webp");
+const historyImage5 = getLocalAssetUrl("history/early-years.webp");
+const historyImage6 = getLocalAssetUrl("history/national-league.webp");
+const historyImage7 = getLocalAssetUrl("history/higher-league.webp");
+const historyImage8 = getLocalAssetUrl("history/2013-champions.webp");
 
 const SECTIONS = [
   {
     title: "የክለቡ ታሪክ",
     title_english: "Our History",
-    image: historyImage5,
+    image: historyImage1,
+    image_caption: "የፋሲል ከነማ ቡድን ከዋንጫ ጋር።",
+    image_caption_english: "Fasil Kenema players celebrate with a trophy.",
     description:
       "በኢትዮጵያ በርካታ ትውልድ ሊዘክራቸውና ሊማርባቸው የሚገቡ አስደናቂ የአመሰራረት ሂደት ያላቸው የስፖርት ቡድኖች ይገኛሉ ። በቀደመው ጊዜ የነበሩ እንደ የክቡር ዘበኛው ምድር ጦር የወለዳቸው መቻልና መኩሪያ ፣ ዳኘው ፣ የፖሊስ ሰራዊትን የሚወክሉ ኦሜድላ ፣ የድሬዎቹ ባቡርና ጥጥ ፣ ቴሌ፣ አየር ሃይልን የሚወክለው ንብ እና ቀይባህር ተጠቃሽ ናቸው ። ከዚያ በኋላ የመጡት ደግሞ የከተማ ነዋሪዎች ማህበራት (ከነማ) ክለቦች ሲሆኑ በአጭር ጊዜ ከፍተኛ ዝናን በማትረፍ ደጋፊዎችን እያበዛ የመጣው ፋሲል ከነማ እግር ኳስ ቡድን ተጠቃሽ ነው ።",
     english_description:
@@ -37,6 +40,8 @@ const SECTIONS = [
     title: "ፋሲል ከነማ ምስረታ ( 1960 ዓ.ም)",
     title_english: "The Founding of Fasil Kenema (1960 E.C.)",
     image: historyImage2,
+    image_caption: "በ1960 ዓ.ም የተመሰረተው የፋሲል ከነማ የመጀመሪያ ቡድን።",
+    image_caption_english: "The original Fasil team, founded in 1960 E.C.",
     description:
       "በ1938 ዓ.ም የኢትዮጵያ ሻምፒዮና መጀመሩን ተከትሎ እግር ኳስ በመላው ሃገሪቱ መስፋፋትና መወደድ ሲጀምር ስፖርቱ በታሪካዊው ፋሲል ግቢ የተነሳ የአፍሪካ ካሜሎት በመባል በምትታወቀው ጎንደር ከተማ በአጭር ጊዜ ከፍተኛ ተቀባይነት ሊያገኝ ቻለ። በተለይ 1950ዎቹ በከተማዋና በአጎራባች አውራጃዎች የተለያዩ ቡድኖች ማቆጥቆጥ የጀመሩት ወቅት ነበር። ያ ጊዜ ዞብል ፣ ዋሊያ ፣ አፍሪካ ፣ አውራ ጎዳና እንዲሁም ነጋዴ የሚባሉ ቡድኖች በተለያዩ የግልና የመንግስት ተቋማት ተመስርተው ውድድራቸውን ያካሂዱ የነበረበት ወቅት ነበር።\nእነዚህ ቡድኖች የሚያደርጉትን ግጥሚያ ይመለከቱ የነበሩ በጎንደር ከተማ በተለምዶ ቸቸላ ተብሎ በሚጠራው አካባቢ ይኖሩ የነበሩ ተማሪዎች የሚወክላቸውን ቡድን ለማቋቋም በማህበር በመደራጀት እንቅስቃሴ ማድረግ ጀመሩ። ነገር ግን አብዛኛዎቹ የማህበሩ አባላት ተማሪዎች እንደመሆናቸው ለቡድኑ ግብዓት የሚሆኑ የተለያዩ ቁሳቁሶችና ገንዘብ ማግኘት ትልቅ ፈተና ሆኖባቸው ነበር። \nተጫዋቾቹ እና የማህበሩ አባላት በተለያዩ መስሪያ ቤቶችና ግለሰቦች ቤት እየዞሩ ገንዘብ ማሰባሰብ ጀመሩ። በተሰበሰበውም ትንሽ ገንዘብ ለቡድኑ የሚያስፈልጉ የመጫወቻ ጫማዎች ፣ ማሊያዎች ፣ኳሶችንና የተለያዩ ቁሳቁሶችን በመግዛት የፋሲል ቡድን በ1960 ዓ.ም ተመሰረተ።",
     english_description:
@@ -46,6 +51,8 @@ const SECTIONS = [
     title: "ፋሲል ( 1960_1968 ዓ.ም )",
     title_english: "Fasil (1960–1968 E.C.)",
     image: historyImage5,
+    image_caption: "በክለቡ የመጀመሪያ ዓመታት የነበረ የፋሲል ቡድን።",
+    image_caption_english: "A Fasil squad from the club’s early years.",
     description:
       "የፋሲል ቡድን ሲቋቋም 13 አባላት ነበሩት። የመጀመሪያ ስያሜው ፋሲል ቢሆንም ለቡድኑ ስም እንዲሆኑ ሌሎች በርካታ አማራጮች ቀርበው እንደነበር በተለያዩ ጊዜ የታተሙ የፋሲል ከነማ መጽሄቶች ይገልጻሉ። አጼ ቴዎድሮስ የተወለዱበት ቋራ ፣ የነገሱበት ደረስጌ ማሪያም ፣ የሞቱበት መቅደላ ፣ የኢትዮጵያዊያን የስዕልና የህንጻ ጥበብ የተንጸባረቁበት የደብረብርሃን ስላሴ ፣ በሃገራችን ትልቁ ተራራ የሆነው ራስ ደጀን ፣ ቁስቋምና ጉና ተራራ ለቡድኑ ስያሜ እንዲሆኑ የቀረቡ አማራጮች ነበሩ። \nሆኖም ግን በ1624 ዓ.ም ጎንደር ከተማን የቆረቆሯት የአጼ ፋሲለደስ ስምና በከተማዋ ያስገነቡት ቤተ መንግስትን መሰረት አድርገው በመስራቾቹ አብላጫውን ድጋፍ ሊያገኝ በመቻሉ የቡድኑ ስያሜ ፋሲል ሊሆን በቃ። \nፋሲል በውድድሩ ጀማሪ እንደመሆኑና ልምድ በሌላቸው ተጫዋቾች እንደመዋቀሩ የመጀመሪያዎቹን አመታት ጠንካራ ተፎካካሪ መሆን አልቻለም። በተጫወተባቸውም ሁለትና ሶስት አመታት ከተሳታፊነት የዘለለ ውጤት ሳያስመዘግብ ቀረ። ሆኖም ግን በጊዜ ሂደት ነባር ተጫዋቾች ልምድ እያገኙ፣ ከተለያዩ ቦታዎች ሌሎች ልምድ ያላቸው ተጫዋቾችም ወደ ቡድኑ እየተቀላቀሉ ቡድኑ ራሱን አጎለበተ። \nበዚህም ጠንካራ ተፎካካሪ ሆኖ በመቅረብና በ1965 ዓ.ም በከተማዋ የተዘጋጀውን የክለቦች ሻምፒዮና ውድድር በማሸነፍ በሃገር አቀፍ ውድድር ላይ ተሳታፊ የሚያደርገውን ውጤት ማስመዝገብ ቻለ። \nከዚህ በኋላ ነበር ቡድኑ ጎንደርን በመወከል የሰሜንና የበጌምድር ቡድኖች ውድድር ላይ ተሳታፊ በመሆን ከየአውራጃው ከተውጣጡ ተወካዮች ጋር ስምንት ያህል ግጥሚያዎችን አድርጎ ስድስቱን በማሸነፍ እና ሁለቱን አቻ በመውጣት ያለምንም ሽንፈት ውድድሩን በበላይነት ማጠናቀቅ የቻለው። ይህ ውጤት በ1965 ዓ.ም. ፋሲል በወቅቱ የበጌምድር ጠቅላይ ግዛት የተባለችውን ጎንደርን በመወከል አዲስ አበባ ላይ በሚካሄደው የኢትዮጵያ የጠቅላይ ግዛት አሸናፊዎች ውድድር ተሳታፊ ለመሆን አበቃው። \nበወቅቱ ከገንዘብ አቅም ማነስ ጋር በተያያዘ ውድድሩን ለማካሄድ ተስኖት የነበረው ፋሲል ከነማ ከጎንደር ማዘጋጃ ቤት በተገኘው 300 ብር እና ደጋፊዎች ባዋጡት 400 ብር በድምሩ በ700 ብር በጀት ውድድሩን እንዲሳተፍ ተደረገ። \nፋሲል በዚህ ሁኔታ ላይ እያለ ኢትዮጵያ አዲስ የታሪክ ምዕራፍ አስተናገደች። ወቅቱ በኢትዮጵያ ታሪክ ህዝባዊ አብዮት ተብሎ የሚታወቀው ምዕራፍ የጀመረበት ነበር። የ1966ቱ የኢትዮጵያ አብዮት የሃገሪቱን ፖለቲካዊና ኢኮኖሚያዊ ገጽታ ብቻ ሳይሆን ማህበራዊ መዋቅሩንም ቀየረው። የለውጡ አንድ አካል የነበረችው ጎንደር ከተማም በስር ነቀል ሂደቱ ውስጥ ስታልፍና ወጣቶቿም ወደፖለቲካው ሲሳቡ በከተማዋ የሚገኙ ስፖርቶች መቀዛቀዝ ጀመሩ። \nበወቅቱ ውድድር ለማድረግ አስቸጋሪ ስለነበር በርካታ ቡድኖች መፍረስ እጣ ፈንታቸው ሆኖ ከስመዋል። አብዮቱ ከፈነዳ በኋላ በነበሩት ጥቂት አመታት በየቡድኑ የነበሩ ተጫዋቾች የተወሰኑት በፖለቲካው መስመር ሲሰለፉ፣ በርካቶች ደግሞ በወቅቱ “ቀይ ሽብር” ተብሎ ይታወቅ የነበረውን የደቦ ፍጅት ሸሽተው ሃገር ለቅቀው ተሰደዱ። \n\nለፋሲል ቡድን ድጋፍ ሲያደርጉ የነበሩት ባለሃብቶችና ስፖርት ወዳጆችም በሞት ፣ በስደትና በተለያዩ ምክንያቶች ስለተበተኑ ለቡድኑ የሚደረገው ድጋፍ እየተመናመነ መጣ። በዚህ ምክንያት የፋሲል ቡድን ያጋጠመውን የመፍረስ አደጋ መቋቋም ተስኖት ቡድኑ ከተመሰረተ ከስምንት አመታት በኋላ በ1968 ዓ.ም ፈረሰ።",
     english_description:
@@ -55,6 +62,8 @@ const SECTIONS = [
     title: "ትግል ፍሬ/“አጠቃላይ ከነማ”  ( 1971_1982 ዓ.ም)",
     title_english: 'Tigil Fre / "General Kenema" (1971–1982 E.C.)',
     image: historyImage4,
+    image_caption: "በትግል ፍሬ ዘመን የነበረ የክለቡ ምዕራፍ።",
+    image_caption_english: "A chapter from the Tigil Fre era.",
     description:
       "ወታደራዊው የደርግ ስርዓት የነበሩበትን ተግዳሮቶች በማስወገድ ሃገሪቱን ሙሉ ለሙሉ ሲቆጣጠርና ሲጠናከር በተፈጠረው አንጻራዊ ሰላም ተቀዛቅዞ የነበረው የስፖርት እንቅስቃሴ በመጠኑ መነቃቃትን ማሳየት ጀመረ።...",
     english_description:
@@ -64,6 +73,8 @@ const SECTIONS = [
     title: "ፋሲል ከነማ ስፖርት ክለብ (1985_",
     title_english: "Fasil Kenema Sports Club (1985 E.C. – Present)",
     image: historyImage3,
+    image_caption: "ፋሲል ከነማ ወደ ከፍተኛው የእግር ኳስ ደረጃ የተመለሰበት ዘመን።",
+    image_caption_english: "Fasil Kenema’s return to top-flight football.",
     description:
       "የተካሄደውን የመንግስት ለውጥ ተከትሎ በ1983 እና 84 ዓ.ም. ውድድሮች ሙሉ ለሙሉ ቆመው የነበሩ ሲሆን ከፋሲል በስተቀር ሁሉም በድርጅቶችና በተለያዩ የግል ተቋማት ተይዘው የነበሩ ቡድኖች ፈርሰው ሌሎች ቡድኖች ተመሰረቱ።...",
     english_description:
@@ -72,7 +83,9 @@ const SECTIONS = [
   {
     title: "ፋሲል ከነማ በብሔራዊ ሊግ ( 1993___ )",
     title_english: "Fasil Kenema in the National League (1993 E.C. –)",
-    image: historyImage1,
+    image: historyImage6,
+    image_caption: "ፋሲል ከነማ በብሔራዊ ሊግ ያደረገው ጉዞ።",
+    image_caption_english: "Fasil Kenema’s journey through the National League.",
     description:
       "ፋሲል ከነማ በብሄራዊ ሊጉ ተሳታፊ ከሆነበት 1994 ዓ.ም ጀምሮ በዚህ ውድድር በመሳተፍ ወደ ከፍተኛ ሊግ ለማደግ ለበርካታ አመታት ጥረት አድርጓል።...",
     english_description:
@@ -82,6 +95,8 @@ const SECTIONS = [
     title: "ፋሲል ከነማ በከፍተኛ ሊግ (2008 ዓ.ም)",
     title_english: "Fasil Kenema in the Higher League (2008 E.C.)",
     image: historyImage7,
+    image_caption: "የከፍተኛ ሊግ ውጤት ፋሲልን ወደ ፕሪሚየር ሊግ መልሶ አሳደገው።",
+    image_caption_english: "Higher League success earned promotion back to the Premier League.",
     description:
       "በ2008 ዓ.ም የኢትዮጵያ እግር ኳስ ፌድሬሽን በፕሪምየር ሊጉ የሚሳተፉ ቡድኖች ቁጥር ከ14 ወደ 16 ከፍ እንዲሉ በወሰነው መሰረት...",
     english_description:
@@ -91,6 +106,8 @@ const SECTIONS = [
     title: "ፋሲል ከነማ በፕሪሚየር ሊጉ ( 2009___ )",
     title_english: "Fasil Kenema in the Premier League (2009 E.C. – Present)",
     image: historyImage8,
+    image_caption: "በ2013 ዓ.ም የኢትዮጵያ ፕሪሚየር ሊግ ዋንጫ ሲያነሳ።",
+    image_caption_english: "Fasil Kenema celebrates the 2013 E.C. Premier League title.",
     description: "የፋሲል ጥንካሬ ከከፍተኛ ሊጉ አልፎ በፕሪምየር ሊጉ ላይም በጉልህ ታይቷል።...",
     english_description:
       "Fasil's strength was evident as they returned to the Premier League in 2009 E.C., becoming title contenders and revitalizing sports in Gondar. Their success attracted major partnerships, including a record 75 million Birr deal with Dashen Beer. In 2013 E.C., Fasil won their first-ever Ethiopian Premier League title in the inaugural 'BetKing' season broadcast on DSTV. They secured the championship in Hawassa with four games to spare, finishing with 54 points. Today, Fasil Kenema remains a premier title contender in Ethiopian football.",
@@ -154,6 +171,11 @@ export default function About() {
                 }`}
               >
                 <div className={index % 2 === 1 ? "lg:order-2" : ""}>
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-red-700">
+                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+                    {isEnglishVersion ? "Chapter" : "ምዕራፍ"}{" "}
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
                   <div className="mb-6 flex flex-wrap items-center gap-3">
                     <h2 className="font-heading text-2xl md:text-3xl font-bold text-gray-900">
                       <span className="text-red-600">
@@ -206,19 +228,32 @@ export default function About() {
                   </div>
                 </div>
                 {section.image && (
-                  <div
-                  className={`rounded-2xl overflow-hidden shadow-lg bg-gray-100 ${index % 2 === 1 ? "lg:order-1" : ""}`}
+                  <figure
+                    className={`group relative aspect-[4/3] overflow-hidden rounded-2xl border border-white bg-gray-100 shadow-xl ring-1 ring-black/5 ${
+                      index % 2 === 1 ? "lg:order-1" : ""
+                    }`}
                   >
-                    <div className="aspect-[4/3]">
-                      <img
-                        src={section.image}
-                        alt={
-                          isEnglishVersion ? section.title_english : section.title
-                        }
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                  </div>
+                    <img
+                      src={section.image}
+                      alt={
+                        isEnglishVersion
+                          ? section.title_english
+                          : section.title
+                      }
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                    <figcaption className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+                      <div className="mb-2 h-1 w-10 rounded-full bg-amber-400" />
+                      <p className="max-w-xl text-sm font-medium leading-relaxed text-white drop-shadow md:text-base">
+                        {isEnglishVersion
+                          ? section.image_caption_english
+                          : section.image_caption}
+                      </p>
+                    </figcaption>
+                  </figure>
                 )}
               </div>
             </div>

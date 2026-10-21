@@ -8,16 +8,27 @@ import { Plus, Edit, Trash2, Image as ImageIcon, Globe, Save, X, Loader2 } from 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import type { Page, Post } from '@shared/schema';
+import { fetchWithAuth } from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type { Page, Post, PostCategory } from '@shared/schema';
 
 const DEFAULT_PAGES = [
   { slug: 'home', titleEn: 'Home Page', contentEn: '' },
   { slug: 'about', titleEn: 'About Us', contentEn: '' },
   { slug: 'contact', titleEn: 'Contact', contentEn: '' },
   { slug: 'membership', titleEn: 'Membership', contentEn: '' },
+  { slug: 'privacy-policy', titleEn: 'Privacy Policy', contentEn: '' },
+  { slug: 'terms-of-service', titleEn: 'Terms of Service', contentEn: '' },
 ];
 
 export default function AdminContent() {
@@ -25,6 +36,8 @@ export default function AdminContent() {
   const queryClient = useQueryClient();
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   
   const [editingPage, setEditingPage] = useState<Page | null>(null);
   const [isPageDialogOpen, setIsPageDialogOpen] = useState(false);
@@ -39,14 +52,106 @@ export default function AdminContent() {
     queryKey: ['/api/posts'],
   });
 
-  const createPostMutation = useMutation({
-    mutationFn: async (data: Partial<Post>) => {
-      return apiRequest('POST', '/api/posts', data);
+  const {
+    data: postCategories = [],
+    isLoading: postCategoriesLoading,
+    isError: postCategoriesError,
+  } = useQuery<PostCategory[]>({
+    queryKey: ['/api/post-categories'],
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const response = await fetchWithAuth('/api/admin/post-categories', {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create category.');
+      }
+      return result as PostCategory;
     },
-    onSuccess: () => {
+    onSuccess: (category) => {
+      queryClient.invalidateQueries({
+        queryKey: ['/api/post-categories'],
+      });
+      setNewCategoryName('');
+      setIsCategoryDialogOpen(false);
+      toast({
+        title: 'Category Created',
+        description: `"${category.name}" is ready to use on posts.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Could not create category',
+        description:
+          error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const createPostMutation = useMutation({
+    mutationFn: async (input: {
+      data: Partial<Post>;
+      notifySubscribers: boolean;
+    }) => {
+      const response = await fetchWithAuth('/api/posts', {
+        method: 'POST',
+        body: JSON.stringify(input.data),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create post.');
+      }
+      return { post: result as Post, notifySubscribers: input.notifySubscribers };
+    },
+    onSuccess: async ({ post, notifySubscribers }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
-      toast({ title: "Post Created", description: "New content has been published." });
       setIsDialogOpen(false);
+      if (!notifySubscribers) {
+        toast({ title: "Post Created", description: "New content has been published." });
+        return;
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/admin/newsletter/send-post', {
+          method: 'POST',
+          body: JSON.stringify({ postId: post.id }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || 'The post was published, but the email could not be sent.');
+        }
+        if (result.failed > 0) {
+          toast({
+            title: "Post published; some emails failed",
+            description: `${result.sent} sent and ${result.failed} failed.`,
+            variant: "destructive",
+          });
+        } else if (result.selected === 0) {
+          toast({
+            title: "Post published",
+            description: "There are no active newsletter subscribers to notify yet.",
+          });
+        } else {
+          toast({
+            title: "Post published and emailed",
+            description: `The post was sent to ${result.sent} active subscriber(s).`,
+          });
+        }
+      } catch (emailError) {
+        toast({
+          title: "Post published; email was not sent",
+          description:
+            emailError instanceof Error
+              ? emailError.message
+              : "Check the email connection and try again from the newsletter page.",
+          variant: "destructive",
+        });
+      }
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to create post.", variant: "destructive" });
@@ -86,29 +191,53 @@ export default function AdminContent() {
 
   const updatePageMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Page> }) => {
-      return apiRequest('PATCH', `/api/pages/${data.id}`, data.updates);
+      const response = await fetchWithAuth(`/api/pages/${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data.updates),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update page.');
+      }
+      return result as Page;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pages'] });
       toast({ title: "Page Updated", description: "Changes saved successfully." });
       setIsPageDialogOpen(false);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update page.", variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update page.",
+        variant: "destructive",
+      });
     },
   });
 
   const createPageMutation = useMutation({
     mutationFn: async (data: Partial<Page>) => {
-      return apiRequest('POST', '/api/pages', data);
+      const response = await fetchWithAuth('/api/pages', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create page.');
+      }
+      return result as Page;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/pages'] });
       toast({ title: "Page Created", description: "New page created successfully." });
       setIsPageDialogOpen(false);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to create page.", variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create page.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -158,7 +287,9 @@ export default function AdminContent() {
     titleEn: '',
     contentEn: '',
     category: '',
-    imageUrl: ''
+    imageUrl: '',
+    isFeatured: false,
+    notifySubscribers: false,
   });
 
   const handleEdit = (post: Post) => {
@@ -167,14 +298,23 @@ export default function AdminContent() {
       titleEn: post.titleEn || '',
       contentEn: post.contentEn || '',
       category: post.category || '',
-      imageUrl: post.imageUrl || ''
+      imageUrl: post.imageUrl || '',
+      isFeatured: post.isFeatured ?? false,
+      notifySubscribers: false,
     });
     setIsDialogOpen(true);
   };
 
   const handleCreate = () => {
     setEditingPost(null);
-    setFormData({ titleEn: '', contentEn: '', category: '', imageUrl: '' });
+    setFormData({
+      titleEn: '',
+      contentEn: '',
+      category: '',
+      imageUrl: '',
+      isFeatured: false,
+      notifySubscribers: false,
+    });
     setIsDialogOpen(true);
   };
 
@@ -185,6 +325,15 @@ export default function AdminContent() {
   };
 
   const handleSave = () => {
+    if (!postCategories.some((category) => category.name === formData.category)) {
+      toast({
+        title: 'Choose a category',
+        description: 'Create or select an existing category before saving the post.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const slug = formData.titleEn.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     
     if (editingPost) {
@@ -195,16 +344,21 @@ export default function AdminContent() {
           contentEn: formData.contentEn,
           category: formData.category,
           imageUrl: formData.imageUrl || undefined,
+          isFeatured: formData.isFeatured,
         },
       });
     } else {
       createPostMutation.mutate({
-        slug,
-        titleEn: formData.titleEn,
-        contentEn: formData.contentEn,
-        category: formData.category,
-        imageUrl: formData.imageUrl || undefined,
-        status: 'published',
+        data: {
+          slug,
+          titleEn: formData.titleEn,
+          contentEn: formData.contentEn,
+          category: formData.category,
+          imageUrl: formData.imageUrl || undefined,
+          isFeatured: formData.isFeatured,
+          status: 'published',
+        },
+        notifySubscribers: formData.notifySubscribers,
       });
     }
   };
@@ -218,9 +372,112 @@ export default function AdminContent() {
             <p className="text-muted-foreground text-sm sm:text-base">Manage news, pages, and translations.</p>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Dialog
+              open={isCategoryDialogOpen}
+              onOpenChange={setIsCategoryDialogOpen}
+            >
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto shrink-0"
+                onClick={() => {
+                  setNewCategoryName('');
+                  setIsCategoryDialogOpen(true);
+                }}
+                data-testid="button-manage-post-categories"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Category
+              </Button>
+              <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md">
+                <DialogHeader>
+                  <DialogTitle>News &amp; Blog Categories</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-post-category">New category name</Label>
+                    <Input
+                      id="new-post-category"
+                      value={newCategoryName}
+                      onChange={(event) =>
+                        setNewCategoryName(event.target.value)
+                      }
+                      placeholder="e.g. Match Report"
+                      maxLength={60}
+                      data-testid="input-new-post-category"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Existing categories</p>
+                    {postCategoriesLoading ? (
+                      <p className="text-sm text-muted-foreground">
+                        Loading categories…
+                      </p>
+                    ) : postCategoriesError ? (
+                      <p className="text-sm text-destructive">
+                        Could not load categories. You can still try adding one.
+                      </p>
+                    ) : postCategories.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {postCategories.map((category) => (
+                          <span
+                            key={category.id}
+                            className="rounded-full bg-zinc-100 px-3 py-1 text-sm text-zinc-700"
+                          >
+                            {category.name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        No categories yet. Add one before creating a post.
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCategoryDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      createCategoryMutation.mutate(newCategoryName.trim())
+                    }
+                    disabled={
+                      !newCategoryName.trim() ||
+                      createCategoryMutation.isPending
+                    }
+                    data-testid="button-save-post-category"
+                  >
+                    {createCategoryMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create Category
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-primary hover:bg-primary/90 w-full sm:w-auto shrink-0" onClick={handleCreate}>
+              <Button
+                size="sm"
+                className="bg-primary hover:bg-primary/90 w-full sm:w-auto shrink-0"
+                onClick={handleCreate}
+                disabled={
+                  postCategoriesLoading ||
+                  postCategoriesError ||
+                  postCategories.length === 0
+                }
+                data-testid="button-create-post"
+              >
                 <Plus className="mr-2 h-4 w-4" /> Create New Post
               </Button>
             </DialogTrigger>
@@ -240,12 +497,42 @@ export default function AdminContent() {
                 </div>
                 <div className="space-y-2">
                   <Label>Category</Label>
-                  <Input 
-                    value={formData.category} 
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    placeholder="e.g. Match Report, Club News"
-                    data-testid="input-post-category"
-                  />
+                  <Select
+                    value={formData.category}
+                    onValueChange={(category) =>
+                      setFormData({ ...formData, category })
+                    }
+                    disabled={
+                      postCategoriesLoading || postCategories.length === 0
+                    }
+                  >
+                    <SelectTrigger data-testid="select-post-category">
+                      <SelectValue
+                        placeholder={
+                          postCategoriesLoading
+                            ? 'Loading categories…'
+                            : postCategories.length
+                              ? 'Select a category'
+                              : 'Create a category first'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {postCategories.map((category) => (
+                        <SelectItem
+                          key={category.id}
+                          value={category.name}
+                        >
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {postCategories.length === 0 && !postCategoriesLoading && (
+                    <p className="text-xs text-muted-foreground">
+                      Add a category before creating a news or blog post.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Image URL</Label>
@@ -256,6 +543,55 @@ export default function AdminContent() {
                     data-testid="input-post-image"
                   />
                 </div>
+                <div className="flex items-start gap-3 rounded-lg border p-3">
+                  <Checkbox
+                    id="post-featured-home"
+                    checked={formData.isFeatured}
+                    onCheckedChange={(checked) =>
+                      setFormData({
+                        ...formData,
+                        isFeatured: checked === true,
+                      })
+                    }
+                    data-testid="checkbox-post-featured-home"
+                  />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="post-featured-home"
+                      className="cursor-pointer"
+                    >
+                      Feature this news on the home page
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Featured posts appear in the home page news section.
+                    </p>
+                  </div>
+                </div>
+                {!editingPost && (
+                  <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50/60 p-3">
+                    <Checkbox
+                      id="post-email-subscribers"
+                      checked={formData.notifySubscribers}
+                      onCheckedChange={(checked) =>
+                        setFormData({
+                          ...formData,
+                          notifySubscribers: checked === true,
+                        })
+                      }
+                    />
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="post-email-subscribers"
+                        className="cursor-pointer"
+                      >
+                        Email this post to active newsletter subscribers
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        After publishing, the post link is emailed individually to every active subscriber.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Content</Label>
                   <Textarea 
@@ -271,7 +607,11 @@ export default function AdminContent() {
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                 <Button 
                   onClick={handleSave} 
-                  disabled={createPostMutation.isPending || updatePostMutation.isPending}
+                  disabled={
+                    createPostMutation.isPending ||
+                    updatePostMutation.isPending ||
+                    !formData.category
+                  }
                   data-testid="button-save-post"
                 >
                   {(createPostMutation.isPending || updatePostMutation.isPending) && (
@@ -281,7 +621,8 @@ export default function AdminContent() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <Tabs defaultValue="news" className="w-full min-w-0">
@@ -314,7 +655,14 @@ export default function AdminContent() {
                     <div className="flex-1 p-4 flex flex-col justify-between">
                       <div>
                         <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-lg line-clamp-1">{post.titleEn}</h3>
+                           <div className="flex min-w-0 items-center gap-2">
+                             <h3 className="font-bold text-lg line-clamp-1">{post.titleEn}</h3>
+                             {post.isFeatured && (
+                               <span className="shrink-0 rounded bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase text-amber-800">
+                                 Home featured
+                               </span>
+                             )}
+                           </div>
                           <span className="text-xs bg-zinc-100 px-2 py-1 rounded font-medium uppercase">{post.category}</span>
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.contentEn?.substring(0, 150)}...</p>

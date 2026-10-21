@@ -16,11 +16,11 @@ import { useQuery } from '@tanstack/react-query';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getLocalAssetUrl } from '@/lib/localAssets';
 
-const partner1 = getLocalAssetUrl('partners/1.jpg');
-const partner2 = getLocalAssetUrl('partners/2.jpg');
-const partner3 = getLocalAssetUrl('partners/3.jpg');
-const partner4 = getLocalAssetUrl('partners/4.jpg');
-const partner5 = getLocalAssetUrl('partners/vcardet_logo.jpg');
+const partner1 = getLocalAssetUrl('partners/dashen-beer.webp');
+const partner2 = getLocalAssetUrl('partners/gondar-city-administration.webp');
+const partner3 = getLocalAssetUrl('partners/university-of-gondar.webp');
+const partner4 = getLocalAssetUrl('partners/wanaw-sportswear.webp');
+const partner5 = getLocalAssetUrl('partners/tina-mart.webp');
 
 const SECONDARY_LINKS = [
   { href: '/meetings-events', label: 'MEETINGS & EVENTS' },

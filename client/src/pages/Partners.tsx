@@ -1,208 +1,144 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import type { FC } from "react";
+import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { getLocalAssetUrl } from "@/lib/localAssets";
 
 interface Partner {
-  id: number;
   name: string;
-  image?: string;
-  alt: string;
   category: string;
+  image: string;
+  alt: string;
 }
 
 const partners: Partner[] = [
-  { id: 1, name: 'TechCorp', image: getLocalAssetUrl('partners/1.jpg'), alt: 'Technology Partner', category: 'Technology' },
-  { id: 2, name: 'InnovateLabs', image: getLocalAssetUrl('partners/2.jpg'), alt: 'Innovation Partner', category: 'Innovation' },
-  { id: 3, name: 'FutureSoft', image: getLocalAssetUrl('partners/3.jpg'), alt: 'Software Partner', category: 'Software' },
-  { id: 4, name: 'GlobalTech', image: getLocalAssetUrl('partners/4.jpg'), alt: 'Global Partner', category: 'Global' },
-  { id: 5, name: 'EliteGroup', image: getLocalAssetUrl('partners/vcardet_logo.jpg'), alt: 'Premium Partner', category: 'Premium' },
+  {
+    name: "Dashen Beer",
+    category: "Beverage",
+    image: getLocalAssetUrl("partners/dashen-beer.webp") ?? "",
+    alt: "Dashen Beer logo",
+  },
+  {
+    name: "Gondar City Administration",
+    category: "Community",
+    image: getLocalAssetUrl("partners/gondar-city-administration.webp") ?? "",
+    alt: "Gondar City Administration logo",
+  },
+  {
+    name: "University of Gondar",
+    category: "Education",
+    image: getLocalAssetUrl("partners/university-of-gondar.webp") ?? "",
+    alt: "University of Gondar logo",
+  },
+  {
+    name: "WANAW Sports Wear",
+    category: "Sportswear",
+    image: getLocalAssetUrl("partners/wanaw-sportswear.webp") ?? "",
+    alt: "WANAW Sports Wear logo",
+  },
+  {
+    name: "Tina Mart",
+    category: "Retail",
+    image: getLocalAssetUrl("partners/tina-mart.webp") ?? "",
+    alt: "Tina Mart logo",
+  },
 ];
 
-const Partners: React.FC = () => {
-  const [items, setItems] = useState<Partner[]>(partners);
-  const [activeId, setActiveId] = useState<number | null>(null);
-  const [columns, setColumns] = useState<number>(2);
-  const shuffleIntervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
-
-  // Detect columns based on screen width
-  const updateColumns = useCallback(() => {
-    const width = window.innerWidth;
-    if (width >= 640) {
-      setColumns(3);
-    } else {
-      setColumns(2);
-    }
-  }, []);
-
-  // Advanced shuffle with multiple patterns
-  const complexShuffle = useCallback(() => {
-    setItems(prev => {
-      const newItems = [...prev];
-      const patterns = [
-        () => { const last = newItems.pop(); if (last) newItems.unshift(last); },
-        () => { const first = newItems.shift(); if (first) newItems.push(first); },
-        () => { [newItems[0], newItems[newItems.length - 1]] = [newItems[newItems.length - 1], newItems[0]]; },
-        () => { const middle = Math.floor(newItems.length / 2); [newItems[middle - 1], newItems[middle]] = [newItems[middle], newItems[middle - 1]]; },
-        () => { const second = newItems.splice(1, 1)[0]; if (second) newItems.push(second); },
-      ];
-      const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
-      randomPattern();
-      return newItems;
-    });
-  }, []);
-
-  // Set up column detection and constant position changes
-  useEffect(() => {
-    updateColumns();
-    window.addEventListener('resize', updateColumns);
-
-    shuffleIntervalRef.current = setInterval(() => {
-      complexShuffle();
-    }, 3000);
-
-    return () => {
-      window.removeEventListener('resize', updateColumns);
-      if (shuffleIntervalRef.current) clearInterval(shuffleIntervalRef.current);
-    };
-  }, [updateColumns, complexShuffle]);
-
-  // Grid classes based on column count
-  const gridClass = columns === 2 
-    ? 'grid-cols-2' 
-    : 'grid-cols-2 sm:grid-cols-3';
-
-  return (
-    <PublicLayout>
-      <div className="min-h-screen bg-white flex flex-col py-4">
-        {/* Professional Header - Compact */}
-        <div className="px-5 pt-6 md:px-8 md:pt-8 flex-shrink-0">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="flex items-center justify-between"
-          >
-            <div>
-              <div className="w-10 h-0.5 bg-red-600 rounded-full mb-2" />
-              <h1 className="text-red-700 text-2xl md:text-3xl font-semibold tracking-wide">
-                Partners
-              </h1>
-            </div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.75 }}
-              className="text-red-500 text-xs font-mono"
-            />
-          </motion.div>
-        </div>
-
-        {/* Responsive Grid - Vertically Centered */}
-        <div className="flex-1 flex items-center justify-center px-4 md:px-8 py-4">
-          <div className="w-full max-w-4xl mx-auto">
-            <Reorder.Group
-              axis="y"
-              values={items}
-              onReorder={setItems}
-              className={`grid ${gridClass} gap-3 sm:gap-4 md:gap-5 auto-rows-fr`}
-            >
-              <AnimatePresence mode="popLayout">
-                {items.map((partner, index) => (
-                  <Reorder.Item
-                    key={partner.id}
-                    value={partner}
-                    onDragEnd={() => setActiveId(null)}
-                    className="relative"
-                  >
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      transition={{
-                        layout: { duration: 0.4, ease: [0.23, 1, 0.32, 1] },
-                        opacity: { duration: 0.2 },
-                        scale: { duration: 0.2 }
-                      }}
-                      whileHover={{ y: -4 }}
-                    //   onHoverStart={() => setActiveId(partner.id)}
-                      onHoverEnd={() => setActiveId(null)}
-                      onTouchStart={() => setActiveId(partner.id)}
-                      onTouchEnd={() => setTimeout(() => setActiveId(null), 300)}
-                      className="relative group cursor-pointer"
-                    >
-                      {/* Card Container */}
-                      <div className="relative">
-                        {/* Glow effect on active */}
-                        <motion.div
-                          animate={{
-                            opacity: activeId === partner.id ? 0.15 : 0,
-                            scale: activeId === partner.id ? 1.02 : 0.98,
-                          }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute -inset-2 bg-red-100 rounded-2xl blur-xl"
-                        />
-
-                        <div className="relative bg-white rounded-2xl overflow-hidden shadow-md border border-red-100 transition-shadow duration-300 hover:shadow-lg">
-                          {/* Red gradient top border */}
-                          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 to-red-600" />
-                          
-                          {/* Image Container */}
-                          {partner.image && (
-                            <div className="relative aspect-square overflow-hidden bg-gray-50 p-3">
-                              <motion.img
-                                src={partner.image}
-                                alt={partner.alt}
-                                className={`w-full h-full ${
-                                  partner.id === 2 ? 'object-contain' : 'object-cover'
-                                }`}
-                                loading="lazy"
-                                draggable={false}
-                                animate={{
-                                  scale: activeId === partner.id ? 1.05 : 1,
-                                }}
-                                transition={{ duration: 0.3 }}
-                              />
-
-                              <motion.div
-                                animate={{
-                                  opacity: activeId === partner.id ? 0.05 : 0,
-                                }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute inset-0 bg-red-500"
-                              />
-                            </div>
-                          )}
-                          {/* Corner Accent */}
-                          <div className="absolute top-2 right-2 w-2 h-2">
-                            <div className="absolute top-0 right-0 w-1.5 h-1.5 bg-red-400 rounded-full opacity-60" />
-                          </div>
-                        </div>
-
-                        {/* Position Badge */}
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{
-                            scale: activeId === partner.id ? 1 : 0,
-                            opacity: activeId === partner.id ? 1 : 0,
-                          }}
-                          className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center shadow-md"
-                        >
-                          <span className="text-white text-[10px] font-bold">
-                            {index + 1}
-                          </span>
-                        </motion.div>
-                      </div>
-                    </motion.div>
-                  </Reorder.Item>
-                ))}
-              </AnimatePresence>
-            </Reorder.Group>
+const Partners: FC = () => (
+  <PublicLayout>
+    <main className="min-h-screen bg-[#f8f7f5]">
+      <section className="relative isolate overflow-hidden bg-slate-950 text-white">
+        <div
+          aria-hidden="true"
+          className="absolute -right-24 -top-36 -z-10 h-96 w-96 rounded-full bg-red-600/25 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-48 left-1/4 -z-10 h-96 w-96 rounded-full bg-amber-500/10 blur-3xl"
+        />
+        <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:py-24">
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-red-300">
+            Fasil Kenema S.C.
+          </p>
+          <h1 className="max-w-3xl font-heading text-4xl font-bold uppercase leading-tight sm:text-5xl lg:text-6xl">
+            Stronger together
+          </h1>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+            Meet the organizations standing with Fasil Kenema and supporting our
+            club and community.
+          </p>
+          <div className="mt-8 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-slate-200">
+            <span className="h-2 w-2 rounded-full bg-red-500" />
+            {partners.length} featured partners
           </div>
         </div>
-      </div>
-    </PublicLayout>
-  );
-};
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
+        <div className="mb-8 flex flex-col gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-700">
+              The team behind the team
+            </p>
+            <h2 className="mt-2 font-heading text-2xl font-bold uppercase text-slate-950 sm:text-3xl">
+              Our partners
+            </h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate-600">
+            Their support helps strengthen football and create more opportunities
+            across Gondar.
+          </p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {partners.map((partner, index) => (
+            <article
+              key={partner.name}
+              className="group overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-red-200 hover:shadow-xl"
+            >
+              <div className="relative flex aspect-[5/4] items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 to-white p-7 sm:p-9">
+                <span className="absolute left-5 top-5 text-xs font-bold tracking-[0.16em] text-slate-400">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <img
+                  src={partner.image}
+                  alt={partner.alt}
+                  className="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+                  loading="eager"
+                  decoding="sync"
+                />
+              </div>
+              <div className="flex min-h-24 items-center justify-between gap-4 border-t border-slate-100 px-5 py-4">
+                <h3 className="font-semibold leading-snug text-slate-950">
+                  {partner.name}
+                </h3>
+                <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-700">
+                  {partner.category}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:flex-row sm:items-center sm:p-8">
+          <div>
+            <h2 className="font-heading text-xl font-bold uppercase text-slate-950">
+              Interested in partnering with us?
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Get in touch with Fasil Kenema S.C.
+            </p>
+          </div>
+          <Link
+            href="/contact"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+          >
+            Contact the club
+            <span aria-hidden="true" className="ml-2">↗</span>
+          </Link>
+        </div>
+      </section>
+    </main>
+  </PublicLayout>
+);
 
 export default Partners;

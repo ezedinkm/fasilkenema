@@ -23,6 +23,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminMembers from "@/pages/admin/Members";
 import AdminPayments from "@/pages/admin/Payments";
 import AdminContent from "@/pages/admin/Content";
+import AdminNewsletter from "@/pages/admin/Newsletter";
 import AdminSMS from "@/pages/admin/SMS";
 import AdminSettings from "@/pages/admin/Settings";
 import AdminTeam from "@/pages/admin/Team";
@@ -48,6 +49,7 @@ import EthiopianLeague from "@/pages/EthiopianPremierLeague";
 import Gonder from "@/pages/Gonder";
 import Shopping from "@/pages/Shopping";
 import Partners from "@/pages/Partners";
+import { PrivacyPolicyPage, TermsOfServicePage } from "@/pages/StaticTextPage";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -78,6 +80,8 @@ function Router() {
       <Route path="/gonder" component={Gonder} />
       <Route path="/shopping" component={Shopping} />
       <Route path="/partners" component={Partners} />
+      <Route path="/privacy-policy" component={PrivacyPolicyPage} />
+      <Route path="/terms-of-service" component={TermsOfServicePage} />
       <Route path="/donate/success" component={DonateSuccess} />
       <Route path="/programs" component={Programs} />
       <Route path="/programs/basketball" component={Basketball} />
@@ -106,6 +110,7 @@ function Router() {
       <Route path="/admin/members" component={AdminMembers} />
       <Route path="/admin/payments" component={AdminPayments} />
       <Route path="/admin/content" component={AdminContent} />
+      <Route path="/admin/newsletter" component={AdminNewsletter} />
       <Route path="/admin/sms" component={AdminSMS} />
       <Route path="/admin/watchreview" component={AdminWatchReview} />
       <Route path="/admin/usermessage" component={AdminUserMessage} />

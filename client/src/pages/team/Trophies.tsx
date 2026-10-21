@@ -2,20 +2,38 @@ import { Link } from "wouter";
 import PublicLayout from "@/components/PublicLayout";
 import { getLocalAssetUrl } from "@/lib/localAssets";
 
-const trophy1 = getLocalAssetUrl("Trophies and honors/trophy (1).jpg");
-const trophy3 = getLocalAssetUrl("Trophies and honors/trophy (3).jpg");
-const trophy4 = getLocalAssetUrl("Trophies and honors/trophy (4).jpg");
-const trophy5 = getLocalAssetUrl("Trophies and honors/trophy (5).jpg");
-const trophy6 = getLocalAssetUrl("Trophies and honors/trophy (6).jpg");
-const trophy7 = getLocalAssetUrl("Trophies and honors/trophy (7).jpg");
-const trophy10 = getLocalAssetUrl("Trophies and honors/trophy (10).jpg");
-const celebrating2013 = getLocalAssetUrl("Trophies and honors/ቤትኪንግ የኢትዮጵያ ፕሪሚየር ሊግ በ2013 ዓ.ም አሸናፊ። (2013 ዓ.ም) copy 2.jpg");
-const addisAbabaCup = getLocalAssetUrl("Trophies and honors/18ኛዉ የአዲስአበባ ከተማ ዋንጫ አሸናፊ .jpg");
-const premierLeagueChampions = getLocalAssetUrl("Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የአሸናፊዎች አሸናፊ ዋንጫ .jpg");
-const mensKnockoutCup = getLocalAssetUrl("Trophies and honors/የኢትዮጵያ ፕሪሚየር ሊግ ክለቦች የወንዶች ጥሎ ማለፍ ዋንጫ አሸናፊ.jpg");
-const federationHighLeagueChampions = getLocalAssetUrl("Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ የአሸናፊዎች አሸናፊ.jpg");
-const federationHighLeagueGroupA = getLocalAssetUrl("Trophies and honors/በኢትዮጵያ እግርኳስ ፌደረሽን የከፍተኛ ሊግ ምድብ ሀ  አሸናፊ.png");
-const nationalLeagueNorthGroupL = getLocalAssetUrl("Trophies and honors/የብሔራዊ ሊግ በሰሜን ዞን ምድብ ለ አሸናፊ.png");
+const cupSuperCup = getLocalAssetUrl("trophies/cup-super-cup.webp");
+const cupMensKnockout = getLocalAssetUrl("trophies/cup-mens-knockout.webp");
+const cupAddisCity = getLocalAssetUrl("trophies/cup-addis-city.webp");
+const cupBetKing = getLocalAssetUrl("trophies/cup-betking-premier-league.webp");
+const cupHighLeague = getLocalAssetUrl("trophies/cup-high-league-champions.webp");
+const cupHighLeagueGroupA = getLocalAssetUrl(
+  "trophies/cup-high-league-group-a.webp",
+);
+const cupNationalLeague = getLocalAssetUrl(
+  "trophies/cup-national-league-north.webp",
+);
+const celebrating2013 = getLocalAssetUrl(
+  "trophies/celebration-betking-premier-league.webp",
+);
+const addisAbabaCup = getLocalAssetUrl(
+  "trophies/celebration-addis-city-cup-18.webp",
+);
+const premierLeagueChampions = getLocalAssetUrl(
+  "trophies/celebration-premier-league-super-cup.webp",
+);
+const mensKnockoutCup = getLocalAssetUrl(
+  "trophies/celebration-mens-knockout-cup.webp",
+);
+const federationHighLeagueChampions = getLocalAssetUrl(
+  "trophies/celebration-high-league-champions.webp",
+);
+const federationHighLeagueGroupA = getLocalAssetUrl(
+  "trophies/celebration-high-league-group-a.webp",
+);
+const nationalLeagueNorthGroupL = getLocalAssetUrl(
+  "trophies/celebration-national-league-north.webp",
+);
 
 type Trophy = {
   no: number;
@@ -33,7 +51,7 @@ const TROPHIES: Trophy[] = [
     english: "Ethiopian Premier League Super Cup Winner",
     year: "2011",
     place: "አዲስ አበባ",
-    image: trophy1,
+    image: cupSuperCup,
   },
   {
     no: 2,
@@ -41,7 +59,7 @@ const TROPHIES: Trophy[] = [
     english: "Ethiopian Premier League Men's Knockout Cup Winner",
     year: "2011",
     place: "ደብረ ዘይት",
-    image: trophy10,
+    image: cupMensKnockout,
   },
   {
     no: 3,
@@ -49,7 +67,7 @@ const TROPHIES: Trophy[] = [
     year: "2016",
     english: "18th Addis Ababa City Cup Winner",
     place: "አዲስ አበባ",
-    image: trophy3,
+    image: cupAddisCity,
   },
   {
     no: 4,
@@ -57,7 +75,7 @@ const TROPHIES: Trophy[] = [
     year: "2013",
     english: "BetKing Ethiopian Premier League Champions",
     place: "ሐዋሳ",
-    image: trophy4,
+    image: cupBetKing,
   },
   {
     no: 5,
@@ -65,7 +83,7 @@ const TROPHIES: Trophy[] = [
     english: "High League Champions of Champions",
     year: "2009",
     place: "አዲስ አበባ",
-    image: trophy5,
+    image: cupHighLeague,
   },
   {
     no: 6,
@@ -73,7 +91,7 @@ const TROPHIES: Trophy[] = [
     english: "High League Group A Winners",
     year: "2008",
     place: "ጎንደር",
-    image: trophy6,
+    image: cupHighLeagueGroupA,
   },
   {
     no: 7,
@@ -81,7 +99,7 @@ const TROPHIES: Trophy[] = [
     english: "National League North Zone Group “L” Winners",
     year: "2007",
     place: "ድሬዳዋ",
-    image: trophy7,
+    image: cupNationalLeague,
   },
 ];
 
@@ -145,8 +163,8 @@ export default function Trophies() {
                         <img
                           src={trophy.image}
                           alt={trophy.name}
-                          loading="lazy"
-                          decoding="async"
+                          loading="eager"
+                          decoding="sync"
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
                         />
@@ -210,8 +228,8 @@ export default function Trophies() {
                   <img
                     src={item.image}
                     alt={item.title}
-                    loading="lazy"
-                    decoding="async"
+                    loading="eager"
+                    decoding="sync"
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />

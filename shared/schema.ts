@@ -9,6 +9,7 @@ import {
   numeric,
   boolean,
   jsonb,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -119,6 +120,7 @@ export const posts = pgTable("posts", {
   contentSo: text("content_so"),
   imageUrl: text("image_url"),
   category: text("category").notNull(),
+  isFeatured: boolean("is_featured").notNull().default(false),
   status: text("status").notNull().default("draft"),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -132,6 +134,39 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 });
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
+
+export const postCategories = pgTable(
+  "post_categories",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    nameLowerUnique: uniqueIndex("post_categories_name_lower_unique").on(
+      sql`lower(${table.name})`,
+    ),
+  }),
+);
+export type PostCategory = typeof postCategories.$inferSelect;
+
+export const newsletterSubscribers = pgTable(
+  "newsletter_subscribers",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+    status: text("status").notNull().default("active"),
+    unsubscribeToken: text("unsubscribe_token").notNull().unique(),
+    subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+    unsubscribedAt: timestamp("unsubscribed_at"),
+  },
+  (table) => ({
+    emailLowerUnique: uniqueIndex("newsletter_subscribers_email_lower_unique").on(
+      sql`lower(${table.email})`,
+    ),
+  }),
+);
+export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 
 export const pages = pgTable("pages", {
   id: serial("id").primaryKey(),
@@ -277,9 +312,11 @@ export type DonationTier = typeof donationTiers.$inferSelect;
 export const usermessage = pgTable("usermessage", {
   id: serial("id").primaryKey(),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
   subject: text("subject").notNull(),
   message: text("message").notNull(),
+  status: text("status").notNull().default("needs_contact"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

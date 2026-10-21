@@ -31,6 +31,7 @@ export const adminNavItems: NavItem[] = [
   { label: "Members", href: "/admin/members", icon: Users },
   { label: "Payments", href: "/admin/payments", icon: CreditCard },
   { label: "Content", href: "/admin/content", icon: FileText },
+  { label: "Newsletter", href: "/admin/newsletter", icon: Mail },
   { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 

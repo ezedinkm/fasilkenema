@@ -21,67 +21,67 @@ const STADIUM_DESCRIPTION = `
 ቴዎድሮስ...
 ይህ ቦታ ባብዛኛው የሀገራችን የተለያዩ ስታዲየሞች በተለምዶ የክቡር ትሪቡን በመባል የሚታዎቀዉ ሲሆን በጎንደሩ የአጤ ፋሲለደስ ስታዲየም ግን የነገስታቱ ወይም የአፄ ቴዎድሮስ መቀመጫ በመባል ይታዎቃል፡፡ በ1995 የጥላፎቅ ግንባታዉ የተሰራለት የቴዎድሮስ መቀመጫ ስያሜዉን ያገኘዉ በመሳፍንት ተከፋፍላ የነበረችውን ሀገራቸዉ ወደ አንድ ለማምጣት ብዙ በደከሙት ሀገር ወዳድ መሪ አጤ ቴዎድሮስ ምክንያት ነዉ፡፡  በዚህ የደጋፊዎች መቀመጫ ቦታ የክብር እንግዶች፣ የዳኞች ኮሚሽነር እና የተለያዩ አካለት ይታደሙበታል፡፡`.trim();
 
-const GALLERY_IMAGES = [
-  getLocalAssetUrl("stadium/st1.jpg"),
-  getLocalAssetUrl("stadium/st2.jpg"),
-  getLocalAssetUrl("stadium/st3.jpg"),
-  getLocalAssetUrl("stadium/st4.jpg"),
-  getLocalAssetUrl("stadium/st5.jpg"),
-  getLocalAssetUrl("stadium/st6.jpg"),
-].filter((image): image is string => Boolean(image));
+const GALLERY_ITEMS = [
+  {
+    src: getLocalAssetUrl("stadium/st1.webp"),
+    alt: "Players and supporters gathered across the Fasil Kenema home ground",
+    caption: "Match day at the home ground",
+  },
+  {
+    src: getLocalAssetUrl("stadium/st2.webp"),
+    alt: "Football match taking place on the stadium pitch",
+    caption: "Football beneath the Gondar sky",
+  },
+  {
+    src: getLocalAssetUrl("stadium/st3.webp"),
+    alt: "Aerial architectural rendering of a stadium",
+    caption: "Aerial stadium concept",
+  },
+  {
+    src: getLocalAssetUrl("stadium/st4.webp"),
+    alt: "Stadium and surrounding landscape in Gondar",
+    caption: "The ground in its city setting",
+  },
+  {
+    src: getLocalAssetUrl("stadium/st5.webp"),
+    alt: "Architectural rendering of a proposed stadium exterior",
+    caption: "Proposed stadium design",
+  },
+  {
+    src: getLocalAssetUrl("stadium/st6.webp"),
+    alt: "Supporters watching a match from around the stadium",
+    caption: "Supporters fill the ground",
+  },
+].filter(
+  (image): image is { src: string; alt: string; caption: string } =>
+    Boolean(image.src),
+);
+
+const STADIUM_DESCRIPTION_BLOCKS = STADIUM_DESCRIPTION.split("\n")
+  .map((text) => text.trim())
+  .filter(Boolean)
+  .map((text) => {
+    const isHeading = text.startsWith("");
+    return {
+      text: isHeading ? text.slice(1).replace(/[.…]+$/, "") : text,
+      isHeading,
+    };
+  });
 
 export default function Stadium() {
   const [heroLoaded, setHeroLoaded] = useState(false);
-  const [loadedGalleryIndexes, setLoadedGalleryIndexes] = useState<boolean[]>(
-    () => Array(GALLERY_IMAGES.length).fill(false),
-  );
 
   useEffect(() => {
-    let cancelled = false;
-    const loadedGallery = new Set<number>();
-
     if (!("IntersectionObserver" in window)) {
       setHeroLoaded(true);
-      setLoadedGalleryIndexes(Array(GALLERY_IMAGES.length).fill(true));
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const target = entry.target as HTMLElement;
-
-          const heroFlag = target.dataset.stadiumHero;
-          if (heroFlag) {
-            setHeroLoaded(true);
-            observer.unobserve(target);
-            continue;
-          }
-
-          const idxRaw = target.dataset.stadiumGalleryIndex;
-          if (!idxRaw) continue;
-
-          const idx = Number(idxRaw);
-          if (
-            cancelled ||
-            Number.isNaN(idx) ||
-            idx < 0 ||
-            idx >= GALLERY_IMAGES.length
-          )
-            continue;
-
-          if (loadedGallery.has(idx)) continue;
-          loadedGallery.add(idx);
-          setLoadedGalleryIndexes((prev) => {
-            const next = [...prev];
-            next[idx] = true;
-            return next;
-          });
-
-          observer.unobserve(target);
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setHeroLoaded(true);
+          observer.disconnect();
         }
       },
       { root: null, rootMargin: "300px 0px", threshold: 0.01 },
@@ -90,16 +90,9 @@ export default function Stadium() {
     const heroEl = document.querySelector<HTMLElement>("[data-stadium-hero]");
     if (heroEl) observer.observe(heroEl);
 
-    const galleryEls = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-stadium-gallery-index]"),
-    );
-    for (const el of galleryEls) observer.observe(el);
-
     return () => {
-      cancelled = true;
       observer.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -109,9 +102,9 @@ export default function Stadium() {
         className="relative bg-gray-900 text-white min-h-[45vh] flex items-end"
         data-stadium-hero
       >
-        {GALLERY_IMAGES[0] && (
+        {GALLERY_ITEMS[0]?.src && (
           <img
-            src={heroLoaded ? GALLERY_IMAGES[0] : undefined}
+            src={heroLoaded ? GALLERY_ITEMS[0].src : undefined}
             alt={STADIUM_TITLE}
             decoding="async"
             referrerPolicy="no-referrer"
@@ -133,49 +126,105 @@ export default function Stadium() {
         </div>
       </section>
 
-      {/* 500 words description */}
-      <section className="py-14 md:py-20 bg-white">
-        <div className="container px-4 max-w-3xl mx-auto">
-          <div className="prose prose-lg max-w-none">
-            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-              {STADIUM_DESCRIPTION}
+      {/* Stadium story */}
+      <section className="bg-gradient-to-b from-white via-white to-red-50/50 py-14 md:py-20">
+        <div className="container mx-auto max-w-5xl px-4">
+          <div className="mb-8 flex flex-col gap-4 border-l-4 border-red-600 pl-5 md:mb-10">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-700">
+              Gondar · Ethiopia
             </p>
+            <h2 className="font-heading text-2xl font-bold text-slate-900 md:text-3xl">
+              The story of our home ground
+            </h2>
           </div>
+          <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 md:p-10">
+            <div className="mb-7 flex items-center justify-between gap-4 border-b border-slate-100 pb-5">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wider text-red-700">
+                  የአጤ ፋሲለደስ ስታዲየም
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  History, stands, and the people who bring them to life
+                </p>
+              </div>
+              <span className="hidden rounded-full bg-red-50 px-4 py-2 text-sm font-bold text-red-700 sm:inline-flex">
+                FASIL KENEMA
+              </span>
+            </div>
+            <div className="space-y-5">
+              {STADIUM_DESCRIPTION_BLOCKS.map((block, index) =>
+                block.isHeading ? (
+                  <h3
+                    key={`heading-${index}`}
+                    className="border-l-2 border-red-500 pl-4 pt-2 font-heading text-lg font-bold text-slate-900"
+                    lang="am"
+                  >
+                    {block.text}
+                  </h3>
+                ) : (
+                  <p
+                    key={`paragraph-${index}`}
+                    className="text-base leading-8 text-slate-700"
+                    lang="am"
+                  >
+                    {block.text}
+                  </p>
+                ),
+              )}
+            </div>
+          </article>
         </div>
       </section>
 
-      {/* 6 images gallery */}
-      {GALLERY_IMAGES.length > 0 && (
-      <section className="py-14 md:py-20 bg-gray-50">
-        <div className="container px-4 max-w-6xl mx-auto">
-          <h2 className="font-heading text-2xl md:text-3xl font-bold text-gray-900 mb-2 text-center">
-            Stadium Gallery
-          </h2>
-          <p className="text-gray-600 text-center mb-10 md:mb-14">
-            Views and moments from our home ground
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {GALLERY_IMAGES.map((src, i) => (
+      {/* Stadium gallery */}
+      {GALLERY_ITEMS.length > 0 && (
+        <section
+          id="stadium-gallery"
+          className="bg-slate-950 py-14 md:py-20"
+        >
+          <div className="container mx-auto max-w-6xl px-4">
+            <div className="mb-9 flex flex-col gap-3 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-red-300">
+                  The home of Fasil Kenema
+                </p>
+                <h2 className="font-heading text-2xl font-bold text-white md:text-3xl">
+                  Stadium Gallery
+                </h2>
+              </div>
+              <p className="max-w-md text-sm leading-6 text-slate-300">
+                Match-day memories, supporters, and views of the ground in Gondar.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {GALLERY_ITEMS.map((image, i) => (
               <div
                 key={i}
-                data-stadium-gallery-index={i}
-                className="rounded-xl overflow-hidden bg-white shadow-md"
+                  className="group relative isolate overflow-hidden rounded-2xl bg-slate-900 shadow-lg ring-1 ring-white/10"
               >
-                <div className="aspect-[4/3] overflow-hidden">
+                  <div className="aspect-[16/10] overflow-hidden">
                   <img
-                    src={loadedGalleryIndexes[i] ? src : undefined}
-                    alt={`${STADIUM_TITLE} ${i + 1}`}
-                    decoding="async"
+                      src={image.src}
+                      alt={image.alt}
+                    decoding="sync"
                     referrerPolicy="no-referrer"
-                    loading="eager"
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      loading="eager"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent px-5 pb-5 pt-14">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-red-200">
+                      Fasil Kenema Stadium
+                    </p>
+                    <h3 className="mt-1 text-base font-semibold text-white">
+                      {image.caption}
+                    </h3>
+                  </div>
               </div>
             ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
       )}
 
       {/* Back link */}

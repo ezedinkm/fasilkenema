@@ -3,23 +3,34 @@ import PublicLayout from "@/components/PublicLayout";
 import { useEffect, useState } from "react";
 import { getLocalAssetUrl } from "@/lib/localAssets";
 
-const ambassadorsImage = getLocalAssetUrl("charity work/Ambasadors.jpg");
-const bloodDonationImage = getLocalAssetUrl("charity work/blood donation.jpg");
-const environmentalWorkImage = getLocalAssetUrl("charity work/enviromental work.jpg");
-const supportElderlyImage = getLocalAssetUrl("charity work/support for  Elderly ).jpg");
-const supportStudents1Image = getLocalAssetUrl("charity work/support for students (1).jpg");
-const supportStudents2Image = getLocalAssetUrl("charity work/support for students (2).jpg");
-
 const ABOUT_TEXT = `Beyond sport, FASIL S.C Sport Club gives back through dedicated charity work. We support underprivileged youth with access to sport and education, run health and community outreach initiatives, and partner with local organisations to strengthen our community. Our charity arm focuses on youth development, equipment donations to schools, and events that bring people together. Together we build a stronger, healthier community.`;
 
 const GALLERY_IMAGES = [
-  ambassadorsImage,
-  bloodDonationImage,
-  environmentalWorkImage,
-  supportElderlyImage,
-  supportStudents1Image,
-  supportStudents2Image,
-].filter((image): image is string => Boolean(image));
+  {
+    src: getLocalAssetUrl("charity-work/ambassadors.webp"),
+    alt: "Fasil S.C community ambassadors supporting an elderly care campaign",
+  },
+  {
+    src: getLocalAssetUrl("charity-work/blood-donation.webp"),
+    alt: "Community members taking part in a blood donation drive",
+  },
+  {
+    src: getLocalAssetUrl("charity-work/environmental-work.webp"),
+    alt: "Fasil S.C volunteers participating in environmental work",
+  },
+  {
+    src: getLocalAssetUrl("charity-work/elderly-support.webp"),
+    alt: "Fasil S.C members delivering support supplies to older adults",
+  },
+  {
+    src: getLocalAssetUrl("charity-work/student-support-1.webp"),
+    alt: "Club volunteers providing school materials to students",
+  },
+  {
+    src: getLocalAssetUrl("charity-work/student-support-2.webp"),
+    alt: "Students receiving educational support from the club",
+  },
+].filter((image): image is { src: string; alt: string } => Boolean(image.src));
 
 export default function Charity() {
   const [loadedImageIndexes, setLoadedImageIndexes] = useState<boolean[]>(() =>
@@ -111,7 +122,7 @@ export default function Charity() {
             Moments from our charity and outreach work
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {GALLERY_IMAGES.map((src, i) => (
+            {GALLERY_IMAGES.map((image, i) => (
               <div
                 key={i}
                 data-charity-image-index={i}
@@ -119,8 +130,8 @@ export default function Charity() {
               >
                 <div className="aspect-[4/3] overflow-hidden">
                   <img
-                    src={loadedImageIndexes[i] ? src : undefined}
-                    alt={`Charity work ${i + 1}`}
+                    src={loadedImageIndexes[i] ? image.src : undefined}
+                    alt={image.alt}
                     loading="lazy"
                     decoding="async"
                     referrerPolicy="no-referrer"

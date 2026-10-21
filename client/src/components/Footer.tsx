@@ -3,6 +3,9 @@ import { ASSETS } from '@/lib/mockData';
 import { Facebook, Twitter, Instagram, Youtube, Smartphone, Mail, CheckCircle, X } from 'lucide-react';
 import appStoreBadge from '@assets/generated_images/app_store_badge.png';
 import playStoreBadge from '@assets/generated_images/google_play_badge.png';
+import subscriberWoman from '@assets/generated_images/subscriber-woman.jpg';
+import subscriberMan from '@assets/generated_images/subscriber-man.jpg';
+import subscriberSenior from '@assets/generated_images/subscriber-senior.jpg';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Footer() {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [error, setError] = useState('');
   const { toast } = useToast();
 
@@ -37,7 +40,7 @@ export default function Footer() {
     return regex.test(email);
   };
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -51,12 +54,30 @@ export default function Footer() {
       return;
     }
 
-    setIsSubscribed(true);
-    setEmail('');
-    
-    setTimeout(() => {
-      setIsSubscribed(false);
-    }, 5500);
+    setIsSubscribing(true);
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || 'Could not subscribe. Please try again.');
+      }
+
+      setIsSubscribed(true);
+      setEmail('');
+      window.setTimeout(() => setIsSubscribed(false), 5500);
+    } catch (subscribeError) {
+      setError(
+        subscribeError instanceof Error
+          ? subscribeError.message
+          : 'Could not subscribe. Please try again.',
+      );
+    } finally {
+      setIsSubscribing(false);
+    }
   };
 
   const handleAppBadgeClick = () => {
@@ -189,8 +210,8 @@ export default function Footer() {
   {[
     { label: "Contact Us", href: "/contact" },
     { label: "Careers", href: "#" },
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Terms of Service", href: "/terms-of-service" },
   ].map((item, index) => (
     <li key={index}>
       <Link
@@ -232,21 +253,23 @@ export default function Footer() {
                     className={`w-full h-11 pl-10 pr-3 rounded-xl border ${
                       error ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-white'
                     } text-sm shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500`}
-                    disabled={isSubscribed}
+                    disabled={isSubscribed || isSubscribing}
                   />
                 </div>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={isSubscribed}
+                  disabled={isSubscribed || isSubscribing}
                   className={`h-11 px-6 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
                     isSubscribed
                       ? 'bg-green-500 text-white cursor-default'
                       : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-md hover:shadow-lg'
                   }`}
                 >
-                  {isSubscribed ? (
+                  {isSubscribing ? (
+                    'Subscribing…'
+                  ) : isSubscribed ? (
                     <>
                       <CheckCircle className="h-4 w-4" />
                       Subscribed!
@@ -267,16 +290,29 @@ export default function Footer() {
                 </motion.p>
               )}
             </form>
+            <p className="mt-2 text-xs text-slate-400">
+              By subscribing, you agree to receive club updates. You can unsubscribe at any time.
+            </p>
 
             {/* Trust Badge */}
             <div className="mt-6 pt-5 border-t border-slate-100">
               <div className="flex items-center gap-2 text-xs text-slate-400">
-                <div className="flex -space-x-1">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="w-6 h-6 rounded-full bg-slate-100 border-2 border-white"></div>
-                  ))}
+                <div className="flex -space-x-2" aria-hidden="true">
+                  {[subscriberWoman, subscriberMan, subscriberSenior].map(
+                    (src, index) => (
+                      <img
+                        key={src}
+                        src={src}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="h-9 w-9 rounded-full border-2 border-white object-cover shadow-sm"
+                        style={{ zIndex: index + 1 }}
+                      />
+                    ),
+                  )}
                 </div>
-                <span>Join 10,000+ subscribers</span>
+                <span>Join the Fasil Kenema community</span>
                 
               </div>
               

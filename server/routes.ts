@@ -16,11 +16,13 @@ import {
   insertPaymentSchema,
   insertPendingMemberApplicationSchema,
   insertUsermessageSchema,
+  posts,
   passwordResetTokens,
   membershipTiers,
   donationTiers,
   usermessage,
   watchReviews,
+  postCategories,
   LEGACY_SMS_PUBLIC_BASE_URL_SETTING_KEY,
   PUBLIC_SITE_BASE_URL_SETTING_KEY,
   SMS_ICONIC_SETTING_KEYS,
@@ -42,6 +44,7 @@ import { JWT_SECRET, authenticateToken } from "./middleware/authMiddleware";
 import { upload, uploadsDir } from "./middleware/multerConfig";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
+import { registerNewsletterRoutes } from "./newsletterRoutes";
 import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
@@ -132,6 +135,7 @@ function resolveChapaCallbackUrl(
 let donationTiersTableReady = false;
 let userMessageTableReady = false;
 let watchReviewsTableReady = false;
+let postContentSchemaReady = false;
 let membershipTiersSchemaReady = false;
 
 async function ensureDonationTiersTableExists(): Promise<void> {
@@ -161,11 +165,26 @@ async function ensureUserMessageTableExists(): Promise<void> {
     CREATE TABLE IF NOT EXISTS usermessage (
       id serial PRIMARY KEY,
       full_name text NOT NULL,
-      email text NOT NULL,
+      phone text NOT NULL,
+      email text,
       subject text NOT NULL,
       message text NOT NULL,
+      status text NOT NULL DEFAULT 'needs_contact',
       created_at timestamp NOT NULL DEFAULT now()
     );
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ALTER COLUMN phone DROP DEFAULT,
+    ALTER COLUMN email DROP NOT NULL;
+  `);
+  await db.execute(sql`
+    ALTER TABLE usermessage
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'needs_contact';
   `);
 
   userMessageTableReady = true;
@@ -186,6 +205,84 @@ async function ensureWatchReviewsTableExists(): Promise<void> {
   `);
 
   watchReviewsTableReady = true;
+}
+
+function slugifyPostValue(value: string): string {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function makeUniquePostSlug(candidate: string, title: string): Promise<string> {
+  const base =
+    slugifyPostValue(candidate) ||
+    slugifyPostValue(title) ||
+    `news-${Date.now().toString(36)}`;
+  let slug = base;
+  let suffix = 2;
+
+  while (await storage.getPostBySlug(slug)) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return slug;
+}
+
+async function ensurePostContentSchema(): Promise<void> {
+  if (postContentSchemaReady) {
+    return;
+  }
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS post_categories (
+      id serial PRIMARY KEY,
+      name text NOT NULL,
+      created_at timestamp NOT NULL DEFAULT now()
+    );
+  `);
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS post_categories_name_lower_unique
+    ON post_categories (lower(name));
+  `);
+
+  const featuredColumn = await db.execute(sql`
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'posts'
+      AND column_name = 'is_featured'
+    LIMIT 1;
+  `);
+  const isFeaturedColumnNew = featuredColumn.rowCount === 0;
+  await db.execute(sql`
+    ALTER TABLE posts
+    ADD COLUMN IF NOT EXISTS is_featured boolean NOT NULL DEFAULT false;
+  `);
+  if (isFeaturedColumnNew) {
+    await db.execute(sql`UPDATE posts SET is_featured = true;`);
+  }
+
+  await db.execute(sql`
+    INSERT INTO post_categories (name)
+    SELECT DISTINCT btrim(category)
+    FROM posts
+    WHERE NULLIF(btrim(category), '') IS NOT NULL
+    ON CONFLICT DO NOTHING;
+  `);
+
+  const postsMissingSlugs = await db
+    .select({ id: posts.id, titleEn: posts.titleEn })
+    .from(posts)
+    .where(sql`btrim(${posts.slug}) = ''`);
+  for (const post of postsMissingSlugs) {
+    const slug = await makeUniquePostSlug("", post.titleEn);
+    await storage.updatePost(post.id, { slug });
+  }
+
+  postContentSchemaReady = true;
 }
 
 async function ensureMembershipTiersSchema(): Promise<void> {
@@ -708,6 +805,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   registerTeamAdminRoutes(app);
   registerAdminRoutes(app);
+  registerNewsletterRoutes(app);
   app.use("/api", eplRoutes);
   app.use("/api", scrapeRoutes);
 
@@ -777,12 +875,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const payload = {
         fullName: String(req.body?.fullName ?? "").trim(),
+        phone: String(req.body?.phone ?? "").trim(),
         email: String(req.body?.email ?? "")
           .trim()
-          .toLowerCase(),
+          .toLowerCase() || null,
         subject: String(req.body?.subject ?? "").trim(),
         message: String(req.body?.message ?? "").trim(),
       };
+
+      if (
+        !payload.fullName ||
+        !payload.phone ||
+        !payload.subject ||
+        !payload.message
+      ) {
+        return res.status(400).json({
+          error: "Name, phone, subject, and message are required",
+        });
+      }
+
+      if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+        return res.status(400).json({ error: "Enter a valid email address" });
+      }
 
       const validation = insertUsermessageSchema.safeParse(payload);
       if (!validation.success) {
@@ -2985,8 +3099,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/post-categories", async (_req, res) => {
+    try {
+      await ensurePostContentSchema();
+      const categories = await db
+        .select()
+        .from(postCategories)
+        .orderBy(asc(postCategories.name));
+      res.json(categories);
+    } catch (error) {
+      console.error("Failed to fetch post categories:", error);
+      res.status(500).json({ error: "Failed to fetch post categories" });
+    }
+  });
+
+  app.post(
+    "/api/admin/post-categories",
+    authenticateToken,
+    async (req, res) => {
+      try {
+        await ensurePostContentSchema();
+        const name = String(req.body?.name ?? "").trim();
+        if (!name) {
+          return res.status(400).json({ error: "Category name is required" });
+        }
+        if (name.length > 60) {
+          return res
+            .status(400)
+            .json({ error: "Category name must be 60 characters or fewer" });
+        }
+
+        const [existing] = await db
+          .select({ id: postCategories.id })
+          .from(postCategories)
+          .where(sql`lower(${postCategories.name}) = lower(${name})`)
+          .limit(1);
+        if (existing) {
+          return res
+            .status(409)
+            .json({ error: "A category with this name already exists" });
+        }
+
+        const [category] = await db
+          .insert(postCategories)
+          .values({ name })
+          .returning();
+        res.status(201).json(category);
+      } catch (error) {
+        if ((error as { code?: string })?.code === "23505") {
+          return res
+            .status(409)
+            .json({ error: "A category with this name already exists" });
+        }
+        console.error("Failed to create post category:", error);
+        res.status(500).json({ error: "Failed to create post category" });
+      }
+    },
+  );
+
   app.get("/api/posts", async (req, res) => {
     try {
+      await ensurePostContentSchema();
       const posts = await storage.getPosts();
       res.json(posts);
     } catch (error) {
@@ -3006,24 +3179,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts", async (req, res) => {
+  app.post("/api/posts", authenticateToken, async (req, res) => {
     try {
+      await ensurePostContentSchema();
       const validation = insertPostSchema.safeParse(req.body);
       if (!validation.success) {
         return res
           .status(400)
           .json({ error: fromZodError(validation.error).message });
       }
-      const post = await storage.createPost(validation.data);
+      const categoryName = validation.data.category.trim();
+      const [category] = await db
+        .select({ name: postCategories.name })
+        .from(postCategories)
+        .where(sql`lower(${postCategories.name}) = lower(${categoryName})`)
+        .limit(1);
+      if (!category) {
+        return res.status(400).json({
+          error: "Choose a category that has been created before saving the post",
+        });
+      }
+      const slug = await makeUniquePostSlug(
+        validation.data.slug,
+        validation.data.titleEn,
+      );
+      const post = await storage.createPost({
+        ...validation.data,
+        slug,
+        category: category.name,
+      });
       res.json(post);
     } catch (error) {
+      console.error("Failed to create post:", error);
       res.status(500).json({ error: "Failed to create post" });
     }
   });
 
   app.patch("/api/posts/:id", authenticateToken, async (req, res) => {
     try {
-      const post = await storage.updatePost(parseInt(req.params.id), req.body);
+      await ensurePostContentSchema();
+      const updates =
+        req.body && typeof req.body === "object" ? { ...req.body } : {};
+      if ("category" in updates) {
+        const categoryName = String(updates.category ?? "").trim();
+        if (!categoryName) {
+          return res.status(400).json({ error: "Post category is required" });
+        }
+        const [category] = await db
+          .select({ name: postCategories.name })
+          .from(postCategories)
+          .where(sql`lower(${postCategories.name}) = lower(${categoryName})`)
+          .limit(1);
+        if (!category) {
+          return res.status(400).json({
+            error:
+              "Choose a category that has been created before saving the post",
+          });
+        }
+        updates.category = category.name;
+      }
+      const post = await storage.updatePost(
+        parseInt(req.params.id),
+        updates,
+      );
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
@@ -3058,6 +3276,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = await storage.getPageBySlug(req.params.slug);
       if (!page) {
+        const emptyStaticPages: Record<string, string> = {
+          "privacy-policy": "Privacy Policy",
+          "terms-of-service": "Terms of Service",
+        };
+        const titleEn = emptyStaticPages[req.params.slug];
+        if (titleEn) {
+          return res.json({
+            id: 0,
+            slug: req.params.slug,
+            titleEn,
+            titleAm: null,
+            contentEn: "",
+            contentAm: null,
+            status: "draft",
+            createdAt: null,
+            updatedAt: null,
+          });
+        }
         return res.status(404).json({ error: "Page not found" });
       }
       res.json(page);

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function Contact() {
   const { toast } = useToast();
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -57,20 +58,21 @@ export default function Contact() {
 
     if (
       !fullName.trim() ||
-      !email.trim() ||
+      !phone.trim() ||
       !subject.trim() ||
       !message.trim()
     ) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields before sending your message.",
+        description:
+          "Please provide your name, phone number, subject, and message.",
         variant: "destructive",
       });
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
+    if (email.trim() && !emailRegex.test(email.trim())) {
       toast({
         title: "Invalid Email",
         description: "Please enter a valid email address.",
@@ -86,7 +88,8 @@ export default function Contact() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: fullName.trim(),
-          email: email.trim(),
+          phone: phone.trim(),
+          email: email.trim() || null,
           subject: subject.trim(),
           message: message.trim(),
         }),
@@ -102,6 +105,7 @@ export default function Contact() {
         description: "Your message has been received successfully.",
       });
       setFullName("");
+      setPhone("");
       setEmail("");
       setSubject("");
       setMessage("");
@@ -197,35 +201,54 @@ export default function Contact() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label htmlFor="name" className="text-sm font-medium">
-                          Full Name
+                          Full Name <span className="text-red-600">*</span>
                         </label>
                         <Input
                           id="name"
+                          required
+                          autoComplete="name"
                           placeholder="John Doe"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                         />
                       </div>
                       <div className="space-y-2">
-                        <label htmlFor="email" className="text-sm font-medium">
-                          Email
+                        <label htmlFor="phone" className="text-sm font-medium">
+                          Phone Number <span className="text-red-600">*</span>
                         </label>
                         <Input
-                          id="email"
-                          type="email"
-                          placeholder="john@example.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          id="phone"
+                          type="tel"
+                          required
+                          autoComplete="tel"
+                          placeholder="+251 9..."
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
+                      <label htmlFor="email" className="text-sm font-medium">
+                        Email <span className="text-muted-foreground">(optional)</span>
+                      </label>
+                      <Input
+                        id="email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="john@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
                       <label htmlFor="subject" className="text-sm font-medium">
-                        Subject
+                        Subject <span className="text-red-600">*</span>
                       </label>
                       <Input
                         id="subject"
+                        required
                         placeholder="How can we help?"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
@@ -234,10 +257,11 @@ export default function Contact() {
 
                     <div className="space-y-2">
                       <label htmlFor="message" className="text-sm font-medium">
-                        Message
+                        Message <span className="text-red-600">*</span>
                       </label>
                       <Textarea
                         id="message"
+                        required
                         placeholder="Your message here..."
                         rows={6}
                         value={message}
