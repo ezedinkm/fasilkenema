@@ -1357,6 +1357,33 @@ export default function AdminSettings() {
     }
   };
 
+  const handlePasteIconicSmsApiKey = async () => {
+    try {
+      const pastedKey = String(
+        await navigator.clipboard.readText(),
+      ).trim();
+      if (!pastedKey) {
+        toast({
+          title: "Clipboard is empty",
+          description: "Copy the IconicSMS API key first, then try Paste.",
+        });
+        return;
+      }
+      setIconicSmsApiKey(pastedKey);
+      toast({
+        title: "API key pasted",
+        description: "Click Save SMS gateway to apply the new key.",
+      });
+    } catch {
+      toast({
+        title: "Could not read clipboard",
+        description:
+          "Click the key field and use Ctrl+V, or long-press and choose Paste.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAddEmail = () => {
     const trimmedEmail = newEmail.trim().toLowerCase();
     if (!trimmedEmail) return;
@@ -2912,22 +2939,51 @@ export default function AdminSettings() {
                           <Label htmlFor="iconic-sms-api-key">
                             IconicSMS API key
                           </Label>
-                          <Input
-                            id="iconic-sms-api-key"
-                            type="password"
-                            value={iconicSmsApiKey}
-                            onChange={(e) =>
-                              setIconicSmsApiKey(e.target.value)
-                            }
-                            placeholder={
-                              smsProviderStatus?.apiKeyConfigured
-                                ? "Configured — enter a new key to replace"
-                                : "Enter your IconicSMS API key"
-                            }
-                            className="font-mono text-sm"
-                            data-testid="input-iconic-sms-api-key"
-                            autoComplete="new-password"
-                          />
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Input
+                              id="iconic-sms-api-key"
+                              type="password"
+                              value={iconicSmsApiKey}
+                              onChange={(e) =>
+                                setIconicSmsApiKey(e.target.value)
+                              }
+                              onPaste={(event) => {
+                                const pastedKey = event.clipboardData
+                                  .getData("text")
+                                  .trim();
+                                if (pastedKey) {
+                                  event.preventDefault();
+                                  setIconicSmsApiKey(pastedKey);
+                                }
+                              }}
+                              placeholder={
+                                smsProviderStatus?.apiKeyConfigured
+                                  ? "Configured — enter a new key to replace"
+                                  : "Enter your IconicSMS API key"
+                              }
+                              className="font-mono text-sm"
+                              data-testid="input-iconic-sms-api-key"
+                              autoComplete="off"
+                              autoCapitalize="none"
+                              spellCheck={false}
+                              maxLength={4096}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() =>
+                                void handlePasteIconicSmsApiKey()
+                              }
+                              className="sm:shrink-0"
+                            >
+                              Paste
+                            </Button>
+                          </div>
+                          {iconicSmsApiKey && (
+                            <p className="text-xs font-medium text-green-700">
+                              New API key entered. Save SMS gateway to apply it.
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             The saved key is encrypted on the server and is
                             never shown again. Leave blank to keep the current
