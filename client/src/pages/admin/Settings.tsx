@@ -206,6 +206,7 @@ export default function AdminSettings() {
   const [iconicSmsSenderId, setIconicSmsSenderId] = useState("");
   const [iconicSmsApiKey, setIconicSmsApiKey] = useState("");
   const [isSavingSmsSettings, setIsSavingSmsSettings] = useState(false);
+  const [isTestingSmsConnection, setIsTestingSmsConnection] = useState(false);
   const [publicSiteBaseUrl, setPublicSiteBaseUrl] = useState("");
 
   const { data: settings, refetch: refetchSettings } = useQuery<any[]>({
@@ -1324,6 +1325,35 @@ export default function AdminSettings() {
       });
     } finally {
       setIsSavingSmsSettings(false);
+    }
+  };
+
+  const handleTestSmsConnection = async () => {
+    setIsTestingSmsConnection(true);
+    try {
+      const response = await fetch("/api/admin/sms/test-connection", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "IconicSMS connection check failed");
+      }
+      toast({
+        title: "IconicSMS connection verified",
+        description: result.message,
+      });
+    } catch (error) {
+      toast({
+        title: "IconicSMS connection failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not verify the IconicSMS API key.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingSmsConnection(false);
     }
   };
 
@@ -2872,7 +2902,7 @@ export default function AdminSettings() {
                           }
                         >
                           {smsProviderStatus?.apiKeyConfigured
-                            ? "Active"
+                            ? "Configured"
                             : "API key required"}
                         </Badge>
                       </div>
@@ -2902,6 +2932,26 @@ export default function AdminSettings() {
                             The saved key is encrypted on the server and is
                             never shown again. Leave blank to keep the current
                             key.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="justify-self-start"
+                            onClick={() => void handleTestSmsConnection()}
+                            disabled={
+                              !smsProviderStatus?.apiKeyConfigured ||
+                              isTestingSmsConnection ||
+                              isSavingSmsSettings
+                            }
+                          >
+                            {isTestingSmsConnection
+                              ? "Testing connection…"
+                              : "Test connection"}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">
+                            This checks the IconicSMS account balance endpoint;
+                            it does not send a text message.
                           </p>
                           {smsProviderStatus?.keySource === "settings" && (
                             <Button

@@ -35,6 +35,7 @@ export type SendSmsOptions = {
 export type OtpPurpose = "registration" | "password_reset";
 
 const ICONIC_SMS_SEND_URL = "https://api.iconicsms.et/api/v1/sms/send";
+const ICONIC_SMS_BALANCE_URL = "https://api.iconicsms.et/api/v1/balance";
 const SMS_FETCH_MS = 28_000;
 const ICONIC_SMS_KEY_ENCRYPTION_VERSION = 1;
 
@@ -183,6 +184,74 @@ function getProviderError(payload: any, status: number): string {
     return error.code.trim();
   }
   return `IconicSMS request failed (HTTP ${status})`;
+}
+
+export async function testIconicSmsConnection(): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  let apiKey: string;
+  try {
+    apiKey = (await getIconicSmsCredential()).apiKey;
+  } catch {
+    return {
+      success: false,
+      message: "The saved SMS API key could not be read. Replace it in Settings.",
+    };
+  }
+  if (!apiKey) {
+    return {
+      success: false,
+      message: "No IconicSMS API key is configured.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SMS_FETCH_MS);
+  try {
+    const response = await fetch(ICONIC_SMS_BALANCE_URL, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "X-IconicSMS-Key": apiKey,
+        "User-Agent": "FasilClub-SMS/1.0",
+      },
+      signal: controller.signal,
+    });
+    const raw = await response.text();
+    let payload: any = null;
+    try {
+      payload = raw ? JSON.parse(raw) : null;
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok || payload?.success !== true) {
+      const providerError = getProviderError(payload, response.status);
+      return {
+        success: false,
+        message: /invalid|missing/i.test(providerError) &&
+          /api.?key|token/i.test(providerError)
+          ? "IconicSMS rejected this API key. Replace it with the key from Developer → API Keys."
+          : `IconicSMS connection check failed (HTTP ${response.status}).`,
+      };
+    }
+
+    return {
+      success: true,
+      message: "IconicSMS accepted the API key. No SMS was sent by this check.",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        error instanceof Error && /abort/i.test(error.name)
+          ? "IconicSMS connection check timed out."
+          : "Could not reach IconicSMS. Try again shortly.",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function persistOutboundSms(params: {

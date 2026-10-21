@@ -7,6 +7,7 @@ import {
   encryptIconicSmsApiKey,
   getIconicSmsApiKeyStatus,
   sendSms,
+  testIconicSmsConnection,
 } from "./iconicSms";
 import { storage } from "./storage";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
@@ -311,6 +312,14 @@ export function registerAdminRoutes(app: Express): void {
       } catch {
         res.status(500).json({ error: "Failed to remove saved SMS API key" });
       }
+    },
+  );
+  app.post(
+    "/api/admin/sms/test-connection",
+    authenticateToken,
+    async (_req, res) => {
+      const result = await testIconicSmsConnection();
+      res.status(result.success ? 200 : 502).json(result);
     },
   );
   void ensureSmsLogsCategoryColumn().catch((err) =>
