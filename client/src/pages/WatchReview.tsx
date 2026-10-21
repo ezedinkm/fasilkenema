@@ -1,6 +1,6 @@
 import PublicLayout from "@/components/PublicLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { PlayCircle, Youtube } from "lucide-react";
+import { Youtube } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 type WatchReview = {
@@ -12,22 +12,39 @@ type WatchReview = {
 function extractYouTubeVideoId(url: string): string | null {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.includes("youtu.be")) {
-      return parsed.pathname.replace("/", "") || null;
+    const hostname = parsed.hostname.toLowerCase();
+    const isShortDomain = ["youtu.be", "www.youtu.be"].includes(hostname);
+    const isYouTubeDomain = [
+      "youtube.com",
+      "www.youtube.com",
+      "m.youtube.com",
+      "music.youtube.com",
+      "youtube-nocookie.com",
+      "www.youtube-nocookie.com",
+    ].includes(hostname);
+
+    if (isShortDomain) {
+      const id = parsed.pathname.split("/").filter(Boolean)[0];
+      return id && /^[\w-]{11}$/.test(id) ? id : null;
     }
-    if (parsed.hostname.includes("youtube.com")) {
-      return parsed.searchParams.get("v");
+    if (!isYouTubeDomain) return null;
+
+    let id = parsed.searchParams.get("v");
+    if (!id) {
+      const [, route, pathId] = parsed.pathname.split("/");
+      if (["embed", "shorts", "live", "v"].includes(route)) {
+        id = pathId ?? null;
+      }
     }
-    return null;
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
   } catch {
     return null;
   }
 }
 
-function getYouTubeThumbnail(url: string): string {
+function getYouTubeEmbedUrl(url: string): string | null {
   const id = extractYouTubeVideoId(url);
-  if (!id) return "https://i.ytimg.com/vi/default/hqdefault.jpg";
-  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0` : null;
 }
 
 export default function WatchReview() {
@@ -54,8 +71,8 @@ export default function WatchReview() {
               Watch Reviews
             </h1>
             <p className="text-lg md:text-xl max-w-2xl mx-auto text-white/90">
-              Match analysis, fan reactions, and club highlights from our latest
-              YouTube reviews.
+              Watch match analysis, fan reactions, and club highlights right
+              here on our website.
             </p>
           </div>
         </div>
@@ -75,41 +92,44 @@ export default function WatchReview() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {reviews.map((review) => (
-                <a
-                  key={review.id}
-                  href={review.youtubeUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group block"
-                  data-testid={`card-watchreview-${review.id}`}
-                >
-                  <Card className="overflow-hidden border-zinc-200 shadow-sm group-hover:shadow-lg transition-all duration-300 group-hover:-translate-y-1 bg-white">
-                    <div className="relative">
-                      <img
-                        src={getYouTubeThumbnail(review.youtubeUrl)}
-                        alt={review.title}
-                        className="w-full aspect-video object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/25 group-hover:bg-black/35 transition-colors flex items-center justify-center">
-                        <div className="h-14 w-14 rounded-full bg-red-600/95 flex items-center justify-center shadow-lg">
-                          <PlayCircle className="h-8 w-8 text-white fill-white/20" />
+                {reviews.map((review) => {
+                  const embedUrl = getYouTubeEmbedUrl(review.youtubeUrl);
+
+                  return (
+                    <Card
+                      key={review.id}
+                      className="overflow-hidden border-zinc-200 shadow-sm bg-white"
+                      data-testid={`card-watchreview-${review.id}`}
+                    >
+                      <div className="relative aspect-video bg-zinc-950">
+                        {embedUrl ? (
+                          <iframe
+                            src={embedUrl}
+                            title={review.title}
+                            className="absolute inset-0 h-full w-full"
+                            loading="lazy"
+                            referrerPolicy="strict-origin-when-cross-origin"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-white/80">
+                            This review has an invalid YouTube link.
+                          </div>
+                        )}
+                      </div>
+                      <CardContent className="p-4">
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-red-600">
+                          <Youtube className="h-4 w-4" />
+                          Video review
                         </div>
-                      </div>
-                      <div className="absolute top-3 left-3 bg-black/70 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1">
-                        <Youtube className="h-3.5 w-3.5 text-red-500" />
-                        YouTube
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-zinc-900 line-clamp-2 group-hover:text-primary transition-colors">
-                        {review.title}
-                      </h3>
-                    </CardContent>
-                  </Card>
-                </a>
-              ))}
+                        <h3 className="font-semibold text-zinc-900 line-clamp-2">
+                          {review.title}
+                        </h3>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           )}
         </div>
