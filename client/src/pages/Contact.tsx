@@ -7,6 +7,7 @@ import { MapPin, Phone, Mail } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { getSocialIcon, getSocialLinksFromSettings } from "@/lib/socialLinks";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -21,6 +22,7 @@ export default function Contact() {
     queryKey: ["/api/public/settings"],
     staleTime: Infinity,
   });
+  const socialLinks = getSocialLinksFromSettings(settings);
 
   const contactInfo = {
     clubName:
@@ -185,6 +187,29 @@ export default function Contact() {
                       </p>
                     </div>
                   </div>
+
+                  {socialLinks.length > 0 && (
+                    <div className="space-y-3 border-t pt-5">
+                      <h4 className="font-bold">Connect with us</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {socialLinks.map((link) => {
+                          const Icon = getSocialIcon(link.icon);
+                          return (
+                            <a
+                              key={link.id}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                            >
+                              <Icon className="h-4 w-4" aria-hidden="true" />
+                              <span>{link.name}</span>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

@@ -18,6 +18,8 @@ import type {
   InsertPost,
   Page,
   InsertPage,
+  CareerJob,
+  InsertCareerJob,
   SmsTemplate,
   InsertSmsTemplate,
   SmsLog,
@@ -101,6 +103,16 @@ export interface IStorage {
   getPageBySlug(slug: string): Promise<Page | undefined>;
   createPage(page: InsertPage): Promise<Page>;
   updatePage(id: number, page: Partial<InsertPage>): Promise<Page | undefined>;
+
+  getCareerJobs(): Promise<CareerJob[]>;
+  getPublishedCareerJobs(): Promise<CareerJob[]>;
+  getCareerJobById(id: number): Promise<CareerJob | undefined>;
+  createCareerJob(job: InsertCareerJob): Promise<CareerJob>;
+  updateCareerJob(
+    id: number,
+    job: Partial<InsertCareerJob>,
+  ): Promise<CareerJob | undefined>;
+  deleteCareerJob(id: number): Promise<boolean>;
 
   getSmsTemplates(): Promise<SmsTemplate[]>;
   getSmsTemplateById(id: number): Promise<SmsTemplate | undefined>;
@@ -477,6 +489,54 @@ export class DbStorage implements IStorage {
       .where(eq(schema.pages.id, id))
       .returning();
     return result[0];
+  }
+
+  async getCareerJobs(): Promise<CareerJob[]> {
+    return await db
+      .select()
+      .from(schema.careerJobs)
+      .orderBy(desc(schema.careerJobs.createdAt));
+  }
+
+  async getPublishedCareerJobs(): Promise<CareerJob[]> {
+    return await db
+      .select()
+      .from(schema.careerJobs)
+      .where(eq(schema.careerJobs.status, "published"))
+      .orderBy(desc(schema.careerJobs.createdAt));
+  }
+
+  async getCareerJobById(id: number): Promise<CareerJob | undefined> {
+    const result = await db
+      .select()
+      .from(schema.careerJobs)
+      .where(eq(schema.careerJobs.id, id));
+    return result[0];
+  }
+
+  async createCareerJob(job: InsertCareerJob): Promise<CareerJob> {
+    const result = await db.insert(schema.careerJobs).values(job).returning();
+    return result[0];
+  }
+
+  async updateCareerJob(
+    id: number,
+    job: Partial<InsertCareerJob>,
+  ): Promise<CareerJob | undefined> {
+    const result = await db
+      .update(schema.careerJobs)
+      .set({ ...job, updatedAt: new Date() })
+      .where(eq(schema.careerJobs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteCareerJob(id: number): Promise<boolean> {
+    const result = await db
+      .delete(schema.careerJobs)
+      .where(eq(schema.careerJobs.id, id))
+      .returning({ id: schema.careerJobs.id });
+    return result.length > 0;
   }
 
   async getSmsTemplates(): Promise<SmsTemplate[]> {

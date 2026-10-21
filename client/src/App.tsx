@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import About from "@/pages/About";
+import Careers from "@/pages/Careers";
 import Stadium from "@/pages/Stadium";
 import Contact from "@/pages/Contact";
 import WatchReview from "@/pages/WatchReview";
@@ -27,6 +28,9 @@ import AdminNewsletter from "@/pages/admin/Newsletter";
 import AdminSMS from "@/pages/admin/SMS";
 import AdminSettings from "@/pages/admin/Settings";
 import AdminTeam from "@/pages/admin/Team";
+import AdminCareers from "@/pages/admin/Careers";
+import AdminSocialLinks from "@/pages/admin/SocialLinks";
+import AdminLeagueTable from "@/pages/admin/LeagueTable";
 import AdminUserMessage from "@/pages/admin/UserMessage";
 import AdminWatchReview from "@/pages/admin/WatchReview";
 import MemberLogin from "@/pages/MemberLogin";
@@ -68,6 +72,7 @@ function Router() {
       <Route path="/about" component={About} />
       <Route path="/stadium" component={Stadium} />
       <Route path="/contact" component={Contact} />
+      <Route path="/careers" component={Careers} />
       <Route path="/media" component={WatchReview} />
       <Route path="/media/watchreview" component={WatchReview} />
       <Route path="/blog" component={Blog} />
@@ -116,6 +121,9 @@ function Router() {
       <Route path="/admin/usermessage" component={AdminUserMessage} />
       <Route path="/admin/settings" component={AdminSettings} />
       <Route path="/admin/team" component={AdminTeam} />
+      <Route path="/admin/careers" component={AdminCareers} />
+      <Route path="/admin/social-links" component={AdminSocialLinks} />
+      <Route path="/admin/league-table" component={AdminLeagueTable} />
 
       <Route path="/not-found" component={NotFound} />
       

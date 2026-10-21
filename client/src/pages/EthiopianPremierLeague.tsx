@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RefreshCw, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 import PublicLayout from "@/components/PublicLayout";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { apiRequest } from "@/lib/queryClient";
 
 type StandingRow = {
   clubId: number;
@@ -29,7 +28,6 @@ type EplPayload = {
 };
 
 export default function EthiopianPremierLeague() {
-  const [isRefreshNowPending, setIsRefreshNowPending] = useState(false);
   const { data, isLoading, error, refetch, isFetching } = useQuery<EplPayload>({
     queryKey: ["/api/epl"],
     staleTime: Infinity,
@@ -40,17 +38,6 @@ export default function EthiopianPremierLeague() {
     const rows = data?.standings ?? [];
     return [...rows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || (b.goalDiff ?? 0) - (a.goalDiff ?? 0));
   }, [data?.standings]);
-
-  const handleRefreshNow = async () => {
-    if (isRefreshNowPending) return;
-    setIsRefreshNowPending(true);
-    try {
-      await apiRequest("GET", "/api/scrape");
-      await refetch();
-    } finally {
-      setIsRefreshNowPending(false);
-    }
-  };
 
   return (
     <PublicLayout>
@@ -72,17 +59,9 @@ export default function EthiopianPremierLeague() {
                 onClick={() => refetch()}
                 variant="outline"
                 className="w-full sm:w-auto bg-white/10 border-white/30 text-white hover:bg-white/15 hover:text-white"
-                disabled={isFetching || isRefreshNowPending}
+                disabled={isFetching}
               >
                 {isFetching ? "Refreshing…" : "Reload"}
-              </Button>
-              <Button
-                onClick={handleRefreshNow}
-                className="w-full sm:w-auto bg-white text-red-700 hover:bg-white/90"
-                disabled={isFetching || isRefreshNowPending}
-              >
-                <RefreshCw className={isRefreshNowPending ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
-                {isRefreshNowPending ? "Scraping..." : "Refresh now"}
               </Button>
             </div>
           </div>
@@ -163,16 +142,19 @@ export default function EthiopianPremierLeague() {
                               }
                             >
                               <div className="flex items-center gap-1.5 min-w-0 md:gap-2">
-                                {/* {r.logo ? (
+                                {r.logo ? (
                                   <img
                                     src={r.logo}
                                     alt=""
                                     className="h-5 w-5 rounded-sm object-contain bg-white border md:h-7 md:w-7"
                                     loading="lazy"
+                                    onError={(event) => {
+                                      event.currentTarget.style.display = "none";
+                                    }}
                                   />
                                 ) : (
                                   <div className="h-5 w-5 rounded-sm bg-muted border md:h-7 md:w-7" />
-                                )} */}
+                                )}
                                 <span
                                   className={
                                     isFasilKenema
@@ -207,7 +189,7 @@ export default function EthiopianPremierLeague() {
                         {sortedStandings.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={10} className="py-10 text-center text-sm text-muted-foreground">
-                              No league data yet. Click “Refresh now” to scrape and store EPL standings & matches.
+                              No league data is available yet. Check back soon.
                             </TableCell>
                           </TableRow>
                         ) : null}

@@ -194,6 +194,59 @@ export const insertPageSchema = createInsertSchema(pages).omit({
 export type InsertPage = z.infer<typeof insertPageSchema>;
 export type Page = typeof pages.$inferSelect;
 
+export const careerJobs = pgTable("career_jobs", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  department: text("department"),
+  location: text("location").notNull(),
+  employmentType: text("employment_type").notNull().default("Full-time"),
+  summary: text("summary"),
+  description: text("description").notNull(),
+  requirements: text("requirements"),
+  applicationEmail: text("application_email"),
+  applicationUrl: text("application_url"),
+  closingDate: text("closing_date"),
+  status: text("status").notNull().default("draft"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCareerJobSchema = createInsertSchema(careerJobs)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    title: z.string().trim().min(1).max(160),
+    department: z.string().trim().max(120).nullable().optional(),
+    location: z.string().trim().min(1).max(160),
+    employmentType: z.string().trim().min(1).max(80),
+    summary: z.string().trim().max(300).nullable().optional(),
+    description: z.string().trim().min(1).max(12000),
+    requirements: z.string().trim().max(12000).nullable().optional(),
+    applicationEmail: z
+      .string()
+      .trim()
+      .email()
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    applicationUrl: z
+      .string()
+      .trim()
+      .url()
+      .refine((value) => /^https?:\/\//i.test(value))
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    closingDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .or(z.literal(""))
+      .nullable()
+      .optional(),
+    status: z.enum(["draft", "published", "closed"]),
+  });
+export type InsertCareerJob = z.infer<typeof insertCareerJobSchema>;
+export type CareerJob = typeof careerJobs.$inferSelect;
+
 export const smsTemplates = pgTable("sms_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),

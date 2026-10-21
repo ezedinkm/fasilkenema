@@ -127,14 +127,18 @@ export default function Membership() {
               Loading membership options...
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-8">
               {sortedTiers.map((tier) => (
-                <MembershipCard
+                <div
                   key={tier.id}
-                  tier={tier}
-                  currency={currency}
-                  billingCycle={billingCycle}
-                />
+                  className="w-full max-w-[420px] md:w-[calc(50%-1rem)] xl:w-[calc(33.333%-1.333rem)]"
+                >
+                  <MembershipCard
+                    tier={tier}
+                    currency={currency}
+                    billingCycle={billingCycle}
+                  />
+                </div>
               ))}
             </div>
           )}

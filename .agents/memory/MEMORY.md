@@ -1,0 +1,1 @@
+- [Database schema updates](database-schema-updates.md) — Drizzle push encounters existing name conflicts; isolate additive changes rather than forcing unrelated renames.

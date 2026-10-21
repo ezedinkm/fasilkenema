@@ -719,18 +719,21 @@ export default function Navbar() {
                 onMouseEnter={() => handleNavEnter(index)}
               >
                 {link.isPartners ? (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && handleNavEnter(index)}
+                  <Link
+                    href={link.href}
+                    onClick={() => setActiveNavIndex(null)}
+                    aria-haspopup="true"
+                    aria-expanded={activeNavIndex === index}
                     className={cn(
-                      'px-2 lg:px-3 py-2 text-xs lg:text-sm font-semibold uppercase tracking-wide h-full flex items-center border-b-2 border-transparent rounded-sm cursor-default',
-                      'text-white/95 hover:bg-white/10',
+                      'px-2 lg:px-3 py-2 text-xs lg:text-sm font-semibold uppercase tracking-wide h-full flex items-center border-b-2 border-transparent rounded-sm cursor-pointer',
+                      location === link.href
+                        ? 'bg-white/15 text-white'
+                        : 'text-white/95 hover:bg-white/10',
                       activeNavIndex === index && 'bg-white/10 text-white border-b-2 border-white'
                     )}
                   >
                     {link.label}
-                  </span>
+                  </Link>
                 ) : (
                   <Link
                     href={link.href}
@@ -1010,7 +1013,7 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Partners panel — 5 logos marquee (right to left), no route */}
+        {/* Partners logo marquee remains available on hover; the menu link opens the dedicated page. */}
         {!searchOpen && activeNavIndex !== null && navLinks[activeNavIndex]?.isPartners && navLinks[activeNavIndex].partnerLogos?.length && (
           <div
             ref={navPanelRef}

@@ -10,6 +10,7 @@ import {
   insertDonationSchema,
   insertPostSchema,
   insertPageSchema,
+  insertCareerJobSchema,
   insertSmsTemplateSchema,
   insertSmsLogSchema,
   insertSettingSchema,
@@ -28,6 +29,7 @@ import {
   SMS_ICONIC_SETTING_KEYS,
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
+import { socialLinksSettingSchema } from "@shared/socialLinks";
 import { fromZodError } from "zod-validation-error";
 import {
   sendPaymentNotificationWithTotal,
@@ -948,9 +950,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       //   return res.status(401).json({ error: 'Invalid credentials' });
       // }
 
-      const token = jwt.sign({ id: admin.id, email: admin.email }, JWT_SECRET, {
-        expiresIn: "24h",
-      });
+      const token = jwt.sign(
+        { id: admin.id, email: admin.email, role: "admin" },
+        JWT_SECRET,
+        { expiresIn: "24h" },
+      );
       res.json({
         token,
         admin: { id: admin.id, email: admin.email, fullName: admin.fullName },
@@ -3329,6 +3333,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/careers", async (_req, res) => {
+    try {
+      const jobs = await storage.getPublishedCareerJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Failed to fetch public career openings:", error);
+      res.status(500).json({ error: "Failed to fetch career openings" });
+    }
+  });
+
+  app.get("/api/admin/careers", authenticateToken, async (_req, res) => {
+    try {
+      const jobs = await storage.getCareerJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Failed to fetch career openings:", error);
+      res.status(500).json({ error: "Failed to fetch career openings" });
+    }
+  });
+
+  app.post("/api/admin/careers", authenticateToken, async (req, res) => {
+    const validation = insertCareerJobSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res
+        .status(400)
+        .json({ error: fromZodError(validation.error).message });
+    }
+
+    try {
+      const job = await storage.createCareerJob(validation.data);
+      res.status(201).json(job);
+    } catch (error) {
+      console.error("Failed to create career opening:", error);
+      res.status(500).json({ error: "Failed to create career opening" });
+    }
+  });
+
+  app.patch("/api/admin/careers/:id", authenticateToken, async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return res.status(400).json({ error: "Invalid career opening ID" });
+    }
+
+    const validation = insertCareerJobSchema.partial().safeParse(req.body);
+    if (!validation.success) {
+      return res
+        .status(400)
+        .json({ error: fromZodError(validation.error).message });
+    }
+
+    try {
+      const job = await storage.updateCareerJob(id, validation.data);
+      if (!job) {
+        return res.status(404).json({ error: "Career opening not found" });
+      }
+      res.json(job);
+    } catch (error) {
+      console.error("Failed to update career opening:", error);
+      res.status(500).json({ error: "Failed to update career opening" });
+    }
+  });
+
+  app.delete(
+    "/api/admin/careers/:id",
+    authenticateToken,
+    async (req, res) => {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id < 1) {
+        return res.status(400).json({ error: "Invalid career opening ID" });
+      }
+
+      try {
+        const deleted = await storage.deleteCareerJob(id);
+        if (!deleted) {
+          return res.status(404).json({ error: "Career opening not found" });
+        }
+        res.json({ success: true });
+      } catch (error) {
+        console.error("Failed to delete career opening:", error);
+        res.status(500).json({ error: "Failed to delete career opening" });
+      }
+    },
+  );
+
   app.get("/api/sms-templates", authenticateToken, async (req, res) => {
     try {
       const templates = await storage.getSmsTemplates();
@@ -3485,6 +3573,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .status(403)
           .json({ error: "Use the protected SMS credential endpoint." });
       }
+
+      if (validation.data.key === "social.links") {
+        const socialLinks = socialLinksSettingSchema.safeParse(
+          validation.data.value,
+        );
+        if (!socialLinks.success) {
+          return res.status(400).json({
+            error: fromZodError(socialLinks.error).message,
+          });
+        }
+        const setting = await storage.upsertSetting({
+          ...validation.data,
+          value: socialLinks.data,
+        });
+        return res.json(setting);
+      }
+
       const setting = await storage.upsertSetting(validation.data);
       res.json(setting);
     } catch (error) {

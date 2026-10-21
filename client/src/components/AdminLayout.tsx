@@ -15,6 +15,9 @@ import {
   PlayCircle,
   Menu,
   Bell,
+  Briefcase,
+  Share2,
+  ListOrdered,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -44,6 +47,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { icon: Users, label: "Members", href: "/admin/members" },
     { icon: CreditCard, label: "Payments", href: "/admin/payments" },
     { icon: FileText, label: "Content", href: "/admin/content" },
+    { icon: Briefcase, label: "Careers", href: "/admin/careers" },
+    { icon: Share2, label: "Social Links", href: "/admin/social-links" },
+    { icon: ListOrdered, label: "League Table", href: "/admin/league-table" },
     { icon: Mail, label: "Newsletter", href: "/admin/newsletter" },
     { icon: MessageSquare, label: "SMS & Comms", href: "/admin/sms" },
     { icon: PlayCircle, label: "Watch Reviews", href: "/admin/watchreview" },

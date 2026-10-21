@@ -26,3 +26,29 @@ export function authenticateToken(
     next();
   });
 }
+
+export function authenticateAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  authenticateToken(req, res, () => {
+    const user = (req as Request & { user?: unknown }).user;
+    const claims =
+      user && typeof user === "object"
+        ? (user as { id?: unknown; email?: unknown; role?: unknown; type?: unknown })
+        : null;
+    const hasAdminIdentity =
+      claims !== null &&
+      claims.type !== "member" &&
+      Number.isSafeInteger(Number(claims.id)) &&
+      typeof claims.email === "string" &&
+      (!claims.role || claims.role === "admin");
+
+    if (!hasAdminIdentity) {
+      res.status(403).json({ error: "Administrator access required" });
+      return;
+    }
+    next();
+  });
+}

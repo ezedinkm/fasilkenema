@@ -1,6 +1,6 @@
 import { Link } from 'wouter';
 import { ASSETS } from '@/lib/mockData';
-import { Facebook, Twitter, Instagram, Youtube, Smartphone, Mail, CheckCircle, X } from 'lucide-react';
+import { Smartphone, Mail, CheckCircle, X } from 'lucide-react';
 import appStoreBadge from '@assets/generated_images/app_store_badge.png';
 import playStoreBadge from '@assets/generated_images/google_play_badge.png';
 import subscriberWoman from '@assets/generated_images/subscriber-woman.jpg';
@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { getSocialIcon, getSocialLinksFromSettings } from '@/lib/socialLinks';
 
 export default function Footer() {
   const [email, setEmail] = useState('');
@@ -29,11 +30,8 @@ export default function Footer() {
     logo: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.logo')?.value : null) || ASSETS.logo,
     footerTagline: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.footerTagline')?.value : null) || "The official home of FASIL S.C Ethiopian football excellence.",
     copyrightText: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'branding.copyrightText')?.value : null) || 'FASIL S.C',
-    facebookUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.facebook')?.value : null) || '#',
-    twitterUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.twitter')?.value : null) || '#',
-    instagramUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.instagram')?.value : null) || '#',
-    youtubeUrl: (Array.isArray(settings) ? settings.find((s: any) => s.key === 'social.youtube')?.value : null) || '#',
   };
+  const socialLinks = getSocialLinksFromSettings(settings);
 
   const validateEmail = (email: string) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,33 +114,22 @@ export default function Footer() {
             
             {/* Social Links */}
             <div className="flex items-center gap-3">
-              <a
-                href="https://web.facebook.com/FKSCOfficial/?_rdc=1&_rdr"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-slate-100 hover:bg-red-500 text-slate-600 hover:text-white p-2 rounded-full transition-all duration-300 hover:scale-110"
-                aria-label="Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a
-                href="https://x.com/fcfasil"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-slate-100 hover:bg-red-500 text-slate-600 hover:text-white p-2 rounded-full transition-all duration-300 hover:scale-110"
-                aria-label="Twitter"
-              >
-                <Twitter className="h-4 w-4" />
-              </a>
-              <a
-                href="https://www.instagram.com/fasil_kenema_sc?igsh=MTgyZXVrbHA4ZWxxcg=="
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-slate-100 hover:bg-red-500 text-slate-600 hover:text-white p-2 rounded-full transition-all duration-300 hover:scale-110"
-                aria-label="Instagram"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
+              {socialLinks.map((link) => {
+                const Icon = getSocialIcon(link.icon);
+                return (
+                  <a
+                    key={link.id}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-slate-100 hover:bg-red-500 text-slate-600 hover:text-white p-2 rounded-full transition-all duration-300 hover:scale-110"
+                    aria-label={link.name}
+                    title={link.name}
+                  >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </a>
+                );
+              })}
             </div>
 
             {/* App Store Badges */}
@@ -209,7 +196,7 @@ export default function Footer() {
             <ul className="space-y-3">
   {[
     { label: "Contact Us", href: "/contact" },
-    { label: "Careers", href: "#" },
+    { label: "Careers", href: "/careers" },
     { label: "Privacy Policy", href: "/privacy-policy" },
     { label: "Terms of Service", href: "/terms-of-service" },
   ].map((item, index) => (

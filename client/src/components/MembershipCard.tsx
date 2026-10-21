@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import membershipCardPattern from "@/assets/membership-card-pattern.webp";
 
 interface MembershipCardProps {
   tier: {
@@ -46,72 +47,77 @@ export default function MembershipCard({
   return (
     <Card
       className={cn(
-        "relative flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl border-2 rounded-2xl",
+        "relative isolate flex flex-col overflow-hidden rounded-[1.75rem] border-2 border-[#e8d96b] bg-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl",
         tier.recommended
-          ? "border-primary/70 shadow-xl scale-[1.02] z-10"
-          : "border-border hover:border-primary/40",
+          ? "ring-2 ring-[#e8d96b]/40"
+          : "hover:border-[#d7c54d]",
       )}
+      style={{
+        backgroundImage: `url(${membershipCardPattern})`,
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+      }}
     >
-      {tier.recommended && (
-        <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">
-          Most Popular
-        </div>
-      )}
-
-      <CardHeader className={cn("pb-8 pt-8 text-center", tier.color)}>
-        <CardTitle className="font-heading text-3xl font-bold uppercase tracking-wide">
-          {tier.name}
-        </CardTitle>
-        {tier.amharicVersion && (
-          <p className="text-base font-semibold opacity-95 mt-1">
-            {tier.amharicVersion}
-          </p>
+      <div
+        className="pointer-events-none absolute inset-0 bg-white/35"
+        aria-hidden="true"
+      />
+      <div className="relative z-10 flex h-full flex-col">
+        {tier.recommended && (
+          <div className="absolute right-0 top-0 rounded-bl-xl bg-[#6f3218] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
+            Most Popular
+          </div>
         )}
-        <CardDescription
-          className={cn(
-            "text-lg font-medium opacity-90",
-            tier.recommended ? "text-white/80" : "text-muted-foreground",
-          )}
-        >
-          {billingCycle === "monthly"
-            ? "Monthly Membership"
-            : "Annual Membership"}
-        </CardDescription>
-        <div className="mt-4">
-          <span className="text-4xl font-bold font-display">{price}</span>
-          <span className="text-sm opacity-80 font-normal">
-            {billingCycle === "monthly" ? "/month" : "/year"}
-          </span>
-        </div>
-      </CardHeader>
 
-      <CardContent className="flex-grow pt-8">
-        <ul className="space-y-4">
-          {tier.benefits.map((benefit, i) => (
-            <li key={i} className="flex items-start gap-3">
-              <div className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Check className="h-3 w-3 text-primary" />
-              </div>
-              <span className="text-sm">{benefit}</span>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-
-      <CardFooter className="pb-8 pt-4">
-        <Button
-          onClick={handleSelect}
-          className={cn(
-            "w-full uppercase font-display tracking-widest text-sm h-auto min-h-12 py-3 whitespace-normal break-words rounded-xl",
-            tier.recommended
-              ? "bg-primary hover:bg-primary/90"
-              : "bg-secondary hover:bg-secondary/90 text-secondary-foreground",
+        <CardHeader className="flex min-h-[235px] flex-col items-center justify-center border-b border-white/60 bg-zinc-100/75 px-5 pb-8 pt-10 text-center backdrop-blur-[2px]">
+          <CardTitle className="font-heading text-3xl font-bold uppercase tracking-wide text-zinc-950">
+            {tier.name}
+          </CardTitle>
+          {tier.amharicVersion && (
+            <p className="mt-2 text-base font-semibold text-zinc-800">
+              {tier.amharicVersion}
+            </p>
           )}
-          data-testid={`button-select-${tier.id}`}
-        >
-          Select {tier.name}
-        </Button>
-      </CardFooter>
+          <CardDescription className="mt-2 text-lg font-medium text-zinc-500">
+            {billingCycle === "monthly"
+              ? "Monthly Membership"
+              : "Annual Membership"}
+          </CardDescription>
+          <div className="mt-5">
+            <span className="font-display text-5xl font-bold text-zinc-950">
+              {price}
+            </span>
+            <span className="text-base font-normal text-zinc-600">
+              {billingCycle === "monthly" ? "/month" : "/year"}
+            </span>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex-grow bg-white/85 px-6 py-8 backdrop-blur-[2px]">
+          <ul className="space-y-5">
+            {tier.benefits.map((benefit, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-yellow-100">
+                  <Check className="h-3.5 w-3.5 text-[#d0bd37]" />
+                </div>
+                <span className="text-base leading-relaxed text-zinc-800">
+                  {benefit}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+
+        <CardFooter className="bg-white/85 px-6 pb-8 pt-4 backdrop-blur-[2px]">
+          <Button
+            onClick={handleSelect}
+            className="min-h-14 w-full whitespace-normal break-words rounded-xl border-2 border-[#d6bf28] bg-[#6f3218] py-3 font-display text-sm uppercase tracking-widest text-white hover:bg-[#572410]"
+            data-testid={`button-select-${tier.id}`}
+          >
+            Select {tier.name}
+          </Button>
+        </CardFooter>
+      </div>
     </Card>
   );
 }
