@@ -186,6 +186,12 @@ export default function AdminSettings() {
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] =
     useState(true);
   const [newEmail, setNewEmail] = useState("");
+  const [resendFromName, setResendFromName] = useState("");
+  const [resendFromEmail, setResendFromEmail] = useState("");
+  const [resendReplyTo, setResendReplyTo] = useState("");
+  const [resendTestRecipient, setResendTestRecipient] = useState("");
+  const [isSavingResendConfig, setIsSavingResendConfig] = useState(false);
+  const [isSendingResendTest, setIsSendingResendTest] = useState(false);
 
   // State for theme
   const [themeColors, setThemeColors] = useState(DEFAULT_THEME);
@@ -232,6 +238,29 @@ export default function AdminSettings() {
         return response.json();
       },
     });
+
+  const {
+    data: resendEmailConfig,
+    refetch: refetchResendEmailConfig,
+    isLoading: isLoadingResendEmailConfig,
+  } = useQuery<{ fromName: string; fromEmail: string; replyTo: string }>({
+    queryKey: ["/api/admin/email/resend-config"],
+    enabled: !!token,
+    queryFn: async () => {
+      const response = await fetch("/api/admin/email/resend-config", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load Resend email configuration");
+      }
+      return response.json();
+    },
+  });
+  const resendConfigHasUnsavedChanges =
+    !!resendEmailConfig &&
+    (resendFromName.trim() !== resendEmailConfig.fromName ||
+      resendFromEmail.trim() !== resendEmailConfig.fromEmail ||
+      resendReplyTo.trim() !== resendEmailConfig.replyTo);
 
   const { data: membershipTiersData, refetch: refetchMembershipTiers } =
     useQuery<any[]>({
@@ -1104,6 +1133,80 @@ export default function AdminSettings() {
         description: "Failed to save notification settings",
         variant: "destructive",
       });
+    }
+  };
+
+  useEffect(() => {
+    if (!resendEmailConfig) return;
+    setResendFromName(resendEmailConfig.fromName);
+    setResendFromEmail(resendEmailConfig.fromEmail);
+    setResendReplyTo(resendEmailConfig.replyTo);
+  }, [resendEmailConfig]);
+
+  const handleSaveResendConfig = async () => {
+    setIsSavingResendConfig(true);
+    try {
+      const response = await fetch("/api/admin/email/resend-config", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fromName: resendFromName,
+          fromEmail: resendFromEmail,
+          replyTo: resendReplyTo,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to save Resend configuration");
+      }
+      await refetchResendEmailConfig();
+      toast({
+        title: "Resend Settings Saved",
+        description: "Sender details will be used for outgoing emails.",
+      });
+    } catch (error) {
+      toast({
+        title: "Could not save Resend settings",
+        description:
+          error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingResendConfig(false);
+    }
+  };
+
+  const handleSendResendTest = async () => {
+    setIsSendingResendTest(true);
+    try {
+      const response = await fetch("/api/admin/email/resend-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ toEmail: resendTestRecipient.trim() }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Resend could not send the test email");
+      }
+      toast({
+        title: "Test Email Sent",
+        description: `A test email was sent to ${resendTestRecipient.trim()}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Test Email Failed",
+        description:
+          error instanceof Error ? error.message : "Please check Resend settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingResendTest(false);
     }
   };
 
@@ -2692,14 +2795,126 @@ export default function AdminSettings() {
                   </p>
                 </div>
 
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-2">
-                  <h4 className="font-semibold text-sm text-purple-800">
-                    Resend Integration
-                  </h4>
-                  <p className="text-xs text-purple-700">
-                    Email notifications are sent via Resend. The integration is
-                    configured and ready to use.
-                  </p>
+                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 space-y-4">
+                  <div className="space-y-1">
+                    <h4 className="font-semibold text-sm text-purple-900">
+                      Resend Email Setup
+                    </h4>
+                    <p className="text-xs text-purple-800">
+                      Set the sender details used for notifications, newsletters,
+                      and other outgoing email. Use an address from a domain
+                      verified in Resend.
+                    </p>
+                    <p className="text-xs text-purple-800">
+                      The Resend API credential stays in the connected Replit
+                      integration and is never shown or stored on this page.
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="resend-from-name">Sender name</Label>
+                      <Input
+                        id="resend-from-name"
+                        value={resendFromName}
+                      onChange={(event) =>
+                        setResendFromName(event.target.value)
+                      }
+                        placeholder="Fasil Kenema S.C."
+                        maxLength={100}
+                        disabled={isLoadingResendEmailConfig}
+                        data-testid="input-resend-from-name"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="resend-from-email">Sender email</Label>
+                      <Input
+                        id="resend-from-email"
+                        type="email"
+                        value={resendFromEmail}
+                        onChange={(event) =>
+                          setResendFromEmail(event.target.value)
+                        }
+                        placeholder="updates@example.com"
+                        disabled={isLoadingResendEmailConfig}
+                        data-testid="input-resend-from-email"
+                      />
+                    </div>
+                    <div className="grid gap-2 md:col-span-2">
+                      <Label htmlFor="resend-reply-to">
+                        Reply-to email (optional)
+                      </Label>
+                      <Input
+                        id="resend-reply-to"
+                        type="email"
+                        value={resendReplyTo}
+                        onChange={(event) =>
+                          setResendReplyTo(event.target.value)
+                        }
+                        placeholder="contact@example.com"
+                        disabled={isLoadingResendEmailConfig}
+                        data-testid="input-resend-reply-to"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 border-t border-purple-200 pt-4 sm:flex-row sm:items-end">
+                    <div className="grid flex-1 gap-2">
+                      <Label htmlFor="resend-test-recipient">Send a test email</Label>
+                      <Input
+                        id="resend-test-recipient"
+                        type="email"
+                        value={resendTestRecipient}
+                        onChange={(event) =>
+                          setResendTestRecipient(event.target.value)
+                        }
+                        placeholder="you@example.com"
+                        data-testid="input-resend-test-recipient"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSendResendTest}
+                      disabled={
+                        !resendTestRecipient.trim() ||
+                        isSendingResendTest ||
+                        isLoadingResendEmailConfig ||
+                        resendConfigHasUnsavedChanges
+                      }
+                      data-testid="button-send-resend-test"
+                    >
+                      {isSendingResendTest ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      {isSendingResendTest ? "Sending…" : "Send Test"}
+                    </Button>
+                  </div>
+                  {resendConfigHasUnsavedChanges && (
+                    <p className="text-xs text-purple-800 text-right">
+                      Save sender settings before sending a test.
+                    </p>
+                  )}
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={handleSaveResendConfig}
+                      disabled={
+                        isSavingResendConfig || isLoadingResendEmailConfig
+                      }
+                      data-testid="button-save-resend-config"
+                    >
+                      {isSavingResendConfig ? (
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-4 w-4" />
+                      )}
+                      {isSavingResendConfig
+                        ? "Saving…"
+                        : "Save Resend Settings"}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
               <CardFooter className="bg-zinc-50 border-t border-zinc-100 flex justify-end">

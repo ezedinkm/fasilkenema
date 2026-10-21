@@ -1,4 +1,5 @@
-import { Resend } from "resend";
+import { ReplitConnectors } from "@replit/connectors-sdk";
+import { storage } from "./storage";
 
 interface SendEmailResult {
   success: boolean;
@@ -6,56 +7,76 @@ interface SendEmailResult {
   error?: string;
 }
 
-let connectionSettings: any;
-
-async function getCredentials(): Promise<{
-  apiKey: string;
+export interface ResendEmailConfig {
+  fromName: string;
   fromEmail: string;
-}> {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY
-    ? "repl " + process.env.REPL_IDENTITY
-    : process.env.WEB_REPL_RENEWAL
-      ? "depl " + process.env.WEB_REPL_RENEWAL
-      : null;
+  replyTo: string;
+}
 
-  if (!xReplitToken) {
-    throw new Error("Resend authentication token not available");
+const RESEND_CONFIG_KEY = "email.resend.config";
+const DEFAULT_RESEND_EMAIL_CONFIG: ResendEmailConfig = {
+  fromName: "Fasil Kenema S.C.",
+  fromEmail: "noreply@mechalfc.com",
+  replyTo: "",
+};
+
+function parseResendConfig(value: unknown): Partial<ResendEmailConfig> {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return {};
+    }
   }
-
-  connectionSettings = await fetch(
-    "https://" +
-      hostname +
-      "/api/v2/connection?include_secrets=true&connector_names=resend",
-    {
-      headers: {
-        Accept: "application/json",
-        X_REPLIT_TOKEN: xReplitToken,
-      },
-    },
-  )
-    .then((res) => res.json())
-    .then((data) => data.items?.[0]);
-
-  if (!connectionSettings || !connectionSettings.settings.api_key) {
-    throw new Error("Resend not connected");
-  }
-
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const config = value as Record<string, unknown>;
   return {
-    apiKey: connectionSettings.settings.api_key,
-    fromEmail: connectionSettings.settings.from_email || "noreply@mechalfc.com",
+    fromName: typeof config.fromName === "string" ? config.fromName : undefined,
+    fromEmail:
+      typeof config.fromEmail === "string" ? config.fromEmail : undefined,
+    replyTo: typeof config.replyTo === "string" ? config.replyTo : undefined,
   };
 }
 
-async function getResendClient(): Promise<{
-  client: Resend;
-  fromEmail: string;
-}> {
-  const { apiKey, fromEmail } = await getCredentials();
+export async function getResendEmailConfig(): Promise<ResendEmailConfig> {
+  const setting = await storage.getSettingByKey(RESEND_CONFIG_KEY);
+  const saved = parseResendConfig(setting?.value);
   return {
-    client: new Resend(apiKey),
-    fromEmail,
+    fromName: saved.fromName?.trim() || DEFAULT_RESEND_EMAIL_CONFIG.fromName,
+    fromEmail:
+      saved.fromEmail?.trim() || DEFAULT_RESEND_EMAIL_CONFIG.fromEmail,
+    replyTo: saved.replyTo?.trim() || "",
   };
+}
+
+function formatFromAddress(config: ResendEmailConfig): string {
+  const name = config.fromName.replace(/[\r\n<>]/g, "").trim();
+  return name ? `${name} <${config.fromEmail}>` : config.fromEmail;
+}
+
+async function resendRequest(
+  path: string,
+  body: unknown,
+): Promise<Record<string, any>> {
+  // Create a fresh client per request so the SDK always uses current
+  // Replit integration credentials and connection state.
+  const connectors = new ReplitConnectors();
+  const response = await connectors.proxy("resend", path, {
+    method: "POST",
+    body,
+  });
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message ||
+      result?.error?.message ||
+      result?.error ||
+      `Resend request failed (${response.status})`;
+    throw new Error(String(message));
+  }
+
+  return result && typeof result === "object" ? result : {};
 }
 
 export async function sendEmail(
@@ -64,26 +85,21 @@ export async function sendEmail(
   htmlContent: string,
 ): Promise<SendEmailResult> {
   try {
-    const { client, fromEmail } = await getResendClient();
-
     const toAddresses = Array.isArray(to) ? to : [to];
+    const config = await getResendEmailConfig();
 
     console.log("Sending email via Resend:", { to: toAddresses, subject });
 
-    const { data, error } = await client.emails.send({
-      from: fromEmail,
+    const result = await resendRequest("/emails", {
+      from: formatFromAddress(config),
       to: toAddresses,
       subject,
       html: htmlContent,
+      ...(config.replyTo ? { reply_to: config.replyTo } : {}),
     });
 
-    if (error) {
-      console.error("Resend API error:", error);
-      return { success: false, error: error.message };
-    }
-
-    console.log("Email sent successfully:", data?.id);
-    return { success: true, messageId: data?.id };
+    console.log("Email sent successfully:", result?.id);
+    return { success: true, messageId: result?.id };
   } catch (error) {
     console.error("Error sending email:", error);
     return {
@@ -112,12 +128,9 @@ export async function sendNewsletterEmailBatch(
     return { sent: 0, failed: 0, errors: [] };
   }
 
-  let client: Resend;
-  let fromEmail: string;
+  let config: ResendEmailConfig;
   try {
-    const credentials = await getCredentials();
-    client = new Resend(credentials.apiKey);
-    fromEmail = credentials.fromEmail;
+    config = await getResendEmailConfig();
   } catch (error) {
     return {
       sent: 0,
@@ -132,22 +145,22 @@ export async function sendNewsletterEmailBatch(
   for (let offset = 0; offset < messages.length; offset += 100) {
     const chunk = messages.slice(offset, offset + 100);
     try {
-      const response = await client.batch.send(
+      const response = await resendRequest(
+        "/emails/batch",
         chunk.map((message) => ({
-          from: fromEmail,
+          from: formatFromAddress(config),
           to: message.to,
           subject: message.subject,
           html: message.html,
+          ...(config.replyTo ? { reply_to: config.replyTo } : {}),
         })),
       );
-      if (response.error) {
-        result.failed += chunk.length;
-        result.errors.push(response.error.message);
-        continue;
-      }
-      const sentCount = response.data.data.length;
+      const sentCount = Array.isArray(response.data) ? response.data.length : 0;
       result.sent += sentCount;
       result.failed += Math.max(0, chunk.length - sentCount);
+      if (sentCount === 0) {
+        result.errors.push("Resend returned no results for the email batch.");
+      }
     } catch (error) {
       result.failed += chunk.length;
       result.errors.push(
@@ -157,6 +170,17 @@ export async function sendNewsletterEmailBatch(
   }
 
   return result;
+}
+
+export async function sendResendTestEmail(toEmail: string): Promise<SendEmailResult> {
+  return sendEmail(
+    toEmail,
+    "Resend email configuration test",
+    `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #222;">
+      <h2>Resend is working</h2>
+      <p>This test confirms that the Fasil Kenema S.C. website can send email using its current Resend configuration.</p>
+    </div>`,
+  );
 }
 
 export async function sendPaymentNotificationEmail(

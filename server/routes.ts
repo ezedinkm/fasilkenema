@@ -31,6 +31,7 @@ import {
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
 import { socialLinksSettingSchema } from "@shared/socialLinks";
 import { fromZodError } from "zod-validation-error";
+import { z } from "zod";
 import {
   sendPaymentNotificationWithTotal,
   deliverOtpSmsWithRetry,
@@ -42,11 +43,16 @@ import {
 } from "./iconicSms";
 import crypto from "crypto";
 import { eq, and, gt, asc, desc, sql } from "drizzle-orm";
-import { JWT_SECRET, authenticateToken } from "./middleware/authMiddleware";
+import {
+  JWT_SECRET,
+  authenticateAdmin,
+  authenticateToken,
+} from "./middleware/authMiddleware";
 import { upload, uploadsDir } from "./middleware/multerConfig";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
 import { registerNewsletterRoutes } from "./newsletterRoutes";
+import { getResendEmailConfig, sendResendTestEmail } from "./email";
 import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
@@ -3492,10 +3498,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get(
+    "/api/admin/email/resend-config",
+    authenticateAdmin,
+    async (_req, res) => {
+      try {
+        res.json(await getResendEmailConfig());
+      } catch (error) {
+        console.error("Failed to load Resend email configuration:", error);
+        res.status(500).json({ error: "Failed to load email configuration" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/email/resend-config",
+    authenticateAdmin,
+    async (req, res) => {
+      const validation = z
+        .object({
+          fromName: z.string().trim().min(1).max(100),
+          fromEmail: z.string().trim().email().max(254),
+          replyTo: z.union([
+            z.literal(""),
+            z.string().trim().email().max(254),
+          ]),
+        })
+        .safeParse(req.body);
+
+      if (!validation.success) {
+        return res
+          .status(400)
+          .json({ error: fromZodError(validation.error).message });
+      }
+
+      try {
+        await storage.upsertSetting({
+          key: "email.resend.config",
+          value: validation.data,
+          description: "Resend sender name, verified sender, and reply-to",
+        });
+        res.json(validation.data);
+      } catch (error) {
+        console.error("Failed to save Resend email configuration:", error);
+        res.status(500).json({ error: "Failed to save email configuration" });
+      }
+    },
+  );
+
+  app.post(
+    "/api/admin/email/resend-test",
+    authenticateAdmin,
+    async (req, res) => {
+      const validation = z
+        .object({ toEmail: z.string().trim().email().max(254) })
+        .safeParse(req.body);
+      if (!validation.success) {
+        return res
+          .status(400)
+          .json({ error: fromZodError(validation.error).message });
+      }
+
+      const result = await sendResendTestEmail(validation.data.toEmail);
+      if (!result.success) {
+        return res.status(502).json({
+          error: result.error || "Resend could not send the test email.",
+        });
+      }
+      res.json({ success: true, messageId: result.messageId });
+    },
+  );
+
   app.get("/api/settings", authenticateToken, async (req, res) => {
     try {
       const settings = (await storage.getSettings()).filter(
-        (setting) => setting.key !== SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted,
+        (setting) =>
+          setting.key !== SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted &&
+          setting.key !== "email.resend.config",
       );
       res.json(settings);
     } catch (error) {
@@ -3547,7 +3626,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/settings/:key", async (req, res) => {
     try {
-      if (req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted) {
+      if (
+        req.params.key === SMS_ICONIC_SETTING_KEYS.apiKeyEncrypted ||
+        req.params.key === "email.resend.config"
+      ) {
         return res.status(404).json({ error: "Setting not found" });
       }
       const setting = await storage.getSettingByKey(req.params.key);
@@ -3572,6 +3654,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(403)
           .json({ error: "Use the protected SMS credential endpoint." });
+      }
+      if (validation.data.key === "email.resend.config") {
+        return res.status(403).json({
+          error: "Use the protected Resend configuration endpoint.",
+        });
       }
 
       if (validation.data.key === "social.links") {
@@ -3603,6 +3690,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(403)
           .json({ error: "Use the protected SMS credential endpoint." });
+      }
+      if (req.params.key === "email.resend.config") {
+        return res.status(403).json({
+          error: "Use the protected Resend configuration endpoint.",
+        });
       }
       const success = await storage.deleteSetting(req.params.key);
       if (!success) {
