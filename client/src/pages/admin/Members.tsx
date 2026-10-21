@@ -89,6 +89,9 @@ export default function AdminMembers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [membershipStatusFilter, setMembershipStatusFilter] = useState<
+    "all" | "active" | "expired"
+  >("all");
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -144,8 +147,14 @@ export default function AdminMembers() {
 
   const filteredMembers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return members;
     return members.filter((m) => {
+      if (
+        membershipStatusFilter !== "all" &&
+        m.status !== membershipStatusFilter
+      ) {
+        return false;
+      }
+      if (!q) return true;
       const hay = [
         m.fullName,
         m.membershipNumber,
@@ -160,7 +169,7 @@ export default function AdminMembers() {
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [members, searchQuery]);
+  }, [members, membershipStatusFilter, searchQuery]);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -771,13 +780,34 @@ export default function AdminMembers() {
                 data-testid="input-search"
               />
             </div>
-            {searchQuery.trim() && (
+            <Select
+              value={membershipStatusFilter}
+              onValueChange={(value: "all" | "active" | "expired") =>
+                setMembershipStatusFilter(value)
+              }
+            >
+              <SelectTrigger
+                className="w-full sm:w-[210px]"
+                data-testid="select-membership-status-filter"
+              >
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All memberships</SelectItem>
+                <SelectItem value="active">Active memberships</SelectItem>
+                <SelectItem value="expired">Expired memberships</SelectItem>
+              </SelectContent>
+            </Select>
+            {(searchQuery.trim() || membershipStatusFilter !== "all") && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 className="self-start sm:self-auto shrink-0"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setMembershipStatusFilter("all");
+                }}
               >
                 Clear
               </Button>
@@ -785,7 +815,7 @@ export default function AdminMembers() {
           </div>
           {members.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              {searchQuery.trim()
+              {searchQuery.trim() || membershipStatusFilter !== "all"
                 ? `Showing ${filteredMembers.length} of ${members.length} members`
                 : `${members.length} member${members.length === 1 ? "" : "s"}`}
             </p>
@@ -817,7 +847,9 @@ export default function AdminMembers() {
             </div>
           ) : filteredMembers.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              No members match “{searchQuery.trim()}”. Try a different search.
+              {searchQuery.trim()
+                ? `No ${membershipStatusFilter === "all" ? "" : `${membershipStatusFilter} `}members match “${searchQuery.trim()}”. Try a different search or filter.`
+                : `No ${membershipStatusFilter} memberships found.`}
             </div>
           ) : (
             <>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CreditCard, TrendingUp, DollarSign } from "lucide-react";
+import { Users, CreditCard, DollarSign } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -58,6 +58,50 @@ export default function AdminDashboard() {
 
   const totalRevenueETB = stats.membershipETB + stats.donationETB;
   const totalRevenueUSD = stats.membershipUSD + stats.donationUSD;
+  const revenueCards = [
+    {
+      title: "Membership Revenue (ETB)",
+      amount: stats.membershipETB,
+      currency: "ETB",
+      description: "Membership fees and renewals",
+    },
+    {
+      title: "Membership Revenue (USD)",
+      amount: stats.membershipUSD,
+      currency: "USD",
+      description: "Membership fees and renewals",
+    },
+    {
+      title: "Donation Revenue (ETB)",
+      amount: stats.donationETB,
+      currency: "ETB",
+      description: "Completed donations",
+    },
+    {
+      title: "Donation Revenue (USD)",
+      amount: stats.donationUSD,
+      currency: "USD",
+      description: "Completed donations",
+    },
+    {
+      title: "Combined Revenue (ETB)",
+      amount: totalRevenueETB,
+      currency: "ETB",
+      description: "Memberships + donations",
+    },
+    {
+      title: "Combined Revenue (USD)",
+      amount: totalRevenueUSD,
+      currency: "USD",
+      description: "Memberships + donations",
+    },
+  ];
+  const formatRevenue = (amount: number, currency: string) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 2,
+    }).format(amount);
 
   return (
     <AdminLayout>
@@ -72,7 +116,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -89,59 +133,30 @@ export default function AdminDashboard() {
               </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Revenue (ETB)
-              </CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {loading ? "..." : totalRevenueETB.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Membership + Renewals: {stats.membershipETB.toLocaleString()} |
-                Donations: {stats.donationETB.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Revenue (USD)
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {loading ? "..." : `$${totalRevenueUSD.toLocaleString()}`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Membership + Renewals: ${stats.membershipUSD.toLocaleString()} |
-                Donations: ${stats.donationUSD.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Membership Fees
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {loading
-                  ? "..."
-                  : `${stats.membershipETB.toLocaleString()} ETB`}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Includes new memberships and renewals | USD: $
-                {stats.membershipUSD.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
+          {revenueCards.map((metric) => (
+            <Card key={metric.title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {metric.title}
+                </CardTitle>
+                {metric.currency === "USD" ? (
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {loading
+                    ? "..."
+                    : formatRevenue(metric.amount, metric.currency)}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {metric.description}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
         {/* Chart */}
