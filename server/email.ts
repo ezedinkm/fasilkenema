@@ -1,4 +1,4 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
+import { Resend } from "resend";
 import { storage } from "./storage";
 
 interface SendEmailResult {
@@ -54,29 +54,72 @@ function formatFromAddress(config: ResendEmailConfig): string {
   return name ? `${name} <${config.fromEmail}>` : config.fromEmail;
 }
 
+function getResend(): Resend {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("RESEND_API_KEY is not set");
+  }
+  return new Resend(apiKey);
+}
+
 async function resendRequest(
   path: string,
   body: unknown,
 ): Promise<Record<string, any>> {
-  // Create a fresh client per request so the SDK always uses current
-  // Replit integration credentials and connection state.
-  const connectors = new ReplitConnectors();
-  const response = await connectors.proxy("resend", path, {
-    method: "POST",
-    body,
-  });
-  const result = await response.json().catch(() => ({}));
+  const resend = getResend();
 
-  if (!response.ok) {
-    const message =
-      result?.message ||
-      result?.error?.message ||
-      result?.error ||
-      `Resend request failed (${response.status})`;
-    throw new Error(String(message));
+  if (path === "/emails") {
+    const payload = body as {
+      from: string;
+      to: string[];
+      subject: string;
+      html: string;
+      reply_to?: string;
+    };
+    const { data, error } = await resend.emails.send({
+      from: payload.from,
+      to: payload.to,
+      subject: payload.subject,
+      html: payload.html,
+      ...(payload.reply_to ? { replyTo: payload.reply_to } : {}),
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data && typeof data === "object" ? data : {};
   }
 
-  return result && typeof result === "object" ? result : {};
+  if (path === "/emails/batch") {
+    const messages = body as Array<{
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      reply_to?: string;
+    }>;
+    const { data, error } = await resend.batch.send(
+      messages.map((message) => ({
+        from: message.from,
+        to: message.to,
+        subject: message.subject,
+        html: message.html,
+        ...(message.reply_to ? { replyTo: message.reply_to } : {}),
+      })),
+    );
+    if (error) {
+      throw new Error(error.message);
+    }
+    const rows = Array.isArray(data)
+      ? data
+      : data &&
+          typeof data === "object" &&
+          Array.isArray((data as { data?: unknown }).data)
+        ? (data as { data: unknown[] }).data
+        : [];
+    return { data: rows };
+  }
+
+  throw new Error(`Unsupported Resend path: ${path}`);
 }
 
 export async function sendEmail(
