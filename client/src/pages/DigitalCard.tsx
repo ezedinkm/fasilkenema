@@ -302,14 +302,14 @@ export default function DigitalCard() {
                       <img
                         src={brandingSettings.stamp}
                         alt="Official membership stamp"
-                        className="w-10 h-10 sm:w-14 sm:h-14 object-contain"
+                        className="w-[60px] h-[60px] sm:w-[84px] sm:h-[84px] object-contain"
                       />
                     )}
                     {brandingSettings.signature && (
                       <img
                         src={brandingSettings.signature}
                         alt="Authorized signature"
-                        className="w-full h-5 sm:h-7 object-contain"
+                        className="w-full h-10 sm:h-14 object-contain"
                       />
                     )}
                     {brandingSettings.authorizedPersonName && (

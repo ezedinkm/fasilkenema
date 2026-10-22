@@ -813,14 +813,14 @@ export default function MemberDashboard() {
                           <img
                             src={brandingSettings.stamp}
                             alt="Official membership stamp"
-                            className="h-7 w-7 object-contain sm:h-11 sm:w-11"
+                            className="h-[42px] w-[42px] object-contain sm:h-[66px] sm:w-[66px]"
                           />
                         )}
                         {brandingSettings.signature && (
                           <img
                             src={brandingSettings.signature}
                             alt="Authorized signature"
-                            className="h-3 w-full object-contain sm:h-5"
+                            className="h-6 w-full object-contain sm:h-10"
                           />
                         )}
                         {brandingSettings.authorizedPersonName && (
