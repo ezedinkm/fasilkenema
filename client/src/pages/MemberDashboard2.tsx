@@ -779,18 +779,17 @@ export default function MemberDashboard() {
                             {member.phone}
                           </p>
                         </div>
-                        <div className="pt-0.5 text-white drop-shadow-md">
-                          <p className="text-[9px] sm:text-[11px] font-extrabold leading-tight">
-                            Membership: {selectedCardTier?.name || member.tier}
-                          </p>
-                          <p className="text-[9px] sm:text-[11px] font-extrabold leading-tight">
-                            Amount:{" "}
-                            {selectedCardTier
-                              ? `${Number(selectedCardTier.price.etb).toLocaleString()} ETB / year`
-                              : "—"}
-                          </p>
-                        </div>
                       </div>
+                    </div>
+
+                    <div className="absolute left-1/2 bottom-[7%] z-10 w-[78%] -translate-x-1/2 text-center text-[clamp(10px,2.5vw,15px)] font-extrabold leading-tight text-white drop-shadow-md">
+                      <p>Membership: {selectedCardTier?.name || member.tier}</p>
+                      <p>
+                        Amount:{" "}
+                        {selectedCardTier
+                          ? `${Number(selectedCardTier.price.etb).toLocaleString()} ETB / year`
+                          : "—"}
+                      </p>
                     </div>
 
                     {/* Front member photo on the right, vertically centered */}
