@@ -746,31 +746,65 @@ export default function MemberDashboard() {
 
                   {/* Dynamic overlay (member data only) */}
                   <div className="absolute inset-0">
-                    {/* Middle band text (between the two red lines in the templates) */}
+                    {(brandingSettings.stamp ||
+                      brandingSettings.signature ||
+                      brandingSettings.authorizedPersonName) && (
+                      <div className="absolute top-2 right-2 sm:top-3 sm:right-6 flex items-center gap-1.5 sm:gap-2 max-w-[42%] sm:max-w-[190px]">
+                        {brandingSettings.stamp && (
+                          <img
+                            src={brandingSettings.stamp}
+                            alt="Official membership stamp"
+                            className="w-9 h-9 sm:w-14 sm:h-14 object-contain shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0 text-center">
+                          {brandingSettings.signature && (
+                            <img
+                              src={brandingSettings.signature}
+                              alt="Authorized signature"
+                              className="h-4 sm:h-6 w-full max-w-[76px] object-contain mx-auto"
+                            />
+                          )}
+                          {brandingSettings.authorizedPersonName && (
+                            <p className="text-[6px] sm:text-[8px] font-semibold text-gray-800 leading-tight break-words">
+                              {brandingSettings.authorizedPersonName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* The card displays only the requested membership details. */}
                     <div className="absolute left-0 right-0 top-[58%] -translate-y-1/2 px-2.5 sm:px-6">
                       <div className="space-y-0.5 sm:space-y-1 text-[9px] sm:text-[11px] font-bold text-gray-800 max-w-[58%] sm:max-w-[320px]">
                         <div>
-                          <p className="text-red-600 text-[8px] sm:text-[10px]">Name</p>
+                          <p className="text-red-600 text-[8px] sm:text-[10px]">የአባልነት ቁጥር / Membership ID</p>
+                          <p className="font-mono text-[10px] sm:text-sm leading-tight">
+                            {member.membershipNumber}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-red-600 text-[8px] sm:text-[10px]">ስም / Name</p>
                           <p className="text-[11px] sm:text-sm leading-tight break-words line-clamp-3 sm:line-clamp-none">
                             {member.fullName}
                           </p>
                         </div>
                         <div>
-                          <p className="text-red-600 text-[8px] sm:text-[10px]">Gender</p>
+                          <p className="text-red-600 text-[8px] sm:text-[10px]">ጾታ / Sex</p>
                           <p className="text-[11px] sm:text-sm leading-tight">
                             {member.gender || "—"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-red-600 text-[8px] sm:text-[10px]">Address</p>
+                          <p className="text-red-600 text-[8px] sm:text-[10px]">አድራሻ / Address</p>
                           <p className="text-[11px] sm:text-sm leading-tight break-words line-clamp-2 sm:line-clamp-none">
                             {member.address || "—"}
                           </p>
                         </div>
                         <div>
-                          <p className="text-red-600 text-[8px] sm:text-[10px]">Tier</p>
-                          <p className="capitalize font-bold text-red-700 text-[11px] sm:text-sm leading-tight break-words">
-                            {member.tier}
+                          <p className="text-red-600 text-[8px] sm:text-[10px]">ስልክ / Phone</p>
+                          <p className="text-[11px] sm:text-sm leading-tight">
+                            {member.phone}
                           </p>
                         </div>
                       </div>
@@ -788,19 +822,13 @@ export default function MemberDashboard() {
                         <User className="text-gray-400 w-7 h-7 sm:w-12 sm:h-12" />
                       )}
                     </div>
-
-                    {isExpired && (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-[-30deg] z-10 px-2 max-w-[90%]">
-                        <div className="bg-black/80 text-white px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-xl font-bold border-2 border-red-500 rounded-lg backdrop-blur-sm text-center">
-                          ጊዜው ያለፈበት / EXPIRED
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute bottom-2 sm:bottom-[15px] left-0 w-full flex justify-center px-1">
-                      <p className="capitalize font-bold text-white text-sm sm:text-2xl leading-tight text-center line-clamp-2 break-words max-w-[95%]">
-                        {member.tier}
-                      </p>
+                    <div className="absolute right-1.5 bottom-1.5 sm:right-6 sm:bottom-2 rounded bg-white p-1 shadow-md">
+                      <QRCode
+                        value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
+                        size={48}
+                      />
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -822,57 +850,6 @@ export default function MemberDashboard() {
                     />
                   )}
 
-                  {/* Back overlay: QR bottom-right above the red footer */}
-                  <div className="absolute inset-0">
-                    {/* QR code bottom-right */}
-                    <div className="absolute right-1.5 bottom-10 sm:right-6 sm:bottom-[58px] bg-white p-0.5 sm:p-1 border border-gray-200 rounded shadow-md scale-[0.82] sm:scale-100 origin-bottom-right">
-                      <QRCode
-                        value={`${window.location.origin}/verify/${member.membershipNumber}`}
-                        size={60}
-                      />
-                    </div>
-
-                    {/* Expiry + fixed contact details */}
-                    <div className="absolute left-2 bottom-16 max-w-[62%] sm:left-6 sm:bottom-[100px] sm:max-w-none text-[8px] sm:text-[11px] font-bold text-gray-800 space-y-0.5 sm:space-y-1">
-                      <div>
-                        <p className="text-red-600 text-[8px] sm:text-[10px]">Expiry</p>
-                        <p className="text-[10px] sm:text-sm leading-tight">
-                          {expiryDate.toLocaleDateString("en-US", {
-                            month: "long",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-red-600 text-[8px] sm:text-[10px]">Contact</p>
-                        <p className="text-[7px] sm:text-[10px] leading-snug break-words">
-                          Address: Gonder
-                          <br />
-                          Tel: 0993369033
-                          <br />
-                          Fax: 0582111792
-                          <br />
-                          P.O. Box: 1171
-                          <br />
-                          <span className="break-all">Email: fasilkenemadegafiwochmahiber@gmail.com</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    {isExpired && (
-                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-[-30deg] z-10 px-2 max-w-[90%]">
-                        <div className="bg-black/80 text-white px-3 py-1.5 sm:px-6 sm:py-2 text-xs sm:text-xl font-bold border-2 border-red-500 rounded-lg backdrop-blur-sm text-center">
-                          ጊዜው ያለፈበት / EXPIRED
-                        </div>
-                      </div>
-                    )}
-                    <div className="absolute bottom-2 sm:bottom-[15px] left-0 w-full flex justify-center px-1">
-                      <p className="capitalize font-bold text-white text-sm sm:text-2xl leading-tight text-center line-clamp-2 break-words max-w-[95%]">
-                        {member.tier}
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>

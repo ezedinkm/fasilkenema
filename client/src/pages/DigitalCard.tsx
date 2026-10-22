@@ -1,5 +1,4 @@
 import PublicLayout from "@/components/PublicLayout";
-import { ASSETS } from "@/lib/mockData";
 import cardBackground from "@/assets/card-bg.jpg";
 import QRCode from "react-qr-code";
 import { useRoute } from "wouter";
@@ -54,6 +53,23 @@ export default function DigitalCard() {
     queryFn: getMembershipTiers,
     staleTime: 5 * 60 * 1000,
   });
+
+  const { data: branding = [] } = useQuery<any[]>({
+    queryKey: ["/api/public/branding"],
+    staleTime: Infinity,
+  });
+  const brandingSettings = {
+    signature:
+      branding.find((setting) => setting.key === "branding.signature")?.value ||
+      null,
+    authorizedPersonName:
+      branding.find(
+        (setting) => setting.key === "branding.authorizedPersonName",
+      )?.value || null,
+    stamp:
+      branding.find((setting) => setting.key === "branding.stamp")?.value ||
+      null,
+  };
 
   const memberTier = useMemo(() => {
     if (!member) return undefined;
@@ -136,43 +152,6 @@ export default function DigitalCard() {
     }
   };
 
-  const { data: branding } = useQuery<any[]>({
-    queryKey: ["/api/public/branding"],
-    staleTime: Infinity,
-  });
-
-  const brandingSettings = {
-    headerText:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.headerText")?.value
-        : null) || "FASIL S.C",
-    headerSubtext:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.headerSubtext")?.value
-        : null) || "sport Club",
-    signature:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.signature")?.value
-        : null) || null,
-    authorizedPersonName:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.authorizedPersonName")
-            ?.value
-        : null) || null,
-    stamp:
-      (Array.isArray(branding)
-        ? branding.find((s: any) => s.key === "branding.stamp")?.value
-        : null) || null,
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "2-digit",
-      year: "numeric",
-    });
-  };
-
   if (isLoading) {
     return (
       <PublicLayout>
@@ -237,7 +216,7 @@ export default function DigitalCard() {
                 </p>
               </div>
 
-              <div className="flex-1 flex gap-3 px-3 pt-2 pb-1">
+              <div className="flex-1 flex gap-2 sm:gap-3 px-3 pt-2 pb-1">
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className="w-20 h-24 rounded-lg overflow-hidden border-2 border-white/60 shadow-lg">
                     {member.photoUrl ? (
@@ -257,31 +236,28 @@ export default function DigitalCard() {
                     style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
                   >
                     <p className="text-[7px] uppercase tracking-wider text-yellow-300">
-                      ID
+                      የአባልነት ቁጥር / ID
                     </p>
                     <p className="font-mono font-bold text-[10px] text-white">
                       {member.membershipNumber}
                     </p>
                   </div>
+                  <div className="rounded bg-white p-1 shadow-md">
+                    <QRCode
+                      value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
+                      size={48}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex-1 space-y-0.5">
+                <div className="flex-1 min-w-0 space-y-0.5">
                   <p className="font-bold text-sm leading-tight text-white drop-shadow-md mb-0.5">
                     {member.fullName}
                   </p>
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-300 text-[10px]">★</span>
                     <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">መአረግ:</span>{" "}
-                      <span className="font-semibold">
-                        {member.rank || "—"}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-300 text-[10px]">★</span>
-                    <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">ዖታ:</span>{" "}
+                      <span className="text-white/70">ጾታ / Sex:</span>{" "}
                       <span className="font-semibold">
                         {member.gender || "—"}
                       </span>
@@ -290,7 +266,7 @@ export default function DigitalCard() {
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-300 text-[10px]">★</span>
                     <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">አድራሻ:</span>{" "}
+                      <span className="text-white/70">አድራሻ / Address:</span>{" "}
                       <span className="font-semibold">
                         {member.address || "—"}
                       </span>
@@ -299,85 +275,37 @@ export default function DigitalCard() {
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-300 text-[10px]">★</span>
                     <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">ክፈለ ጦር/እዝ:</span>{" "}
-                      <span className="font-semibold">
-                        {member.division || "—"}
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-300 text-[10px]">★</span>
-                    <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">ስልክ ቁጥር:</span>{" "}
+                      <span className="text-white/70">ስልክ / Phone:</span>{" "}
                       <span className="font-semibold">{member.phone}</span>
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-300 text-[10px]">★</span>
-                    <p className="text-[10px] text-white drop-shadow-sm">
-                      <span className="text-white/70">የ ደጋፊነት ደረጃ:</span>{" "}
-                      <span className="font-bold capitalize">
-                        {member.tier}
-                      </span>
-                    </p>
-                  </div>
                 </div>
 
-                <div className="flex flex-col items-center justify-between flex-shrink-0">
-                  <div className="flex items-center gap-1">
-                    {brandingSettings.stamp && (
-                      <div style={{ width: "75px", height: "75px" }}>
-                        <img
-                          src={brandingSettings.stamp}
-                          alt="Stamp"
-                          className="w-full h-full object-contain rounded-full drop-shadow-lg"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-1 bg-white rounded shadow-md mt-1">
-                    <QRCode
-                      value={`https://mechalfc.com/card/${member.membershipNumber}`}
-                      size={42}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className="px-3 py-1.5 flex items-center justify-between"
-                style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-              >
-                <div className="text-white text-[9px] space-y-0">
-                  <p className="drop-shadow-sm">
-                    ያገልግልበት ቀን:{" "}
-                    {member.expiryDate ? formatDate(member.expiryDate) : "N/A"}
-                  </p>
-                </div>
-                {(brandingSettings.signature ||
+                {(brandingSettings.stamp ||
+                  brandingSettings.signature ||
                   brandingSettings.authorizedPersonName) && (
-                  <div className="text-center">
+                  <div className="w-[68px] sm:w-[96px] flex-shrink-0 flex flex-col items-center gap-1.5 pt-1">
+                    {brandingSettings.stamp && (
+                      <img
+                        src={brandingSettings.stamp}
+                        alt="Official membership stamp"
+                        className="w-10 h-10 sm:w-14 sm:h-14 object-contain"
+                      />
+                    )}
                     {brandingSettings.signature && (
                       <img
                         src={brandingSettings.signature}
-                        alt="Authorized Signature"
-                        className="h-6 mx-auto"
-                        style={{
-                          filter: "brightness(0) invert(1)",
-                          opacity: 0.9,
-                        }}
+                        alt="Authorized signature"
+                        className="w-full h-5 sm:h-7 object-contain"
                       />
                     )}
                     {brandingSettings.authorizedPersonName && (
-                      <p className="text-[7px] text-white/80">
+                      <p className="text-[7px] sm:text-[9px] leading-tight text-center font-semibold text-white drop-shadow-md break-words">
                         {brandingSettings.authorizedPersonName}
                       </p>
                     )}
                   </div>
                 )}
-                <p className="text-white font-heading text-[9px] font-bold tracking-wide drop-shadow-sm">
-                  መቻል ስፖርት ክለብ የደጋፊዎች ማህበር
-                </p>
               </div>
             </div>
           </div>

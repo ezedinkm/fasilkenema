@@ -66,6 +66,16 @@ import {
 } from "./resendCredentials";
 import eplRoutes from "./routes/eplRoutes.js";
 import scrapeRoutes from "./routes/scrapeRoutes.js";
+
+function generateMembershipNumber(): string {
+  const uniqueChunk = crypto
+    .randomUUID()
+    .replace(/-/g, "")
+    .slice(0, 14)
+    .toUpperCase();
+  return `FK-${uniqueChunk}`;
+}
+
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
 type OtpPurpose = "registration" | "password_reset";
 
@@ -767,7 +777,7 @@ async function finalizeChapaReturnMembership(
     return "failed";
   }
 
-  const membershipNumber = `FK-${Date.now()}`;
+  const membershipNumber = generateMembershipNumber();
   const idNumber = `FKFC-${String(Date.now()).slice(-6)}${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
   const billingCycleFromPayment = normalizeBillingCycle(
     (payment.metadata as any)?.billingCycle,
@@ -1810,7 +1820,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/members", async (req, res) => {
     try {
-      const validation = insertMemberSchema.safeParse(req.body);
+      const payload = {
+        ...req.body,
+        membershipNumber:
+          String(req.body?.membershipNumber ?? "").trim() ||
+          generateMembershipNumber(),
+      };
+      const validation = insertMemberSchema.safeParse(payload);
       if (!validation.success) {
         return res
           .status(400)
@@ -1910,7 +1926,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const memberNumber =
-        String(membershipNumber || "").trim() || `FK-${Date.now()}`;
+        String(membershipNumber || "").trim() || generateMembershipNumber();
       const existingNumber = await storage.getMemberByNumber(memberNumber);
       if (existingNumber) {
         return res
@@ -2609,7 +2625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let memberCreated = false;
 
             try {
-              const membershipNumber = `FK-${Date.now()}`;
+              const membershipNumber = generateMembershipNumber();
               const idNumber = `FKFC-${String(Date.now()).slice(-6)}${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
               const billingCycleFromPayment = normalizeBillingCycle(
                 (payment.metadata as any)?.billingCycle,
@@ -2864,7 +2880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .json({ error: "Invalid payment reference for this user." });
           }
 
-          const membershipNumber = `FK-${Date.now()}`;
+          const membershipNumber = generateMembershipNumber();
           const idNumber = `FKFC-${String(Date.now()).slice(-6)}${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
           const billingCycleFromPayment = normalizeBillingCycle(
             (payment.metadata as any)?.billingCycle,
