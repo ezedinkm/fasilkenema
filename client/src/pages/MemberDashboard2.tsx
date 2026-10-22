@@ -794,16 +794,21 @@ export default function MemberDashboard() {
                     </div>
 
                     {/* Front member photo on the right, vertically centered */}
-                    <div className="absolute right-1.5 top-3/5 -translate-y-1/2 w-16 h-20 sm:right-6 sm:w-28 sm:h-32 border-2 border-red-600 rounded-md sm:rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center">
-                      {member.photoUrl ? (
-                        <img
-                          src={member.photoUrl}
-                          className="w-full h-full object-cover"
-                          alt="Member"
-                        />
-                      ) : (
-                        <User className="text-gray-400 w-7 h-7 sm:w-12 sm:h-12" />
-                      )}
+                    <div className="absolute right-1.5 top-3/5 -translate-y-1/2 flex flex-col items-center gap-0.5 sm:right-6">
+                      <div className="w-16 h-20 sm:w-28 sm:h-32 border-2 border-red-600 rounded-md sm:rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center">
+                        {member.photoUrl ? (
+                          <img
+                            src={member.photoUrl}
+                            className="w-full h-full object-cover"
+                            alt="Member"
+                          />
+                        ) : (
+                          <User className="text-gray-400 w-7 h-7 sm:w-12 sm:h-12" />
+                        )}
+                      </div>
+                      <p className="whitespace-nowrap text-[6px] sm:text-[8px] font-bold leading-tight text-gray-800 drop-shadow-sm">
+                        EXP: {expiryDate.toLocaleDateString("en-GB")}
+                      </p>
                     </div>
                     {(brandingSettings.stamp ||
                       brandingSettings.signature ||
