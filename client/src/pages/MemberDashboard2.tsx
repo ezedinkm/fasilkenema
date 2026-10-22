@@ -747,7 +747,7 @@ export default function MemberDashboard() {
                   {/* Dynamic overlay (member data only) */}
                   <div className="absolute inset-0">
                     {/* The card displays only the requested membership details. */}
-                    <div className="absolute left-0 right-0 top-[62%] -translate-y-1/2 px-2.5 sm:px-6">
+                    <div className="absolute left-0 right-0 top-[64%] -translate-y-1/2 px-2.5 sm:px-6">
                       <div className="space-y-0.5 sm:space-y-1 text-[9px] sm:text-[11px] font-bold text-gray-800 max-w-[58%] sm:max-w-[320px]">
                         <div>
                           <p className="text-red-600 text-[8px] sm:text-[10px]">የአባልነት ቁጥር / Membership ID</p>
@@ -805,11 +805,14 @@ export default function MemberDashboard() {
                         <User className="text-gray-400 w-7 h-7 sm:w-12 sm:h-12" />
                       )}
                     </div>
-                    <div className="absolute right-1.5 bottom-1.5 sm:right-6 sm:bottom-2 rounded bg-white p-1 shadow-md">
+                    <div className="absolute right-1.5 bottom-1.5 sm:right-6 sm:bottom-2 flex flex-col items-center rounded bg-white p-1 shadow-md">
                       <QRCode
                         value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
                         size={48}
                       />
+                      <p className="whitespace-nowrap text-[6px] font-bold leading-tight text-gray-800">
+                        EXP: {expiryDate.toLocaleDateString("en-GB")}
+                      </p>
                     </div>
 
                   </div>

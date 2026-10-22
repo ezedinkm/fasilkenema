@@ -242,11 +242,15 @@ export default function DigitalCard() {
                       {member.membershipNumber}
                     </p>
                   </div>
-                  <div className="rounded bg-white p-1 shadow-md">
+                  <div className="flex flex-col items-center rounded bg-white p-1 shadow-md">
                     <QRCode
                       value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
                       size={48}
                     />
+                    <p className="whitespace-nowrap text-[6px] font-bold leading-tight text-gray-800">
+                      EXP:{" "}
+                      {new Date(member.expiryDate).toLocaleDateString("en-GB")}
+                    </p>
                   </div>
                 </div>
 
