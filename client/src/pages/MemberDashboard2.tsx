@@ -779,7 +779,7 @@ export default function MemberDashboard() {
                             {member.phone}
                           </p>
                         </div>
-                        <div className="mt-1.5 text-left font-extrabold leading-tight text-white drop-shadow-md">
+                        <div className="mt-2.5 text-left font-extrabold leading-tight text-white drop-shadow-md">
                           <p className="text-[9px] sm:text-[11px]">
                             Membership: {selectedCardTier?.name || member.tier}
                           </p>

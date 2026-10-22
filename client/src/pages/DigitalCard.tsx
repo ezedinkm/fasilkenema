@@ -279,7 +279,7 @@ export default function DigitalCard() {
                       <span className="font-semibold">{member.phone}</span>
                     </p>
                   </div>
-                  <div className="mt-1 text-left text-[10px] font-extrabold leading-tight text-white drop-shadow-md">
+                  <div className="mt-2 text-left text-[10px] font-extrabold leading-tight text-white drop-shadow-md">
                     <p>Membership: {memberTier?.name || member.tier}</p>
                     <p>
                       Amount:{" "}
