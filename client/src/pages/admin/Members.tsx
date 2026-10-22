@@ -45,6 +45,7 @@ import {
   deleteMember,
 } from "@/lib/api";
 import type { Member } from "@shared/schema";
+import { matchesSearch } from "@shared/search";
 
 type AdminTierRow = {
   id: string;
@@ -161,7 +162,6 @@ export default function AdminMembers() {
   }, []);
 
   const filteredMembers = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
     return members.filter((m) => {
       if (
         membershipStatusFilter !== "all" &&
@@ -169,8 +169,7 @@ export default function AdminMembers() {
       ) {
         return false;
       }
-      if (!q) return true;
-      const hay = [
+      return matchesSearch(searchQuery, [
         m.fullName,
         m.membershipNumber,
         m.phone,
@@ -179,10 +178,7 @@ export default function AdminMembers() {
         m.city,
         m.country,
         m.status,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
+      ]);
     });
   }, [members, membershipStatusFilter, searchQuery]);
 
@@ -927,7 +923,9 @@ export default function AdminMembers() {
             <div className="relative w-full max-w-none sm:flex-1 sm:max-w-md">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, ID, phone, email, tier…"
+                type="search"
+                aria-label="Search members"
+                placeholder="Search name, ID, phone, email, tier, city, or status…"
                 className="pl-9 bg-zinc-50 border-zinc-200"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}

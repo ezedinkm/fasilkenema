@@ -204,7 +204,13 @@ export function registerNewsletterRoutes(app: Express): void {
           filters.push(eq(newsletterSubscribers.status, requestedStatus));
         }
         if (search) {
-          filters.push(ilike(newsletterSubscribers.email, `%${search}%`));
+          const searchTerms = search.split(/\s+/).filter(Boolean);
+          for (const term of searchTerms) {
+            const escapedTerm = term.replace(/[\\%_]/g, "\\$&");
+            filters.push(
+              ilike(newsletterSubscribers.email, `%${escapedTerm}%`),
+            );
+          }
         }
         const where = filters.length ? and(...filters) : undefined;
 

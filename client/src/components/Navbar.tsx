@@ -15,6 +15,9 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { getLocalAssetUrl } from '@/lib/localAssets';
+import { getPosts } from '@/lib/api';
+import { getBlogContentText } from '@shared/blogContent';
+import { matchesSearch, normalizeSearchText } from '@shared/search';
 
 const partner1 = getLocalAssetUrl('partners/dashen-beer.webp');
 const partner2 = getLocalAssetUrl('partners/gondar-city-administration.webp');
@@ -59,6 +62,8 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
       'male squad',
       'players men',
       'roster men',
+      'men',
+      'male football',
     ],
   },
   {
@@ -71,6 +76,8 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
       'female squad',
       'players women',
       'roster women',
+      'women',
+      'female football',
     ],
   },
   {
@@ -83,6 +90,8 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
       'junior squad',
       'players junior',
       'roster junior',
+      'junior',
+      'youth team',
     ],
   },
   {
@@ -107,7 +116,7 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
     ],
   },
   {
-    path: '/news',
+    path: '/blog',
     keywords: [
       'news',
       'latest news',
@@ -124,6 +133,82 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
       'football news',
       'team news',
     ],
+  },
+  {
+    path: '/team/trophies',
+    keywords: [
+      'trophies',
+      'honours',
+      'honors',
+      'trophies and honours',
+      'trophies and honors',
+      'club achievements',
+      'titles',
+    ],
+  },
+  {
+    path: '/stadium',
+    keywords: [
+      'stadium',
+      'home ground',
+      'football ground',
+      'stadium information',
+      'venue',
+    ],
+  },
+  {
+    path: '/gonder',
+    keywords: ['gonder', 'gondar', 'city of gondar', 'gonder city'],
+  },
+  {
+    path: '/membership',
+    keywords: [
+      'membership',
+      'membership plans',
+      'annual membership',
+      'join',
+      'become a member',
+      'membership card',
+      'member benefits',
+    ],
+  },
+  {
+    path: '/membership/register',
+    keywords: [
+      'membership registration',
+      'register membership',
+      'join now',
+      'sign up membership',
+      'become a member',
+    ],
+  },
+  {
+    path: '/partners',
+    keywords: ['partners', 'partner', 'sponsors', 'sponsorship', 'club partners'],
+  },
+  {
+    path: '/careers',
+    keywords: ['careers', 'career', 'jobs', 'job openings', 'vacancies', 'work with us'],
+  },
+  {
+    path: '/shopping',
+    keywords: ['shop', 'shopping', 'merchandise', 'club store', 'shop now'],
+  },
+  {
+    path: '/programs',
+    keywords: ['programs', 'sports programs', 'sports academy', 'club programs'],
+  },
+  {
+    path: '/privacy-policy',
+    keywords: ['privacy', 'privacy policy', 'personal data'],
+  },
+  {
+    path: '/terms-of-service',
+    keywords: ['terms', 'terms of service', 'terms and conditions'],
+  },
+  {
+    path: '/media',
+    keywords: ['media', 'videos', 'highlights', 'watch highlights', 'match reports'],
   },
   {
     path: '/epl',
@@ -240,61 +325,96 @@ const STATIC_SEARCH_ROUTES: StaticSearchRoute[] = [
 ];
 
 function tokenizeStaticSearch(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  return normalizeSearchText(text).split(/\s+/).filter(Boolean);
 }
 
 type KeywordTokens = { keyword: string; tokens: string[] };
 type RouteIndex = { path: string; keywords: KeywordTokens[] };
+type StaticSearchMatch = {
+  path: string;
+  score: number;
+  label: string;
+  type: 'Page' | 'News';
+};
 
-const STATIC_SEARCH_INDEX: RouteIndex[] = STATIC_SEARCH_ROUTES.map((r) => ({
-  path: r.path,
-  keywords: r.keywords.map((keyword) => ({
-    keyword,
-    tokens: tokenizeStaticSearch(keyword),
-  })),
-}));
+function isSearchTokenMatch(queryToken: string, routeToken: string): boolean {
+  if (routeToken.includes(queryToken) || queryToken.includes(routeToken)) {
+    return true;
+  }
+  if (queryToken.length < 5 || routeToken.length < 5) return false;
 
-function scoreRouteByStaticKeywords(inputTokens: string[]): { path: string; score: number } {
-  if (inputTokens.length === 0) return { path: '/not-found', score: 0 };
-  const inputSet = new Set(inputTokens);
+  // Permit one mistyped character in longer words without fuzzy-matching
+  // short words such as "men", "us", or "cup".
+  if (Math.abs(queryToken.length - routeToken.length) > 1) return false;
+  let queryIndex = 0;
+  let routeIndex = 0;
+  let edits = 0;
+  while (queryIndex < queryToken.length && routeIndex < routeToken.length) {
+    if (queryToken[queryIndex] === routeToken[routeIndex]) {
+      queryIndex += 1;
+      routeIndex += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (queryToken.length > routeToken.length) queryIndex += 1;
+    else if (routeToken.length > queryToken.length) routeIndex += 1;
+    else {
+      queryIndex += 1;
+      routeIndex += 1;
+    }
+  }
+  if (queryIndex < queryToken.length || routeIndex < routeToken.length) edits += 1;
+  return edits <= 1;
+}
 
-  let bestPath = '/not-found';
-  let bestScore = 0;
+function getStaticSearchMatches(
+  query: string,
+  routes: RouteIndex[],
+): StaticSearchMatch[] {
+  const queryTokens = tokenizeStaticSearch(query);
+  if (queryTokens.length === 0) return [];
 
-  for (const route of STATIC_SEARCH_INDEX) {
-    let routeScore = 0;
-
-    for (const k of route.keywords) {
-      if (k.tokens.length === 0) continue;
-
-      let matched = 0;
-      for (const tok of k.tokens) {
-        if (inputSet.has(tok)) matched += 1;
+  const matches: StaticSearchMatch[] = [];
+  for (const route of routes) {
+    let bestScore = 0;
+    let label = route.keywords[0]?.keyword || route.path;
+    for (const keyword of route.keywords) {
+      if (keyword.tokens.length === 0) continue;
+      const matchedTerms = queryTokens.filter((queryToken) =>
+        keyword.tokens.some((routeToken) =>
+          isSearchTokenMatch(queryToken, routeToken),
+        ),
+      ).length;
+      const coverage = matchedTerms / queryTokens.length;
+      if (matchedTerms === 0 || (queryTokens.length > 1 && coverage < 0.6)) {
+        continue;
       }
 
-      if (matched === 0) continue;
-
-      // Base score = number of matched words in the keyword phrase.
-      let phraseScore = matched;
-
-      // Bonus if the whole phrase is covered (e.g. "about us").
-      if (matched === k.tokens.length) phraseScore += k.tokens.length * 2;
-
-      routeScore = Math.max(routeScore, phraseScore);
+      const normalizedKeyword = keyword.tokens.join(' ');
+      const normalizedQuery = queryTokens.join(' ');
+      const phraseBonus = normalizedKeyword.includes(normalizedQuery) ? 25 : 0;
+      const fullCoverageBonus = matchedTerms === queryTokens.length ? 20 : 0;
+      const exactWordBonus =
+        keyword.tokens.length === queryTokens.length ? 10 : 0;
+      const score =
+        matchedTerms * 100 + phraseBonus + fullCoverageBonus + exactWordBonus;
+      if (score > bestScore) {
+        bestScore = score;
+        label = keyword.keyword;
+      }
     }
-
-    if (routeScore > bestScore) {
-      bestScore = routeScore;
-      bestPath = route.path;
+    if (bestScore > 0) {
+      matches.push({ path: route.path, score: bestScore, label, type: 'Page' });
     }
   }
 
-  return { path: bestPath, score: bestScore };
+  return matches.sort(
+    (left, right) =>
+      right.score - left.score ||
+      left.label.localeCompare(right.label) ||
+      left.path.localeCompare(right.path),
+  );
 }
 
 type MegaColumnItem =
@@ -320,6 +440,44 @@ type NavLinkItem = {
   isPartners?: boolean;
   partnerLogos?: string[];
 };
+
+function buildStaticSearchIndex(navLinks: NavLinkItem[]): RouteIndex[] {
+  const routeKeywords = new Map<string, Set<string>>();
+  const addKeyword = (href: string, keyword: string) => {
+    if (!href.startsWith('/') || href.startsWith('//') || href.startsWith('/admin')) {
+      return;
+    }
+    const path = href.split(/[?#]/)[0];
+    if (!routeKeywords.has(path)) routeKeywords.set(path, new Set());
+    if (keyword.trim()) routeKeywords.get(path)!.add(keyword.trim());
+  };
+  const addMenuItem = (item: MegaColumnItem | NavSubLink) => {
+    if ('children' in item) {
+      item.children.forEach((child) => addKeyword(child.href, child.label));
+    } else {
+      addKeyword(item.href, item.label);
+    }
+  };
+
+  STATIC_SEARCH_ROUTES.forEach((route) =>
+    route.keywords.forEach((keyword) => addKeyword(route.path, keyword)),
+  );
+  navLinks.forEach((link) => {
+    addKeyword(link.href, link.label);
+    link.sublinks?.forEach(addMenuItem);
+    link.megaContent?.forEach((column) =>
+      column.items.forEach(addMenuItem),
+    );
+  });
+
+  return Array.from(routeKeywords, ([path, keywords]) => ({
+    path,
+    keywords: Array.from(keywords, (keyword) => ({
+      keyword,
+      tokens: tokenizeStaticSearch(keyword),
+    })),
+  }));
+}
 
 function buildNavLinks(t: (key: string) => string): NavLinkItem[] {
   return [
@@ -548,11 +706,74 @@ export default function Navbar() {
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const navLinks = buildNavLinks(t);
+  const searchRouteIndex = buildStaticSearchIndex(navLinks);
+  const searchMatches = getStaticSearchMatches(searchQuery, searchRouteIndex);
 
   const { data: settings } = useQuery<any[]>({
     queryKey: ['/api/public/settings'],
     staleTime: 30_000,
   });
+  const { data: searchablePosts, isFetching: searchablePostsLoading } = useQuery<unknown[]>({
+    queryKey: ['/api/posts'],
+    queryFn: getPosts,
+    enabled: searchOpen && searchQuery.trim().length > 0,
+    staleTime: 30_000,
+  });
+  const publicPostSearchResults: StaticSearchMatch[] =
+    searchQuery.trim() && Array.isArray(searchablePosts)
+      ? searchablePosts
+          .filter((value): value is Record<string, unknown> => {
+            if (!value || typeof value !== 'object') return false;
+            const post = value as Record<string, unknown>;
+            return (
+              String(post.status ?? '').toLowerCase() === 'published' &&
+              typeof post.slug === 'string' &&
+              Boolean(post.slug.trim())
+            );
+          })
+          .filter((post) =>
+            matchesSearch(searchQuery, [
+              post.titleEn,
+              post.titleAm,
+              post.titleTi,
+              post.titleOr,
+              post.titleSo,
+              post.slug,
+              post.category,
+              getBlogContentText(post.contentEn),
+              getBlogContentText(post.contentAm),
+              getBlogContentText(post.contentTi),
+              getBlogContentText(post.contentOr),
+              getBlogContentText(post.contentSo),
+            ]),
+          )
+          .map((post) => {
+            const title =
+              String(post.titleEn ?? '').trim() ||
+              String(post.titleAm ?? '').trim() ||
+              String(post.titleTi ?? '').trim() ||
+              String(post.titleOr ?? '').trim() ||
+              String(post.titleSo ?? '').trim() ||
+              'News article';
+            const titleMatch = matchesSearch(searchQuery, [
+              post.titleEn,
+              post.titleAm,
+              post.titleTi,
+              post.titleOr,
+              post.titleSo,
+              post.category,
+            ]);
+            return {
+              path: `/blog/${encodeURIComponent(String(post.slug))}`,
+              score: titleMatch ? 1000 : 100,
+              label: title,
+              type: 'News' as const,
+            };
+          })
+      : [];
+  const searchResults = [...publicPostSearchResults, ...searchMatches]
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 6);
 
   const topNoticeSetting = Array.isArray(settings)
     ? settings.find((setting: any) => setting.key === "home.topNotice")
@@ -665,6 +886,13 @@ export default function Navbar() {
     }
   };
 
+  const selectSearchResult = (path: string) => {
+    setLocation(path);
+    openSearch(false);
+    setSearchQuery('');
+    setSearchFeedback(null);
+  };
+
   const handleStaticSearch = () => {
     const trimmed = searchQuery.trim();
     if (!trimmed) {
@@ -672,14 +900,8 @@ export default function Navbar() {
       return;
     }
 
-    const inputTokens = tokenizeStaticSearch(searchQuery);
-    const { path, score } = scoreRouteByStaticKeywords(inputTokens);
-
-    if (score > 0) {
-      setLocation(path);
-      openSearch(false);
-      setSearchQuery('');
-      setSearchFeedback(null);
+    if (searchResults.length > 0) {
+      selectSearchResult(searchResults[0].path);
     } else {
       setSearchFeedback('Nothing matched your search. Try different keywords.');
     }
@@ -1095,7 +1317,45 @@ export default function Navbar() {
                   </button>
                 </div>
               </div>
-              {searchFeedback && (
+              {searchQuery.trim() && searchResults.length > 0 && (
+                <div
+                  role="listbox"
+                  aria-label="Search suggestions"
+                  className="mx-auto mt-3 max-w-2xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                >
+                  {searchResults.map((match) => (
+                    <button
+                      key={`${match.type}-${match.path}`}
+                      type="button"
+                      role="option"
+                      aria-selected="false"
+                      onClick={() => selectSearchResult(match.path)}
+                      className="flex w-full items-center justify-between gap-4 border-b border-gray-100 px-4 py-3 text-left text-sm last:border-b-0 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500"
+                    >
+                      <span className="font-medium text-gray-900">
+                        {match.label}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-xs text-gray-500">
+                        <span>{match.type}</span>
+                        <span>{match.path}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchQuery.trim() &&
+                searchablePostsLoading &&
+                searchResults.length === 0 && (
+                  <p
+                    role="status"
+                    className="mt-3 max-w-2xl mx-auto text-sm text-gray-500 px-1"
+                  >
+                    Searching news…
+                  </p>
+                )}
+              {searchFeedback &&
+                searchResults.length === 0 &&
+                !searchablePostsLoading && (
                 <p
                   id="navbar-search-feedback"
                   role="alert"

@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useEffect, useMemo, useState } from "react";
 import { getAdminPayments } from "@/lib/api";
+import { matchesSearch } from "@shared/search";
 
 type AdminPayment = {
   id: string;
@@ -90,10 +91,8 @@ export default function AdminPayments() {
   }, []);
 
   const filteredPayments = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    if (!q) return payments;
-    return payments.filter((p) => {
-      const blob = [
+    return payments.filter((p) =>
+      matchesSearch(searchQuery, [
         p.id,
         p.user,
         typeLabel(p.type),
@@ -101,11 +100,8 @@ export default function AdminPayments() {
         p.currency,
         p.date,
         String(p.amount),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return blob.includes(q);
-    });
+      ]),
+    );
   }, [payments, searchQuery]);
 
   const etbMembership = payments
@@ -285,6 +281,8 @@ export default function AdminPayments() {
             <div className="relative flex-1 w-full max-w-xl">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
+                type="search"
+                aria-label="Search completed payments"
                 placeholder="Search by transaction ID, name, type, amount, date…"
                 className="pl-9 bg-zinc-50 border-zinc-200"
                 value={searchQuery}

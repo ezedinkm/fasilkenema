@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/lib/context";
 import AdminLayout from "@/components/AdminLayout";
+import { matchesSearch } from "@shared/search";
 
 interface AuditEvent {
   id: number;
@@ -39,19 +40,16 @@ export default function AdminAuditLogs() {
 
   const filteredEvents = useMemo(() => {
     const events = auditQuery.data ?? [];
-    const normalizedSearch = search.trim().toLowerCase();
-    if (!normalizedSearch) return events;
     return events.filter((event) =>
-      [
+      matchesSearch(search, [
         event.actorEmail,
         event.action,
         event.resource,
         event.ipAddress ?? "",
         String(event.statusCode),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedSearch),
+        event.createdAt,
+        new Date(event.createdAt).toLocaleString(),
+      ]),
     );
   }, [auditQuery.data, search]);
 
@@ -85,15 +83,27 @@ export default function AdminAuditLogs() {
               {auditQuery.isFetching ? "Refreshing…" : "Refresh"}
             </Button>
           </div>
-          <div className="relative mt-4 max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
-              aria-label="Search audit logs"
-              className="pl-9"
-              placeholder="Search actor, action, resource, or IP"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+          <div className="mt-4 flex max-w-md gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <Input
+                type="search"
+                aria-label="Search audit logs"
+                className="pl-9"
+                placeholder="Search actor, action, resource, date, or IP"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
+            {search.trim() && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSearch("")}
+              >
+                Clear
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

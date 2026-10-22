@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useApp } from "@/lib/context";
+import { matchesSearch } from "@shared/search";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Phone, Search, User, CalendarDays } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -101,18 +102,17 @@ export default function AdminUserMessage() {
   });
 
   const filteredMessages = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return messages;
-
-    return messages.filter((message) => {
-      return (
-        message.fullName.toLowerCase().includes(q) ||
-        message.phone.toLowerCase().includes(q) ||
-        (message.email ?? "").toLowerCase().includes(q) ||
-        message.subject.toLowerCase().includes(q) ||
-        message.message.toLowerCase().includes(q)
-      );
-    });
+    return messages.filter((message) =>
+      matchesSearch(search, [
+        message.fullName,
+        message.phone,
+        message.email,
+        message.subject,
+        message.message,
+        message.status,
+        message.createdAt,
+      ]),
+    );
   }, [messages, search]);
 
   return (
@@ -140,15 +140,33 @@ export default function AdminUserMessage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, phone, email, subject, or message..."
-              className="h-11"
-              data-testid="input-search-user-messages"
-            />
+            <div className="flex gap-2">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search name, phone, email, subject, message, status, or date..."
+                className="h-11"
+                aria-label="Search messages"
+                data-testid="input-search-user-messages"
+              />
+              {search.trim() && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSearch("")}
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
+        {!isLoading && !isError && search.trim() && (
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredMessages.length} of {messages.length} messages
+          </p>
+        )}
 
         {isLoading ? (
           <Card className="border-zinc-200 shadow-sm">

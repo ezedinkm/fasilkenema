@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ChevronLeft,
@@ -60,19 +60,28 @@ export default function AdminNewsletter() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState<SubscriberStatus>("all");
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedSearch(search.trim()),
+      250,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
   const subscribersQuery = useQuery<SubscriberResponse>({
-    queryKey: ["newsletterSubscribers", page, status, search],
+    queryKey: ["newsletterSubscribers", page, status, debouncedSearch],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
         status,
-        search,
+        search: debouncedSearch,
       });
       const response = await fetchWithAuth(
         `/api/admin/newsletter/subscribers?${params.toString()}`,
@@ -370,12 +379,24 @@ export default function AdminNewsletter() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
+                    type="search"
                     value={search}
                     onChange={(event) => changeSearch(event.target.value)}
-                    placeholder="Search email"
-                    className="pl-9"
+                    placeholder="Search subscriber email"
+                    className="pl-9 pr-16"
                     aria-label="Search subscribers by email"
                   />
+                  {search.trim() && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 h-8 -translate-y-1/2 px-2"
+                      onClick={() => changeSearch("")}
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
                 <Select
                   value={status}
