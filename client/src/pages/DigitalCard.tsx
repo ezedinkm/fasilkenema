@@ -279,6 +279,15 @@ export default function DigitalCard() {
                       <span className="font-semibold">{member.phone}</span>
                     </p>
                   </div>
+                  <div className="pt-0.5 text-[10px] font-extrabold leading-tight text-white drop-shadow-md">
+                    <p>Membership: {memberTier?.name || member.tier}</p>
+                    <p>
+                      Amount:{" "}
+                      {memberTier
+                        ? `${Number(memberTier.price.etb).toLocaleString()} ETB / year`
+                        : "—"}
+                    </p>
+                  </div>
                 </div>
 
                 {(brandingSettings.stamp ||
