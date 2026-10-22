@@ -746,36 +746,8 @@ export default function MemberDashboard() {
 
                   {/* Dynamic overlay (member data only) */}
                   <div className="absolute inset-0">
-                    {(brandingSettings.stamp ||
-                      brandingSettings.signature ||
-                      brandingSettings.authorizedPersonName) && (
-                      <div className="absolute top-2 right-2 sm:top-3 sm:right-6 flex items-center gap-1.5 sm:gap-2 max-w-[42%] sm:max-w-[190px]">
-                        {brandingSettings.stamp && (
-                          <img
-                            src={brandingSettings.stamp}
-                            alt="Official membership stamp"
-                            className="w-9 h-9 sm:w-14 sm:h-14 object-contain shrink-0"
-                          />
-                        )}
-                        <div className="min-w-0 text-center">
-                          {brandingSettings.signature && (
-                            <img
-                              src={brandingSettings.signature}
-                              alt="Authorized signature"
-                              className="h-4 sm:h-6 w-full max-w-[76px] object-contain mx-auto"
-                            />
-                          )}
-                          {brandingSettings.authorizedPersonName && (
-                            <p className="text-[6px] sm:text-[8px] font-semibold text-gray-800 leading-tight break-words">
-                              {brandingSettings.authorizedPersonName}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
                     {/* The card displays only the requested membership details. */}
-                    <div className="absolute left-0 right-0 top-[58%] -translate-y-1/2 px-2.5 sm:px-6">
+                    <div className="absolute left-0 right-0 top-[62%] -translate-y-1/2 px-2.5 sm:px-6">
                       <div className="space-y-0.5 sm:space-y-1 text-[9px] sm:text-[11px] font-bold text-gray-800 max-w-[58%] sm:max-w-[320px]">
                         <div>
                           <p className="text-red-600 text-[8px] sm:text-[10px]">የአባልነት ቁጥር / Membership ID</p>
@@ -848,6 +820,31 @@ export default function MemberDashboard() {
                       alt=""
                       className="absolute inset-0 w-full h-full object-cover"
                     />
+                  )}
+                  {(brandingSettings.stamp ||
+                    brandingSettings.signature ||
+                    brandingSettings.authorizedPersonName) && (
+                    <div className="absolute right-[7%] top-1/2 -translate-y-1/2 w-[30%] flex flex-col items-center gap-1.5 sm:gap-2 text-center">
+                      {brandingSettings.stamp && (
+                        <img
+                          src={brandingSettings.stamp}
+                          alt="Official membership stamp"
+                          className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
+                        />
+                      )}
+                      {brandingSettings.signature && (
+                        <img
+                          src={brandingSettings.signature}
+                          alt="Authorized signature"
+                          className="w-full h-5 sm:h-7 object-contain"
+                        />
+                      )}
+                      {brandingSettings.authorizedPersonName && (
+                        <p className="text-[8px] sm:text-[10px] font-semibold text-gray-800 leading-tight break-words">
+                          {brandingSettings.authorizedPersonName}
+                        </p>
+                      )}
+                    </div>
                   )}
 
                 </div>
