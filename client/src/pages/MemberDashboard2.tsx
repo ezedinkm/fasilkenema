@@ -808,7 +808,7 @@ export default function MemberDashboard() {
                     {(brandingSettings.stamp ||
                       brandingSettings.signature ||
                       brandingSettings.authorizedPersonName) && (
-                      <div className="absolute right-1.5 top-1.5 z-10 w-[22%] flex flex-col items-center gap-0.5 text-center sm:right-6 sm:top-3 sm:w-[20%] sm:gap-1">
+                      <div className="absolute right-[25%] top-1/2 z-10 w-[18%] -translate-y-1/2 flex flex-col items-center gap-0.5 text-center sm:gap-1">
                         {brandingSettings.stamp && (
                           <img
                             src={brandingSettings.stamp}
