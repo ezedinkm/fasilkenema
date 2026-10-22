@@ -91,17 +91,16 @@ export async function saveResendApiKey(apiKey: string): Promise<void> {
   });
 }
 
-export async function removeResendApiKey(): Promise<void> {
-  await storage.deleteSetting(RESEND_API_KEY_SETTING_KEY);
-}
-
 export async function getResendApiKeyStatus(): Promise<{
   apiKeyConfigured: boolean;
-  credentialSource: "admin" | "replit";
+  keySource: "settings" | "environment" | "none";
 }> {
   const setting = await storage.getSettingByKey(RESEND_API_KEY_SETTING_KEY);
-  return {
-    apiKeyConfigured: Boolean(setting),
-    credentialSource: setting ? "admin" : "replit",
-  };
+  if (setting) {
+    return { apiKeyConfigured: true, keySource: "settings" };
+  }
+  if (String(process.env.RESEND_API_KEY ?? "").trim()) {
+    return { apiKeyConfigured: true, keySource: "environment" };
+  }
+  return { apiKeyConfigured: false, keySource: "none" };
 }

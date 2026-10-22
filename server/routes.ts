@@ -60,7 +60,6 @@ import { isAdminRole } from "@shared/adminAccess";
 import { getResendEmailConfig, sendResendTestEmail } from "./email";
 import {
   getResendApiKeyStatus,
-  removeResendApiKey,
   RESEND_API_KEY_SETTING_KEY,
   saveResendApiKey,
 } from "./resendCredentials";
@@ -3754,7 +3753,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             z.string().trim().email().max(254),
           ]),
           apiKey: z.string().trim().max(500).optional(),
-          clearApiKey: z.boolean().optional(),
         })
         .safeParse(req.body);
 
@@ -3765,17 +3763,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const apiKey = validation.data.apiKey?.trim() || "";
-      const clearApiKey = validation.data.clearApiKey === true;
-      if (apiKey && clearApiKey) {
-        return res.status(400).json({
-          error: "Choose either a new API key or the connected Replit integration.",
-        });
-      }
 
       try {
-        if (clearApiKey) {
-          await removeResendApiKey();
-        } else if (apiKey) {
+        if (apiKey) {
           await saveResendApiKey(apiKey);
         }
 
