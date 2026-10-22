@@ -653,6 +653,26 @@ export function registerAdminRoutes(app: Express): void {
   );
 
   app.post(
+    "/api/admin/posts/upload-image",
+    authenticateAdminPermission("content"),
+    (req, res) => {
+      upload.single("image")(req, res, (error) => {
+        if (error) {
+          return res.status(400).json({
+            error: error instanceof Error ? error.message : "Image upload failed",
+          });
+        }
+        if (!req.file) {
+          return res.status(400).json({ error: "No image uploaded" });
+        }
+        return res.status(201).json({
+          imageUrl: `/uploads/${req.file.filename}`,
+        });
+      });
+    },
+  );
+
+  app.post(
     "/api/admin/membership-tiers/upload-background",
     authenticateAdminPermission("settings"),
     (req, res) => {
@@ -1279,10 +1299,11 @@ export function registerAdminRoutes(app: Express): void {
               : undefined;
 
           const user =
-            normalizedType === "membership_renewal"
-              ? (renewalMemberName ?? "Member (Renewal)")
-              : (pendingByTxRef.get(payment.transactionId) ??
-                "Membership Applicant");
+            renewalMemberName ??
+            pendingByTxRef.get(payment.transactionId) ??
+            (normalizedType === "membership_renewal"
+              ? "Member (Renewal)"
+              : "Membership Applicant");
 
           const rowType =
             normalizedType === "membership_renewal"
@@ -1376,12 +1397,23 @@ export function registerAdminRoutes(app: Express): void {
       const completedMembershipPayments = membershipPayments.filter(
         (p) => p.type === "membership" || p.type === "membership_renewal",
       );
+      const manualMembershipPayments = completedMembershipPayments.filter(
+        (payment) =>
+          (payment.metadata as Record<string, unknown> | null)?.source ===
+          "admin_manual_membership",
+      );
 
       const membershipETB = completedMembershipPayments
-        .filter((p) => p.currency === "ETB")
+        .filter((p) => String(p.currency).toUpperCase() === "ETB")
         .reduce((sum, p) => sum + p.amount, 0);
       const membershipUSD = completedMembershipPayments
-        .filter((p) => p.currency === "USD")
+        .filter((p) => String(p.currency).toUpperCase() === "USD")
+        .reduce((sum, p) => sum + p.amount, 0);
+      const manualMembershipETB = manualMembershipPayments
+        .filter((p) => String(p.currency).toUpperCase() === "ETB")
+        .reduce((sum, p) => sum + p.amount, 0);
+      const manualMembershipUSD = manualMembershipPayments
+        .filter((p) => String(p.currency).toUpperCase() === "USD")
         .reduce((sum, p) => sum + p.amount, 0);
       const donationETB = donations
         .filter((d) => d.currency === "ETB")
@@ -1406,6 +1438,8 @@ export function registerAdminRoutes(app: Express): void {
         totalMembers,
         membershipETB,
         membershipUSD,
+        manualMembershipETB,
+        manualMembershipUSD,
         donationETB,
         donationUSD,
         growth,

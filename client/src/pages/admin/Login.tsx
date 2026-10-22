@@ -108,6 +108,15 @@ export default function AdminLogin() {
               )}
             </Button>
           </form>
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setLocation("/admin/forgot-password")}
+              className="text-sm font-medium text-red-700 hover:underline"
+            >
+              Forgot your password?
+            </button>
+          </div>
         </CardContent>
         <CardFooter className="text-center text-xs text-zinc-500 justify-center text-red-600">
           Authorized Personnel Only • FASIL FC

@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useEffect, useRef, useState } from "react";
 import { getPosts } from "@/lib/api";
+import { getBlogContentText } from "@shared/blogContent";
 
 type NormalizedNewsPost = {
   id: number;
@@ -33,7 +34,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
 
   // Drizzle posts table fields are camelCased (e.g. titleEn, imageUrl).
   const title = String(raw?.titleEn ?? raw?.title ?? "");
-  const excerpt = String(raw?.contentEn ?? raw?.excerpt ?? "");
+  const excerpt = getBlogContentText(raw?.contentEn ?? raw?.excerpt ?? "");
   const image = String(raw?.imageUrl ?? raw?.image ?? "");
   const category = String(raw?.category ?? "");
   const isFeatured = Boolean(raw?.isFeatured ?? raw?.is_featured);

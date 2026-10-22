@@ -5,6 +5,7 @@ import { db } from "./db";
 import { authenticateAdminPermission } from "./middleware/authMiddleware";
 import { sendNewsletterEmailBatch } from "./email";
 import { newsletterSubscribers, posts } from "@shared/schema";
+import { getBlogContentText } from "@shared/blogContent";
 
 const PUBLIC_SITE_URL = "https://fasilkenemasc.et";
 const SUBSCRIBERS_PAGE_SIZE = 50;
@@ -378,7 +379,7 @@ export function registerNewsletterRoutes(app: Express): void {
 
         const title = escapeHtml(post.titleEn);
         const excerpt = escapeHtml(
-          post.contentEn
+          getBlogContentText(post.contentEn)
             .replace(/<[^>]*>/g, " ")
             .replace(/&nbsp;/gi, " ")
             .replace(/\s+/g, " ")

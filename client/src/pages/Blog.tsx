@@ -2,6 +2,7 @@ import PublicLayout from "@/components/PublicLayout";
 import NewsCard from "@/components/NewsCard";
 import { Trophy, Newspaper, Users, Calendar } from "lucide-react";
 import { getPosts } from "@/lib/api";
+import { getBlogContentText } from "@shared/blogContent";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
@@ -19,7 +20,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
   const id = Number(raw?.id);
   const slug = String(raw?.slug ?? "");
   const title = String(raw?.titleEn ?? raw?.title ?? "");
-  const excerpt = String(raw?.contentEn ?? raw?.excerpt ?? "");
+  const excerpt = getBlogContentText(raw?.contentEn ?? raw?.excerpt ?? "");
   const image = String(raw?.imageUrl ?? raw?.image ?? "");
   const category = String(raw?.category ?? "");
 

@@ -316,3 +316,34 @@ export async function sendPasswordResetEmail(
 
   return sendEmail(toEmail, subject, htmlContent);
 }
+
+export async function sendAdminPasswordResetEmail(
+  toEmail: string,
+  adminName: string,
+  resetLink: string,
+): Promise<SendEmailResult> {
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  const safeName = escapeHtml(adminName || "Super Admin");
+  const safeLink = escapeHtml(resetLink);
+  const subject = "Super Admin password reset - Fasil FC";
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+      <h1 style="color: #b91c1c; font-size: 22px;">Fasil FC Admin Password Reset</h1>
+      <p>Hello <strong>${safeName}</strong>,</p>
+      <p>We received a request to reset your Super Admin password. Use the link below within 30 minutes:</p>
+      <p style="margin: 28px 0;">
+        <a href="${safeLink}" style="background: #b91c1c; color: #fff; padding: 12px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Reset password</a>
+      </p>
+      <p>If you did not request this, you can ignore this email. The link can only be used once.</p>
+      <p style="color: #666; font-size: 12px;">If the button does not work, copy this link into your browser:<br/><a href="${safeLink}" style="word-break: break-all;">${safeLink}</a></p>
+    </div>
+  `;
+
+  return sendEmail(toEmail, subject, htmlContent);
+}

@@ -33,6 +33,27 @@ export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
 
+export const adminPasswordResetTokens = pgTable(
+  "admin_password_reset_tokens",
+  {
+    id: serial("id").primaryKey(),
+    adminId: integer("admin_id")
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    usedAt: timestamp("used_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("admin_password_reset_tokens_token_hash_key").on(
+      table.tokenHash,
+    ),
+    index("admin_password_reset_tokens_admin_id_idx").on(table.adminId),
+    index("admin_password_reset_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const adminAuditLogs = pgTable(
   "admin_audit_logs",
   {

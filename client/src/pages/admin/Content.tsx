@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Image as ImageIcon, Globe, Save, X, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +14,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { fetchWithAuth } from '@/lib/api';
 import {
+  getBlogContentText,
+  parseBlogContentSections,
+  serializeBlogContentSections,
+  type BlogContentSection,
+} from '@shared/blogContent';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -21,6 +27,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Page, Post, PostCategory } from '@shared/schema';
+
+type EditableBlogSection = BlogContentSection & { editorId: string };
+
+function makeEditableBlogSection(
+  section: Partial<BlogContentSection> = {},
+): EditableBlogSection {
+  return {
+    editorId: `section-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    heading: section.heading ?? '',
+    text: section.text ?? '',
+    images: section.images ?? [],
+  };
+}
 
 const DEFAULT_PAGES = [
   { slug: 'home', titleEn: 'Home Page', contentEn: '' },
@@ -160,15 +179,27 @@ export default function AdminContent() {
 
   const updatePostMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Post> }) => {
-      return apiRequest('PATCH', `/api/posts/${data.id}`, data.updates);
+      const response = await fetchWithAuth(`/api/posts/${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data.updates),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || `Failed to update post (${response.status}).`);
+      }
+      return result as Post;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       toast({ title: "Post Updated", description: "Changes have been saved successfully." });
       setIsDialogOpen(false);
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to update post.", variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Could not update post",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -285,18 +316,167 @@ export default function AdminContent() {
 
   const [formData, setFormData] = useState({
     titleEn: '',
-    contentEn: '',
+    sections: [makeEditableBlogSection()],
     category: '',
     imageUrl: '',
     isFeatured: false,
     notifySubscribers: false,
   });
+  const postImageInputRef = useRef<HTMLInputElement>(null);
+  const sectionImageInputsRef = useRef<
+    Record<string, HTMLInputElement | null>
+  >({});
+  const [postImageUploading, setPostImageUploading] = useState(false);
+  const [uploadingSectionIds, setUploadingSectionIds] = useState<string[]>([]);
+
+  const updateBlogSection = (
+    editorId: string,
+    updates: Partial<BlogContentSection>,
+  ) => {
+    setFormData((current) => ({
+      ...current,
+      sections: current.sections.map((section) =>
+        section.editorId === editorId ? { ...section, ...updates } : section,
+      ),
+    }));
+  };
+
+  const handlePostImageUpload = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Choose an image',
+        description: 'Only image files can be uploaded.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'Image is too large',
+        description: 'Choose an image smaller than 5 MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+    setPostImageUploading(true);
+    try {
+      const response = await fetchWithAuth('/api/admin/posts/upload-image', {
+        method: 'POST',
+        body: uploadData,
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || typeof result.imageUrl !== 'string') {
+        throw new Error(result.error || 'Could not upload the image.');
+      }
+      setFormData((current) => ({ ...current, imageUrl: result.imageUrl }));
+      toast({
+        title: 'Image uploaded',
+        description: 'The image will be saved with the post.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Image upload failed',
+        description:
+          error instanceof Error ? error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setPostImageUploading(false);
+    }
+  };
+
+  const handleSectionImageUpload = async (
+    editorId: string,
+    files: File[],
+  ) => {
+    if (!files.length) return;
+
+    setUploadingSectionIds((current) =>
+      current.includes(editorId) ? current : [...current, editorId],
+    );
+    let uploadedCount = 0;
+    const errors: string[] = [];
+
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) {
+          errors.push(`${file.name}: choose an image file.`);
+          continue;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          errors.push(`${file.name}: maximum size is 5 MB.`);
+          continue;
+        }
+
+        const uploadData = new FormData();
+        uploadData.append('image', file);
+        try {
+          const response = await fetchWithAuth(
+            '/api/admin/posts/upload-image',
+            {
+              method: 'POST',
+              body: uploadData,
+            },
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok || typeof result.imageUrl !== 'string') {
+            throw new Error(result.error || 'Image upload failed.');
+          }
+
+          setFormData((current) => ({
+            ...current,
+            sections: current.sections.map((section) =>
+              section.editorId === editorId
+                ? { ...section, images: [...section.images, result.imageUrl] }
+                : section,
+            ),
+          }));
+          uploadedCount += 1;
+        } catch (error) {
+          errors.push(
+            `${file.name}: ${
+              error instanceof Error ? error.message : 'Image upload failed.'
+            }`,
+          );
+        }
+      }
+
+      if (uploadedCount > 0 && errors.length === 0) {
+        toast({
+          title: 'Section images uploaded',
+          description: `${uploadedCount} image${uploadedCount === 1 ? '' : 's'} added to this section.`,
+        });
+      } else if (uploadedCount > 0) {
+        toast({
+          title: 'Some images were uploaded',
+          description: `${uploadedCount} uploaded. ${errors.join(' ')}`,
+          variant: 'destructive',
+        });
+      } else if (errors.length > 0) {
+        toast({
+          title: 'Image upload failed',
+          description: errors.join(' '),
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setUploadingSectionIds((current) =>
+        current.filter((id) => id !== editorId),
+      );
+    }
+  };
 
   const handleEdit = (post: Post) => {
     setEditingPost(post);
+    setUploadingSectionIds([]);
     setFormData({
       titleEn: post.titleEn || '',
-      contentEn: post.contentEn || '',
+      sections:
+        parseBlogContentSections(post.contentEn).map(makeEditableBlogSection),
       category: post.category || '',
       imageUrl: post.imageUrl || '',
       isFeatured: post.isFeatured ?? false,
@@ -307,9 +487,10 @@ export default function AdminContent() {
 
   const handleCreate = () => {
     setEditingPost(null);
+    setUploadingSectionIds([]);
     setFormData({
       titleEn: '',
-      contentEn: '',
+      sections: [makeEditableBlogSection()],
       category: '',
       imageUrl: '',
       isFeatured: false,
@@ -334,16 +515,33 @@ export default function AdminContent() {
       return;
     }
 
+    if (
+      formData.sections.every(
+        (section) =>
+          !section.heading.trim() &&
+          !section.text.trim() &&
+          section.images.length === 0,
+      )
+    ) {
+      toast({
+        title: 'Add post content',
+        description: 'Add text or an image to at least one section.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const slug = formData.titleEn.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const contentEn = serializeBlogContentSections(formData.sections);
     
     if (editingPost) {
       updatePostMutation.mutate({
         id: editingPost.id,
         updates: {
           titleEn: formData.titleEn,
-          contentEn: formData.contentEn,
+          contentEn,
           category: formData.category,
-          imageUrl: formData.imageUrl || undefined,
+          imageUrl: formData.imageUrl.trim() || null,
           isFeatured: formData.isFeatured,
         },
       });
@@ -352,7 +550,7 @@ export default function AdminContent() {
         data: {
           slug,
           titleEn: formData.titleEn,
-          contentEn: formData.contentEn,
+          contentEn,
           category: formData.category,
           imageUrl: formData.imageUrl || undefined,
           isFeatured: formData.isFeatured,
@@ -535,13 +733,67 @@ export default function AdminContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Image URL</Label>
-                  <Input 
-                    value={formData.imageUrl} 
-                    onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                    placeholder="https://example.com/image.jpg"
-                    data-testid="input-post-image"
-                  />
+                  <Label>Post image</Label>
+                  <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+                    <div className="flex aspect-video w-full max-w-48 items-center justify-center overflow-hidden rounded-md bg-zinc-100">
+                      {formData.imageUrl ? (
+                        <img
+                          src={formData.imageUrl}
+                          alt="Post image preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-zinc-300" />
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={postImageInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        aria-label="Upload blog post image"
+                        data-testid="input-post-image-file"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = '';
+                          void handlePostImageUpload(file);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={postImageUploading}
+                        onClick={() => postImageInputRef.current?.click()}
+                        data-testid="button-upload-post-image"
+                      >
+                        {postImageUploading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                        )}
+                        {postImageUploading ? 'Uploading…' : 'Upload image'}
+                      </Button>
+                      {formData.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={postImageUploading}
+                          onClick={() =>
+                            setFormData((current) => ({
+                              ...current,
+                              imageUrl: '',
+                            }))
+                          }
+                        >
+                          Remove image
+                        </Button>
+                      )}
+                      <p className="w-full text-xs text-muted-foreground">
+                        JPG, PNG, WebP, or GIF. Maximum 5 MB.
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-lg border p-3">
                   <Checkbox
@@ -592,15 +844,172 @@ export default function AdminContent() {
                     </div>
                   </div>
                 )}
-                <div className="space-y-2">
-                  <Label>Content</Label>
-                  <Textarea 
-                    value={formData.contentEn} 
-                    onChange={(e) => setFormData({...formData, contentEn: e.target.value})}
-                    placeholder="Main article content..."
-                    className="min-h-[200px]"
-                    data-testid="input-post-content"
-                  />
+                <div className="space-y-3">
+                  <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+                    <div>
+                      <Label>Article sections</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Sections appear in order. Add text and multiple images to each one.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setFormData((current) => ({
+                          ...current,
+                          sections: [
+                            ...current.sections,
+                            makeEditableBlogSection(),
+                          ],
+                        }))
+                      }
+                      data-testid="button-add-blog-section"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add section
+                    </Button>
+                  </div>
+                  {formData.sections.map((section, sectionIndex) => {
+                    const isUploading = uploadingSectionIds.includes(
+                      section.editorId,
+                    );
+                    return (
+                      <div
+                        key={section.editorId}
+                        className="space-y-3 rounded-lg border bg-zinc-50/70 p-3 sm:p-4"
+                        data-testid={`blog-section-${sectionIndex + 1}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold">
+                            Section {sectionIndex + 1}
+                          </p>
+                          {formData.sections.length > 1 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              disabled={isUploading}
+                              onClick={() =>
+                                setFormData((current) => ({
+                                  ...current,
+                                  sections: current.sections.filter(
+                                    (item) =>
+                                      item.editorId !== section.editorId,
+                                  ),
+                                }))
+                              }
+                            >
+                              <X className="mr-1 h-4 w-4" />
+                              Remove section
+                            </Button>
+                          )}
+                        </div>
+                        <Input
+                          value={section.heading}
+                          onChange={(event) =>
+                            updateBlogSection(section.editorId, {
+                              heading: event.target.value,
+                            })
+                          }
+                          placeholder="Section heading (optional)"
+                          aria-label={`Section ${sectionIndex + 1} heading`}
+                          maxLength={160}
+                        />
+                        <Textarea
+                          value={section.text}
+                          onChange={(event) =>
+                            updateBlogSection(section.editorId, {
+                              text: event.target.value,
+                            })
+                          }
+                          placeholder="Write this part of the article..."
+                          className="min-h-[140px]"
+                          aria-label={`Section ${sectionIndex + 1} text`}
+                          data-testid={`input-blog-section-${sectionIndex + 1}-text`}
+                        />
+                        <input
+                          ref={(input) => {
+                            sectionImageInputsRef.current[section.editorId] =
+                              input;
+                          }}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/gif"
+                          multiple
+                          className="hidden"
+                          aria-label={`Upload images for section ${sectionIndex + 1}`}
+                          onChange={(event) => {
+                            const files = Array.from(
+                              event.target.files ?? [],
+                            );
+                            event.target.value = '';
+                            void handleSectionImageUpload(
+                              section.editorId,
+                              files,
+                            );
+                          }}
+                        />
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={isUploading}
+                            onClick={() =>
+                              sectionImageInputsRef.current[
+                                section.editorId
+                              ]?.click()
+                            }
+                            data-testid={`button-upload-section-images-${sectionIndex + 1}`}
+                          >
+                            {isUploading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <ImageIcon className="mr-2 h-4 w-4" />
+                            )}
+                            {isUploading ? 'Uploading…' : 'Add images'}
+                          </Button>
+                          <span className="text-xs text-muted-foreground">
+                            Select multiple files; up to 5 MB each.
+                          </span>
+                        </div>
+                        {section.images.length > 0 && (
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                            {section.images.map((image, imageIndex) => (
+                              <div
+                                key={`${image}-${imageIndex}`}
+                                className="relative aspect-video overflow-hidden rounded-md border bg-white"
+                              >
+                                <img
+                                  src={image}
+                                  alt={`Section ${sectionIndex + 1} image ${imageIndex + 1}`}
+                                  className="h-full w-full object-cover"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="absolute right-1 top-1 h-7 w-7"
+                                  disabled={isUploading}
+                                  aria-label={`Remove image ${imageIndex + 1} from section ${sectionIndex + 1}`}
+                                  onClick={() =>
+                                    updateBlogSection(section.editorId, {
+                                      images: section.images.filter(
+                                        (_, index) => index !== imageIndex,
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <DialogFooter>
@@ -610,6 +1019,8 @@ export default function AdminContent() {
                   disabled={
                     createPostMutation.isPending ||
                     updatePostMutation.isPending ||
+                    postImageUploading ||
+                    uploadingSectionIds.length > 0 ||
                     !formData.category
                   }
                   data-testid="button-save-post"
@@ -665,7 +1076,7 @@ export default function AdminContent() {
                            </div>
                           <span className="text-xs bg-zinc-100 px-2 py-1 rounded font-medium uppercase">{post.category}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{post.contentEn?.substring(0, 150)}...</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{getBlogContentText(post.contentEn).substring(0, 150)}...</p>
                       </div>
                       <div className="flex justify-between items-center mt-2">
                         <span className="text-xs text-muted-foreground">

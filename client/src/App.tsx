@@ -20,6 +20,10 @@ import DonateSuccess from "@/pages/DonateSuccess";
 import DigitalCard from "@/pages/DigitalCard";
 import BlogPost from "@/pages/BlogPost";
 import AdminLogin from "@/pages/admin/Login";
+import {
+  AdminForgotPassword,
+  AdminResetPassword,
+} from "@/pages/admin/PasswordRecovery";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminServerMonitor from "@/pages/admin/ServerMonitor";
 import AdminMembers from "@/pages/admin/Members";
@@ -133,6 +137,8 @@ function Router() {
       
       {/* Admin Routes */}
       <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/forgot-password" component={AdminForgotPassword} />
+      <Route path="/admin/reset-password" component={AdminResetPassword} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/server-monitor" component={AdminServerMonitor} />
       <Route path="/admin/members" component={AdminMembers} />

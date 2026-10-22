@@ -1,8 +1,10 @@
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = localStorage.getItem("admin_token");
+  const isFormData =
+    typeof FormData !== "undefined" && options.body instanceof FormData;
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...((options.headers as Record<string, string>) || {}),
   };
 
@@ -49,7 +51,7 @@ export async function createMember(data: any) {
   return response.json();
 }
 
-/** Admin: create member without Chapa payment (validated tier + phone). */
+/** Admin: create member and record the payment received (validated tier + phone). */
 export async function createAdminMember(data: Record<string, unknown>) {
   const response = await fetchWithAuth("/api/admin/members", {
     method: "POST",

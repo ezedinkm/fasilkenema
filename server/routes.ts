@@ -17,8 +17,12 @@ import {
   insertPaymentSchema,
   insertPendingMemberApplicationSchema,
   insertUsermessageSchema,
+  adminUsers,
+  adminPasswordResetTokens,
   posts,
   passwordResetTokens,
+  members,
+  payments,
   membershipTiers,
   donationTiers,
   usermessage,
@@ -44,7 +48,7 @@ import {
   userFacingSmsFailureMessage,
 } from "./iconicSms";
 import crypto from "crypto";
-import { eq, and, gt, asc, desc, sql } from "drizzle-orm";
+import { eq, and, gt, isNull, asc, desc, sql } from "drizzle-orm";
 import {
   JWT_SECRET,
   authenticateAdminPermission,
@@ -57,7 +61,11 @@ import { registerAnalyticsRoutes } from "./analyticsRoutes";
 import { registerAdminAccessRoutes } from "./adminAccessRoutes";
 import { recordAdminAuditEvent } from "./adminAudit";
 import { isAdminRole } from "@shared/adminAccess";
-import { getResendEmailConfig, sendResendTestEmail } from "./email";
+import {
+  getResendEmailConfig,
+  sendResendTestEmail,
+  sendAdminPasswordResetEmail,
+} from "./email";
 import {
   getResendApiKeyStatus,
   RESEND_API_KEY_SETTING_KEY,
@@ -1184,6 +1192,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/forgot-password", async (req, res) => {
+    const validation = z
+      .object({ email: z.string().trim().email().max(254) })
+      .safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: "Enter a valid email address." });
+    }
+
+    const genericMessage =
+      "If an active Super Admin account exists for that email, reset instructions will be sent.";
+
+    try {
+      const email = validation.data.email.toLowerCase();
+      const admin = await storage.getAdminByEmail(email);
+      if (!admin || !admin.isActive || admin.role !== "super_admin") {
+        return res.json({ success: true, message: genericMessage });
+      }
+
+      const now = new Date();
+      const [recentRequest] = await db
+        .select({ id: adminPasswordResetTokens.id })
+        .from(adminPasswordResetTokens)
+        .where(
+          and(
+            eq(adminPasswordResetTokens.adminId, admin.id),
+            gt(
+              adminPasswordResetTokens.createdAt,
+              new Date(now.getTime() - 60_000),
+            ),
+          ),
+        )
+        .limit(1);
+      if (recentRequest) {
+        return res.json({ success: true, message: genericMessage });
+      }
+
+      const token = crypto.randomBytes(32).toString("base64url");
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(token)
+        .digest("hex");
+      const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(adminPasswordResetTokens)
+          .set({ usedAt: now })
+          .where(
+            and(
+              eq(adminPasswordResetTokens.adminId, admin.id),
+              isNull(adminPasswordResetTokens.usedAt),
+            ),
+          );
+        await tx.insert(adminPasswordResetTokens).values({
+          adminId: admin.id,
+          tokenHash,
+          expiresAt,
+        });
+      });
+
+      const resetUrl = new URL(
+        "/admin/reset-password",
+        await getCanonicalPublicSiteOrigin(),
+      );
+      resetUrl.searchParams.set("token", token);
+      const emailResult = await sendAdminPasswordResetEmail(
+        admin.email,
+        admin.fullName,
+        resetUrl.toString(),
+      );
+
+      if (!emailResult.success) {
+        await db
+          .update(adminPasswordResetTokens)
+          .set({ usedAt: new Date() })
+          .where(eq(adminPasswordResetTokens.tokenHash, tokenHash));
+        console.error(
+          "[admin-forgot-password] Reset email could not be sent:",
+          emailResult.error || "Unknown email error",
+        );
+      }
+
+      return res.json({ success: true, message: genericMessage });
+    } catch (error) {
+      console.error("[admin-forgot-password] Failed to process request:", error);
+      return res
+        .status(500)
+        .json({ error: "Unable to process the reset request. Please try again." });
+    }
+  });
+
+  app.post("/api/admin/reset-password", async (req, res) => {
+    const validation = z
+      .object({
+        token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+        newPassword: z.string().min(12).max(200),
+      })
+      .safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        error: "Use a valid reset link and a password with at least 12 characters.",
+      });
+    }
+
+    try {
+      const tokenHash = crypto
+        .createHash("sha256")
+        .update(validation.data.token)
+        .digest("hex");
+      const now = new Date();
+      const updatedAdmin = await db.transaction(async (tx) => {
+        const [resetToken] = await tx
+          .select()
+          .from(adminPasswordResetTokens)
+          .where(eq(adminPasswordResetTokens.tokenHash, tokenHash))
+          .limit(1)
+          .for("update");
+        if (
+          !resetToken ||
+          resetToken.usedAt ||
+          new Date(resetToken.expiresAt) <= now
+        ) {
+          return undefined;
+        }
+
+        const [admin] = await tx
+          .select()
+          .from(adminUsers)
+          .where(eq(adminUsers.id, resetToken.adminId))
+          .limit(1)
+          .for("update");
+        if (!admin || !admin.isActive || admin.role !== "super_admin") {
+          return undefined;
+        }
+
+        const [claimedToken] = await tx
+          .update(adminPasswordResetTokens)
+          .set({ usedAt: now })
+          .where(
+            and(
+              eq(adminPasswordResetTokens.id, resetToken.id),
+              isNull(adminPasswordResetTokens.usedAt),
+              gt(adminPasswordResetTokens.expiresAt, now),
+            ),
+          )
+          .returning({ id: adminPasswordResetTokens.id });
+        if (!claimedToken) {
+          return undefined;
+        }
+
+        const [updated] = await tx
+          .update(adminUsers)
+          .set({
+            password: await bcrypt.hash(validation.data.newPassword, 12),
+            sessionVersion: sql`${adminUsers.sessionVersion} + 1`,
+          })
+          .where(
+            and(
+              eq(adminUsers.id, admin.id),
+              eq(adminUsers.isActive, true),
+              eq(adminUsers.role, "super_admin"),
+            ),
+          )
+          .returning({
+            id: adminUsers.id,
+            email: adminUsers.email,
+          });
+        if (!updated) {
+          throw new Error("The Super Admin account is no longer active.");
+        }
+
+        await tx
+          .update(adminPasswordResetTokens)
+          .set({ usedAt: now })
+          .where(
+            and(
+              eq(adminPasswordResetTokens.adminId, admin.id),
+              isNull(adminPasswordResetTokens.usedAt),
+            ),
+          );
+        return updated;
+      });
+
+      if (!updatedAdmin) {
+        return res.status(400).json({
+          error: "This password reset link is invalid or expired. Request a new one.",
+        });
+      }
+
+      try {
+        await recordAdminAuditEvent({
+          actorAdminId: updatedAdmin.id,
+          actorEmail: updatedAdmin.email,
+          action: "password_reset",
+          resource: "/api/admin/reset-password",
+          statusCode: 200,
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"],
+        });
+      } catch (auditError) {
+        console.error(
+          "[admin-reset-password] Password changed, but the audit event could not be recorded:",
+          auditError,
+        );
+      }
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("[admin-reset-password] Failed to reset password:", error);
+      return res
+        .status(500)
+        .json({ error: "Unable to reset the password. Please try again." });
+    }
+  });
+
   app.post("/api/member/login", async (req, res) => {
     try {
       const { phone, password } = req.body;
@@ -1921,12 +2144,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         address,
         division,
         expiryDate,
+        paymentMethod,
+        paymentCurrency,
+        paymentAmount,
       } = body;
 
       if (!fullName || !phone || !dateOfBirth || !country || !city || !tier) {
         return res.status(400).json({
           error:
             "Missing required fields: fullName, phone, dateOfBirth, country, city, tier",
+        });
+      }
+
+      const normalizedPaymentMethod = String(paymentMethod || "")
+        .trim()
+        .toLowerCase();
+      if (!["chapa", "bank_transfer", "cash"].includes(normalizedPaymentMethod)) {
+        return res.status(400).json({
+          error: "Choose Chapa, bank transfer, or cash as the payment mode.",
+        });
+      }
+      const normalizedPaymentCurrency = String(paymentCurrency || "")
+        .trim()
+        .toUpperCase();
+      if (!["ETB", "USD"].includes(normalizedPaymentCurrency)) {
+        return res.status(400).json({
+          error: "Invalid currency. Choose ETB or USD.",
+        });
+      }
+      const receivedAmount = Number(paymentAmount);
+      if (!Number.isSafeInteger(receivedAmount) || receivedAmount <= 0) {
+        return res.status(400).json({
+          error: "Enter the amount received as a positive whole number.",
         });
       }
 
@@ -2037,7 +2286,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: fromZodError(validation.error).message });
       }
 
-      const member = await storage.createMember(validation.data);
+      const transactionId = `ADMIN-MEMBER-${crypto.randomUUID()
+        .replace(/-/g, "")
+        .toUpperCase()}`;
+      const paymentValidation = insertPaymentSchema.safeParse({
+        transactionId,
+        type: "membership",
+        amount: receivedAmount,
+        currency: normalizedPaymentCurrency,
+        paymentMethod: normalizedPaymentMethod,
+        status: "completed",
+        metadata: { source: "admin_manual_membership" },
+        paidAt: new Date(),
+      });
+      if (!paymentValidation.success) {
+        return res
+          .status(400)
+          .json({ error: fromZodError(paymentValidation.error).message });
+      }
+
+      const member = await db.transaction(async (transaction) => {
+        const [createdMember] = await transaction
+          .insert(members)
+          .values(validation.data)
+          .returning();
+        await transaction.insert(payments).values({
+          ...paymentValidation.data,
+          metadata: {
+            source: "admin_manual_membership",
+            userId: createdMember.id,
+            membershipNumber: createdMember.membershipNumber,
+            membershipTier: createdMember.tier,
+          },
+        });
+        return createdMember;
+      });
       res.status(201).json(member);
     } catch (error) {
       console.error("Admin create member error:", error);

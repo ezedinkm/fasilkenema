@@ -19,6 +19,8 @@ type DashboardStats = {
   totalMembers: number;
   membershipETB: number;
   membershipUSD: number;
+  manualMembershipETB: number;
+  manualMembershipUSD: number;
   donationETB: number;
   donationUSD: number;
   growth: Array<{ name: string; members: number }>;
@@ -28,6 +30,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({
     membershipETB: 0,
     membershipUSD: 0,
+    manualMembershipETB: 0,
+    manualMembershipUSD: 0,
     donationETB: 0,
     donationUSD: 0,
   });
@@ -44,6 +48,10 @@ export default function AdminDashboard() {
         setStats({
           membershipETB: Number(dashboardData.membershipETB) || 0,
           membershipUSD: Number(dashboardData.membershipUSD) || 0,
+          manualMembershipETB:
+            Number(dashboardData.manualMembershipETB) || 0,
+          manualMembershipUSD:
+            Number(dashboardData.manualMembershipUSD) || 0,
           donationETB: Number(dashboardData.donationETB) || 0,
           donationUSD: Number(dashboardData.donationUSD) || 0,
         });
@@ -72,6 +80,18 @@ export default function AdminDashboard() {
       amount: stats.membershipUSD,
       currency: "USD",
       description: "Membership fees and renewals",
+    },
+    {
+      title: "Manual Member Revenue (ETB)",
+      amount: stats.manualMembershipETB,
+      currency: "ETB",
+      description: "Subset of membership revenue recorded by admins",
+    },
+    {
+      title: "Manual Member Revenue (USD)",
+      amount: stats.manualMembershipUSD,
+      currency: "USD",
+      description: "Subset of membership revenue recorded by admins",
     },
     {
       title: "Donation Revenue (ETB)",

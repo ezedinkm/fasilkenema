@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { getPosts } from "@/lib/api";
 import { useEffect, useState } from "react";
+import {
+  getBlogContentText,
+  parseBlogContentSections,
+} from "@shared/blogContent";
 
 type NormalizedNewsPost = {
   id: number;
@@ -22,10 +26,11 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
   const slug = String(raw?.slug ?? "");
   const title = String(raw?.titleEn ?? raw?.title ?? "");
   const content = String(raw?.contentEn ?? raw?.content ?? raw?.excerpt ?? "");
+  const plainContent = getBlogContentText(content);
   const image = String(raw?.imageUrl ?? raw?.image ?? "");
   const category = String(raw?.category ?? "");
 
-  const blocks = content
+  const blocks = plainContent
     .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean);
@@ -113,6 +118,8 @@ export default function BlogPost() {
     );
   }
 
+  const contentSections = parseBlogContentSections(post.content);
+
   return (
     <PublicLayout>
       <div className="bg-background">
@@ -164,17 +171,44 @@ export default function BlogPost() {
           </div>
 
           <article className="prose prose-lg max-w-none prose-headings:font-display prose-headings:uppercase prose-a:text-primary">
-            <p className="lead text-xl font-medium text-foreground/80 mb-8">
-              {post.excerpt}
-            </p>
-
-            {(() => {
-              const blocks = post.content
-                .split(/\n+/)
-                .map((s) => s.trim())
-                .filter(Boolean);
-              return blocks.slice(1).map((block, i) => <p key={i}>{block}</p>);
-            })()}
+            {contentSections.map((section, sectionIndex) => (
+              <section
+                key={sectionIndex}
+                className="mb-10 border-b border-border/60 pb-8 last:border-0"
+              >
+                {section.heading && (
+                  <h2 className="mb-4 text-2xl font-bold">
+                    {section.heading}
+                  </h2>
+                )}
+                {section.text
+                  .split(/\n+/)
+                  .map((paragraph) => paragraph.trim())
+                  .filter(Boolean)
+                  .map((paragraph, paragraphIndex) => (
+                    <p key={`${sectionIndex}-text-${paragraphIndex}`}>
+                      {paragraph}
+                    </p>
+                  ))}
+                {section.images.length > 0 && (
+                  <div className="my-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {section.images.map((image, imageIndex) => (
+                      <figure
+                        key={`${sectionIndex}-image-${imageIndex}`}
+                        className="overflow-hidden rounded-xl bg-zinc-100"
+                      >
+                        <img
+                          src={image}
+                          alt={`${post.title}, section ${sectionIndex + 1}, image ${imageIndex + 1}`}
+                          loading="lazy"
+                          className="max-h-[640px] w-full object-contain"
+                        />
+                      </figure>
+                    ))}
+                  </div>
+                )}
+              </section>
+            ))}
           </article>
         </div>
       </div>

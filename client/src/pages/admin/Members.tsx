@@ -46,7 +46,12 @@ import {
 } from "@/lib/api";
 import type { Member } from "@shared/schema";
 
-type AdminTierRow = { id: string; amharicVersion: string };
+type AdminTierRow = {
+  id: string;
+  amharicVersion: string;
+  priceEtb: number;
+  priceUsd: number;
+};
 
 function tierBadgeClass(tier: string) {
   const t = tier.toLowerCase();
@@ -109,6 +114,9 @@ export default function AdminMembers() {
     membershipNumber: "",
     photoUrl: "",
     expiryDate: "",
+    paymentMethod: "",
+    paymentCurrency: "ETB",
+    paymentAmount: "",
   });
 
   useEffect(() => {
@@ -122,9 +130,16 @@ export default function AdminMembers() {
         const data = await getAdminMembershipTiers();
         if (!cancelled && Array.isArray(data)) {
           setMembershipTiers(
-            data.map((row: { id: string; amharicVersion?: string }) => ({
+            data.map((row: {
+              id: string;
+              amharicVersion?: string;
+              priceEtb?: number;
+              priceUsd?: number;
+            }) => ({
               id: String(row.id),
               amharicVersion: String(row.amharicVersion ?? ""),
+              priceEtb: Number(row.priceEtb) || 0,
+              priceUsd: Number(row.priceUsd) || 0,
             })),
           );
         }
@@ -195,7 +210,7 @@ export default function AdminMembers() {
   const handleCreate = () => {
     setEditingMember(null);
     setPhotoPreview(null);
-    const firstTierId = membershipTiers[0]?.id ?? "";
+    const firstTier = membershipTiers[0];
     setFormData({
       fullName: "",
       phone: "",
@@ -204,11 +219,16 @@ export default function AdminMembers() {
       dateOfBirth: "",
       country: "Ethiopia",
       city: "",
-      tier: firstTierId,
+      tier: firstTier?.id ?? "",
       status: "active",
       membershipNumber: generateMembershipNumber(),
       photoUrl: "",
       expiryDate: "",
+      paymentMethod: "",
+      paymentCurrency: "ETB",
+      paymentAmount: firstTier
+        ? String(Math.round(firstTier.priceEtb))
+        : "",
     });
     setIsDialogOpen(true);
   };
@@ -295,6 +315,9 @@ export default function AdminMembers() {
       membershipNumber: member.membershipNumber,
       photoUrl: member.photoUrl || "",
       expiryDate: exp,
+      paymentMethod: "",
+      paymentCurrency: "ETB",
+      paymentAmount: "",
     });
     setIsDialogOpen(true);
   };
@@ -353,6 +376,33 @@ export default function AdminMembers() {
           });
           return;
         }
+        const paymentAmount = Number(formData.paymentAmount);
+        if (
+          !["chapa", "bank_transfer", "cash"].includes(formData.paymentMethod)
+        ) {
+          toast({
+            variant: "destructive",
+            title: "Payment mode required",
+            description: "Choose Chapa, bank transfer, or cash.",
+          });
+          return;
+        }
+        if (!["ETB", "USD"].includes(formData.paymentCurrency)) {
+          toast({
+            variant: "destructive",
+            title: "Invalid currency",
+            description: "Choose ETB or USD.",
+          });
+          return;
+        }
+        if (!Number.isSafeInteger(paymentAmount) || paymentAmount <= 0) {
+          toast({
+            variant: "destructive",
+            title: "Valid payment amount required",
+            description: "Enter the amount received as a positive whole number.",
+          });
+          return;
+        }
         const payload: Record<string, unknown> = {
           fullName: formData.fullName.trim(),
           phone: formData.phone.trim(),
@@ -363,6 +413,9 @@ export default function AdminMembers() {
           status: formData.status,
           membershipNumber: formData.membershipNumber.trim() || undefined,
           photoUrl: formData.photoUrl.trim() || undefined,
+          paymentMethod: formData.paymentMethod,
+          paymentCurrency: formData.paymentCurrency,
+          paymentAmount,
         };
         if (formData.email.trim()) {
           payload.email = formData.email.trim().toLowerCase();
@@ -379,7 +432,7 @@ export default function AdminMembers() {
         toast({
           title: "Success",
           description:
-            "Member registered without payment. They can sign in if a password was set.",
+            "Member registered and payment recorded. They can sign in if a password was set.",
         });
       }
       fetchMembers();
@@ -483,12 +536,12 @@ export default function AdminMembers() {
               <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg max-h-[90vh] overflow-y-auto sm:w-full">
                 <DialogHeader>
                   <DialogTitle>
-                    {editingMember ? "Edit Member" : "Add member (no payment)"}
+                    {editingMember ? "Edit Member" : "Add Member"}
                   </DialogTitle>
                   {!editingMember && (
                     <p className="text-sm text-muted-foreground text-left font-normal">
-                      Creates a member record immediately using tiers from your
-                      database. No Chapa checkout.
+                      Record the membership payment received with this manual
+                      registration. It will be included in dashboard revenue.
                     </p>
                   )}
                 </DialogHeader>
@@ -583,9 +636,24 @@ export default function AdminMembers() {
                     <Label>Membership tier</Label>
                     <Select
                       value={formData.tier || undefined}
-                      onValueChange={(val) =>
-                        setFormData({ ...formData, tier: val })
-                      }
+                      onValueChange={(val) => {
+                        const selectedTier = membershipTiers.find(
+                          (tier) => tier.id === val,
+                        );
+                        setFormData((current) => ({
+                          ...current,
+                          tier: val,
+                          paymentAmount: selectedTier
+                            ? String(
+                                Math.round(
+                                  current.paymentCurrency === "USD"
+                                    ? selectedTier.priceUsd
+                                    : selectedTier.priceEtb,
+                                ),
+                              )
+                            : "",
+                        }));
+                      }}
                       disabled={tiersLoading || membershipTiers.length === 0}
                     >
                       <SelectTrigger data-testid="select-tier">
@@ -605,12 +673,98 @@ export default function AdminMembers() {
                             <span className="font-mono text-xs mr-2">
                               {t.id}
                             </span>
-                            {t.amharicVersion || "—"}
+                            {t.amharicVersion || "—"} (
+                            {Math.round(t.priceEtb).toLocaleString()} ETB /{" "}
+                            {Math.round(t.priceUsd).toLocaleString()} USD)
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  {!editingMember && (
+                    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+                      <div className="space-y-1">
+                        <Label>Payment received via</Label>
+                        <Select
+                          value={formData.paymentMethod || undefined}
+                          onValueChange={(paymentMethod) =>
+                            setFormData((current) => ({
+                              ...current,
+                              paymentMethod,
+                            }))
+                          }
+                        >
+                          <SelectTrigger data-testid="select-manual-payment-mode">
+                            <SelectValue placeholder="Select payment mode" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="chapa">Chapa</SelectItem>
+                            <SelectItem value="bank_transfer">
+                              Bank transfer
+                            </SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label>Currency received</Label>
+                          <Select
+                            value={formData.paymentCurrency}
+                            onValueChange={(paymentCurrency) =>
+                              setFormData((current) => {
+                                const selectedTier = membershipTiers.find(
+                                  (tier) => tier.id === current.tier,
+                                );
+                                return ({
+                                ...current,
+                                paymentCurrency,
+                                paymentAmount: selectedTier
+                                  ? String(
+                                      Math.round(
+                                        paymentCurrency === "USD"
+                                          ? selectedTier.priceUsd
+                                          : selectedTier.priceEtb,
+                                      ),
+                                    )
+                                  : current.paymentAmount,
+                                });
+                              })
+                            }
+                          >
+                            <SelectTrigger data-testid="select-manual-payment-currency">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="ETB">ETB</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label>Amount received</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={formData.paymentAmount}
+                            onChange={(event) =>
+                              setFormData((current) => ({
+                                ...current,
+                                paymentAmount: event.target.value,
+                              }))
+                            }
+                            placeholder="Amount"
+                            data-testid="input-manual-payment-amount"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Amount is prefilled from the selected annual tier price.
+                        Adjust it to match what was actually received.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Status</Label>
                     <Select
