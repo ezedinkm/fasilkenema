@@ -805,15 +805,31 @@ export default function MemberDashboard() {
                         <User className="text-gray-400 w-7 h-7 sm:w-12 sm:h-12" />
                       )}
                     </div>
-                    <div className="absolute right-1.5 bottom-1.5 sm:right-6 sm:bottom-2 flex flex-col items-center rounded bg-white p-1 shadow-md">
-                      <QRCode
-                        value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
-                        size={48}
-                      />
-                      <p className="whitespace-nowrap text-[6px] font-bold leading-tight text-gray-800">
-                        EXP: {expiryDate.toLocaleDateString("en-GB")}
-                      </p>
-                    </div>
+                    {(brandingSettings.stamp ||
+                      brandingSettings.signature ||
+                      brandingSettings.authorizedPersonName) && (
+                      <div className="absolute right-1.5 top-1.5 z-10 w-[22%] flex flex-col items-center gap-0.5 text-center sm:right-6 sm:top-3 sm:w-[20%] sm:gap-1">
+                        {brandingSettings.stamp && (
+                          <img
+                            src={brandingSettings.stamp}
+                            alt="Official membership stamp"
+                            className="h-7 w-7 object-contain sm:h-11 sm:w-11"
+                          />
+                        )}
+                        {brandingSettings.signature && (
+                          <img
+                            src={brandingSettings.signature}
+                            alt="Authorized signature"
+                            className="h-3 w-full object-contain sm:h-5"
+                          />
+                        )}
+                        {brandingSettings.authorizedPersonName && (
+                          <p className="break-words text-[6px] font-semibold leading-tight text-gray-800 sm:text-[8px]">
+                            {brandingSettings.authorizedPersonName}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                   </div>
                 </div>
@@ -827,40 +843,16 @@ export default function MemberDashboard() {
                   transform: "rotateY(180deg)",
                 }}
               >
-                <div className="relative h-full w-full">
-                  {selectedTemplateUrl && (
-                    <img
-                      src={selectedTemplateUrl}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                <div className="relative flex h-full w-full items-center justify-center bg-white">
+                  <div className="flex flex-col items-center gap-1 rounded-lg bg-white p-2 shadow-md">
+                    <QRCode
+                      value={`${window.location.origin}/card/${encodeURIComponent(member.membershipNumber)}`}
+                      size={112}
                     />
-                  )}
-                  {(brandingSettings.stamp ||
-                    brandingSettings.signature ||
-                    brandingSettings.authorizedPersonName) && (
-                    <div className="absolute right-[7%] top-1/2 -translate-y-1/2 w-[30%] flex flex-col items-center gap-1.5 sm:gap-2 text-center">
-                      {brandingSettings.stamp && (
-                        <img
-                          src={brandingSettings.stamp}
-                          alt="Official membership stamp"
-                          className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
-                        />
-                      )}
-                      {brandingSettings.signature && (
-                        <img
-                          src={brandingSettings.signature}
-                          alt="Authorized signature"
-                          className="w-full h-5 sm:h-7 object-contain"
-                        />
-                      )}
-                      {brandingSettings.authorizedPersonName && (
-                        <p className="text-[8px] sm:text-[10px] font-semibold text-gray-800 leading-tight break-words">
-                          {brandingSettings.authorizedPersonName}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
+                    <p className="whitespace-nowrap text-[8px] font-bold leading-tight text-gray-800">
+                      EXP: {expiryDate.toLocaleDateString("en-GB")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
