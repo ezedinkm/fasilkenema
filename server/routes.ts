@@ -1841,15 +1841,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/members/:id", authenticateAdminPermission("members"), async (req, res) => {
     try {
+      const memberId = Number(req.params.id);
+      if (!Number.isInteger(memberId) || memberId <= 0) {
+        return res.status(400).json({ error: "Invalid member ID" });
+      }
+
+      const patch = { ...req.body };
+      if (Object.prototype.hasOwnProperty.call(patch, "expiryDate")) {
+        if (patch.expiryDate == null || patch.expiryDate === "") {
+          patch.expiryDate = null;
+        } else {
+          const expiryDate = new Date(patch.expiryDate);
+          if (Number.isNaN(expiryDate.getTime())) {
+            return res.status(400).json({ error: "Invalid expiry date" });
+          }
+          patch.expiryDate = expiryDate;
+        }
+      }
+
       const member = await storage.updateMember(
-        parseInt(req.params.id),
-        req.body,
+        memberId,
+        patch,
       );
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }
       res.json(member);
     } catch (error) {
+      console.error("Admin member update error:", error);
+      const databaseError = error as { code?: string; constraint?: string };
+      if (databaseError.code === "23505") {
+        if (databaseError.constraint?.includes("phone")) {
+          return res
+            .status(409)
+            .json({ error: "That phone number is already assigned to another member." });
+        }
+        if (databaseError.constraint?.includes("membership_number")) {
+          return res
+            .status(409)
+            .json({ error: "That membership ID is already in use." });
+        }
+        return res
+          .status(409)
+          .json({ error: "A member with one of those unique values already exists." });
+      }
       res.status(500).json({ error: "Failed to update member" });
     }
   });
