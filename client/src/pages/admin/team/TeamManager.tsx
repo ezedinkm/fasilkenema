@@ -344,7 +344,10 @@ export default function TeamManager({
                 <SelectTrigger id={`${storageKey}-nationality`}>
                   <SelectValue placeholder="Select nationality" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="item-aligned"
+                  className="max-h-[65vh] overflow-y-auto"
+                >
                   {nationalityChoices.map((n) => (
                     <SelectItem key={n} value={n}>
                       {n}
@@ -572,7 +575,10 @@ export default function TeamManager({
                 <SelectTrigger>
                   <SelectValue placeholder="Select nationality" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent
+                  position="item-aligned"
+                  className="max-h-[65vh] overflow-y-auto"
+                >
                   {nationalityChoices.map((n) => (
                     <SelectItem key={n} value={n}>
                       {n}
