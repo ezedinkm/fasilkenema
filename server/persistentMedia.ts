@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import multer from "multer";
-import { Client } from "@replit/object-storage";
 
 const imageTypes: Record<string, { extension: string; contentType: string }> = {
   "image/avif": { extension: "avif", contentType: "image/avif" },
@@ -25,18 +26,7 @@ export const persistentImageUpload = multer({
 const managedImageNamePattern =
   /^managed-[0-9a-f-]{36}\.(?:avif|gif|jpg|png|webp)$/i;
 
-function storageError(error: unknown): Error {
-  const message =
-    error && typeof error === "object" && "message" in error
-      ? String((error as { message?: unknown }).message ?? "")
-      : "";
-  if (/bucket name is needed/i.test(message)) {
-    return new Error(
-      "App Storage is not configured yet. Create a bucket in Replit Tools > App Storage, then retry the upload.",
-    );
-  }
-  return new Error("App Storage is unavailable. Please retry.");
-}
+const mediaDir = path.resolve(process.cwd(), "uploads", "managed");
 
 export async function storePersistentImage(
   file: Express.Multer.File,
@@ -47,19 +37,9 @@ export async function storePersistentImage(
   }
 
   const objectName = `managed-${randomUUID()}.${type.extension}`;
-  try {
-    const result = await new Client().uploadFromBytes(
-      objectName,
-      file.buffer,
-      { compress: false },
-    );
-    if (!result.ok) {
-      throw result.error;
-    }
-    return `/api/media/${objectName}`;
-  } catch (error) {
-    throw storageError(error);
-  }
+  await fs.mkdir(mediaDir, { recursive: true });
+  await fs.writeFile(path.join(mediaDir, objectName), file.buffer);
+  return `/api/media/${objectName}`;
 }
 
 export async function loadPersistentImage(objectName: string): Promise<{
@@ -73,18 +53,17 @@ export async function loadPersistentImage(objectName: string): Promise<{
   if (!type) return null;
 
   try {
-    const result = await new Client().downloadAsBytes(objectName);
-    if (!result.ok) {
-      if (result.error.statusCode === 404) return null;
-      throw result.error;
-    }
-    return { buffer: result.value[0], contentType: type.contentType };
+    const buffer = await fs.readFile(path.join(mediaDir, objectName));
+    return { buffer, contentType: type.contentType };
   } catch (error) {
-    const message =
-      error && typeof error === "object" && "message" in error
-        ? String((error as { message?: unknown }).message ?? "")
-        : "";
-    if (/not found/i.test(message)) return null;
-    throw storageError(error);
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: string }).code === "ENOENT"
+    ) {
+      return null;
+    }
+    throw error;
   }
 }
