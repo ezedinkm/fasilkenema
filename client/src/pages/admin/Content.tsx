@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Page, Post, PostCategory } from '@shared/schema';
+import ManagedPageSections from './ManagedPageSections';
 
 type EditableBlogSection = BlogContentSection & { editorId: string };
 
@@ -1040,6 +1041,7 @@ export default function AdminContent() {
           <TabsList className="mb-4 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
             <TabsTrigger value="news">News & Blog</TabsTrigger>
             <TabsTrigger value="pages">Static Pages</TabsTrigger>
+            <TabsTrigger value="managed-pages">Stadium &amp; Gondar</TabsTrigger>
             <TabsTrigger value="translations">Translations</TabsTrigger>
           </TabsList>
 
@@ -1196,6 +1198,10 @@ export default function AdminContent() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+          </TabsContent>
+
+          <TabsContent value="managed-pages" className="space-y-4">
+            <ManagedPageSections />
           </TabsContent>
           
           <TabsContent value="translations">

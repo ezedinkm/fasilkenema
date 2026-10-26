@@ -3797,6 +3797,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const emptyStaticPages: Record<string, string> = {
           "privacy-policy": "Privacy Policy",
           "terms-of-service": "Terms of Service",
+          stadium: "Fasil Kenema Stadium",
+          gondar: "Gondar & FASIL S.C",
         };
         const titleEn = emptyStaticPages[req.params.slug];
         if (titleEn) {
