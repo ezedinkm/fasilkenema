@@ -223,7 +223,7 @@ export default function AdminDashboard() {
                   />
                   <Bar
                     dataKey="members"
-                    fill="hsl(var(--primary))"
+                    fill="#9B0F06"
                     radius={[4, 4, 0, 0]}
                   />
                 </BarChart>

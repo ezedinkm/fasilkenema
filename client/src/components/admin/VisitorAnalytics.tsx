@@ -156,19 +156,19 @@ export default function VisitorAnalytics() {
 
   return (
     <section aria-labelledby="visitor-analytics-heading" className="space-y-5">
-      <div className="relative overflow-hidden rounded-2xl bg-[#173c2d] px-5 py-6 text-[#f7f5e9] shadow-sm sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full border border-[#d9bf67]/20" />
-        <div className="pointer-events-none absolute -right-1 -top-16 h-48 w-48 rounded-full border border-[#d9bf67]/20" />
+      <div className="relative overflow-hidden rounded-2xl bg-[#9B0F06] px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
+        <div className="pointer-events-none absolute -right-10 -top-24 h-64 w-64 rounded-full border border-white/15" />
+        <div className="pointer-events-none absolute -right-1 -top-16 h-48 w-48 rounded-full border border-white/15" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#d9bf67]">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
               <Activity className="h-3.5 w-3.5" />
               Public site pulse
             </div>
             <h2 id="visitor-analytics-heading" className="text-2xl font-semibold tracking-tight sm:text-3xl">
               Visitor analytics
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#d3ded5]">
+            <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">
               A clear view of how supporters find and explore Fasil Kenema online.
             </p>
           </div>
@@ -182,8 +182,8 @@ export default function VisitorAnalytics() {
                   aria-pressed={range === item.value}
                   className={`rounded-md px-3 py-2 text-xs font-medium transition-colors sm:text-sm ${
                     range === item.value
-                      ? "bg-[#e2c96f] text-[#193a2c] shadow-sm"
-                      : "text-[#d3ded5] hover:bg-white/10 hover:text-white"
+                      ? "bg-white text-[#9B0F06] shadow-sm"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {item.label}
@@ -202,15 +202,15 @@ export default function VisitorAnalytics() {
             </button>
           </div>
         </div>
-        <div className="relative mt-5 flex items-center gap-2 text-xs text-[#c1d0c5]">
+        <div className="relative mt-5 flex items-center gap-2 text-xs text-white/75">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#d9bf67] opacity-50" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#d9bf67]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-50" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
           </span>
           <span>{formatUpdatedAt(data?.updatedAt)}</span>
           <span className="text-white/30">·</span>
           <span>Auto-refreshes every 30 seconds</span>
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-medium text-[#e2c96f]">
+          <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 font-medium text-white">
             <Wifi className="h-3.5 w-3.5" />
             {numberFormat.format(data?.activeVisitors ?? 0)} active now
           </span>
