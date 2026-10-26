@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -47,6 +49,14 @@ type TeamManagerProps = {
 type PlayerDraft = Omit<Player, "id">;
 
 const DEFAULT_NATIONALITY = "Ethiopia";
+const COACHING_STAFF_TITLES = [
+  "HEAD COACH",
+  "ASSISTANT COACH",
+  "TEAM LEADER",
+  "PHYSICAL FITNESS TRAINER",
+  "PHYSIOTHERAPY",
+  "GOALKEEPER COACH",
+];
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -308,11 +318,22 @@ export default function TeamManager({
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {normalizedPositions.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Team positions</SelectLabel>
+                    {normalizedPositions.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Coaching staff</SelectLabel>
+                    {COACHING_STAFF_TITLES.map((title) => (
+                      <SelectItem key={title} value={title}>
+                        {title}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
@@ -520,11 +541,22 @@ export default function TeamManager({
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
-                  {normalizedPositions.map((pos) => (
-                    <SelectItem key={pos} value={pos}>
-                      {pos}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Team positions</SelectLabel>
+                    {normalizedPositions.map((pos) => (
+                      <SelectItem key={pos} value={pos}>
+                        {pos}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Coaching staff</SelectLabel>
+                    {COACHING_STAFF_TITLES.map((title) => (
+                      <SelectItem key={title} value={title}>
+                        {title}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
