@@ -325,6 +325,9 @@ export default function TeamManager({
                         {p}
                       </SelectItem>
                     ))}
+                    {!normalizedPositions.some((p) => p.toLowerCase() === "player") && (
+                      <SelectItem value="PLAYER">PLAYER</SelectItem>
+                    )}
                   </SelectGroup>
                   <SelectGroup>
                     <SelectLabel>Coaching staff</SelectLabel>
@@ -551,6 +554,9 @@ export default function TeamManager({
                         {pos}
                       </SelectItem>
                     ))}
+                    {!normalizedPositions.some((pos) => pos.toLowerCase() === "player") && (
+                      <SelectItem value="PLAYER">PLAYER</SelectItem>
+                    )}
                   </SelectGroup>
                   <SelectGroup>
                     <SelectLabel>Coaching staff</SelectLabel>
