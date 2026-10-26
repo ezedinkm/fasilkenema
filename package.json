@@ -9,7 +9,7 @@
     "build": "vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test tests/*.test.ts && bun test client/src/lib/api.test.ts client/src/pages/admin/Members.test.ts",
     "db:push": "cross-env NODE_ENV=development drizzle-kit push",
     "seed": "tsx server/seedmembership.ts"
   },
@@ -115,6 +115,7 @@
     "cross-env": "^10.1.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.25.0",
+    "happy-dom": "^21.0.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.5",
