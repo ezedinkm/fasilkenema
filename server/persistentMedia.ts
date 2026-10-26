@@ -2,8 +2,6 @@ import { randomUUID } from "node:crypto";
 import multer from "multer";
 import { Client } from "@replit/object-storage";
 
-const storage = new Client();
-
 const imageTypes: Record<string, { extension: string; contentType: string }> = {
   "image/avif": { extension: "avif", contentType: "image/avif" },
   "image/gif": { extension: "gif", contentType: "image/gif" },
@@ -27,6 +25,19 @@ export const persistentImageUpload = multer({
 const managedImageNamePattern =
   /^managed-[0-9a-f-]{36}\.(?:avif|gif|jpg|png|webp)$/i;
 
+function storageError(error: unknown): Error {
+  const message =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message ?? "")
+      : "";
+  if (/bucket name is needed/i.test(message)) {
+    return new Error(
+      "App Storage is not configured yet. Create a bucket in Replit Tools > App Storage, then retry the upload.",
+    );
+  }
+  return new Error("App Storage is unavailable. Please retry.");
+}
+
 export async function storePersistentImage(
   file: Express.Multer.File,
 ): Promise<string> {
@@ -36,13 +47,19 @@ export async function storePersistentImage(
   }
 
   const objectName = `managed-${randomUUID()}.${type.extension}`;
-  const result = await storage.uploadFromBytes(objectName, file.buffer, {
-    compress: false,
-  });
-  if (!result.ok) {
-    throw new Error(result.error.message || "Unable to save image to App Storage");
+  try {
+    const result = await new Client().uploadFromBytes(
+      objectName,
+      file.buffer,
+      { compress: false },
+    );
+    if (!result.ok) {
+      throw result.error;
+    }
+    return `/api/media/${objectName}`;
+  } catch (error) {
+    throw storageError(error);
   }
-  return `/api/media/${objectName}`;
 }
 
 export async function loadPersistentImage(objectName: string): Promise<{
@@ -55,10 +72,19 @@ export async function loadPersistentImage(objectName: string): Promise<{
   );
   if (!type) return null;
 
-  const result = await storage.downloadAsBytes(objectName);
-  if (!result.ok) {
-    if (result.error.statusCode === 404) return null;
-    throw new Error(result.error.message || "Unable to load image");
+  try {
+    const result = await new Client().downloadAsBytes(objectName);
+    if (!result.ok) {
+      if (result.error.statusCode === 404) return null;
+      throw result.error;
+    }
+    return { buffer: result.value[0], contentType: type.contentType };
+  } catch (error) {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message ?? "")
+        : "";
+    if (/not found/i.test(message)) return null;
+    throw storageError(error);
   }
-  return { buffer: result.value[0], contentType: type.contentType };
 }

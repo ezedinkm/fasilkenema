@@ -9,7 +9,9 @@ import {
   numeric,
   boolean,
   jsonb,
+  foreignKey,
   index,
+  unique,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -37,20 +39,86 @@ export const adminPasswordResetTokens = pgTable(
   "admin_password_reset_tokens",
   {
     id: serial("id").primaryKey(),
-    adminId: integer("admin_id")
-      .notNull()
-      .references(() => adminUsers.id, { onDelete: "cascade" }),
+    adminId: integer("admin_id").notNull(),
     tokenHash: text("token_hash").notNull(),
     expiresAt: timestamp("expires_at").notNull(),
     usedAt: timestamp("used_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      name: "admin_password_reset_tokens_admin_id_fkey",
+      columns: [table.adminId],
+      foreignColumns: [adminUsers.id],
+    }).onDelete("cascade"),
     uniqueIndex("admin_password_reset_tokens_token_hash_key").on(
       table.tokenHash,
     ),
     index("admin_password_reset_tokens_admin_id_idx").on(table.adminId),
     index("admin_password_reset_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
+export const clubs = pgTable(
+  "clubs",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name"),
+    logo: text("logo"),
+  },
+  (table) => [unique("clubs_name_key").on(table.name)],
+);
+
+export const standings = pgTable(
+  "standings",
+  {
+    id: serial("id").primaryKey(),
+    clubId: integer("club_id"),
+    played: integer("played"),
+    win: integer("win"),
+    draw: integer("draw"),
+    loss: integer("loss"),
+    goalsFor: integer("goals_for"),
+    goalsAgainst: integer("goals_against"),
+    points: integer("points"),
+  },
+  (table) => [
+    foreignKey({
+      name: "standings_club_id_fkey",
+      columns: [table.clubId],
+      foreignColumns: [clubs.id],
+    }),
+    unique("standings_club_id_key").on(table.clubId),
+  ],
+);
+
+export const matches = pgTable(
+  "matches",
+  {
+    id: serial("id").primaryKey(),
+    homeTeamId: integer("home_team_id"),
+    awayTeamId: integer("away_team_id"),
+    homeScore: integer("home_score"),
+    awayScore: integer("away_score"),
+    matchDate: timestamp("match_date"),
+    status: text("status"),
+  },
+  (table) => [
+    foreignKey({
+      name: "matches_home_team_id_fkey",
+      columns: [table.homeTeamId],
+      foreignColumns: [clubs.id],
+    }),
+    foreignKey({
+      name: "matches_away_team_id_fkey",
+      columns: [table.awayTeamId],
+      foreignColumns: [clubs.id],
+    }),
+    unique("matches_home_team_id_away_team_id_match_date_key").on(
+      table.homeTeamId,
+      table.awayTeamId,
+      table.matchDate,
+    ),
   ],
 );
 

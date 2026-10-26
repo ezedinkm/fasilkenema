@@ -1,5 +1,5 @@
 - [Database schema updates](database-schema-updates.md) — confirm Neon vs Replit-managed database targets; isolate additive changes when Drizzle detects unrelated schema drift.
-- [Safe Drizzle schema pushes](safe-drizzle-push.md) — verify key uniqueness and choose no-truncate when Drizzle warns on populated tables.
+- [Safe Drizzle schema pushes](safe-drizzle-push.md) — inspect all destructive diffs; model runtime-created tables in the ORM schema before pushing.
 - [Safe npm lockfile recovery](safe-npm-lockfile-recovery.md) — keep Express’s resolved proxy-addr release patched; the firewall blocks the vulnerable lock.
 - [Visitor analytics policy](visitor-analytics-policy.md) — use first-party anonymous session analytics; do not persist IPs, names, emails, or full user-agent strings.
 - [Search Console setup scope](search-console-setup-scope.md) — keep Google Search Console support as setup guidance only unless the user asks for live account connection.
