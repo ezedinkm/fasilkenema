@@ -107,12 +107,10 @@ export default function TeamManager({
     [defaultNationality, nationality, editDraft.nationality].forEach((v) => {
       if (v?.trim()) set.add(v.trim());
     });
-    const pinned = "Ethiopia";
     const list = Array.from(set);
-    const rest = list
-      .filter((n) => n !== pinned)
-      .sort((a, b) => a.localeCompare(b));
-    return list.includes(pinned) ? [pinned, ...rest] : rest;
+    return list.sort((a, b) =>
+      a.localeCompare(b, "en", { sensitivity: "base" }),
+    );
   }, [defaultNationality, nationality, editDraft.nationality]);
 
   useEffect(() => {
