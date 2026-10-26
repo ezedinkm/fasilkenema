@@ -54,6 +54,7 @@ import {
   authenticateAdminPermission,
 } from "./middleware/authMiddleware";
 import { upload, uploadsDir } from "./middleware/multerConfig";
+import { loadPersistentImage } from "./persistentMedia";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
 import { registerNewsletterRoutes } from "./newsletterRoutes";
@@ -300,6 +301,10 @@ async function ensurePostContentSchema(): Promise<void> {
   if (postContentSchemaReady) {
     return;
   }
+  if (process.env.NODE_ENV === "production") {
+    postContentSchemaReady = true;
+    return;
+  }
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS post_categories (
@@ -352,6 +357,10 @@ async function ensurePostContentSchema(): Promise<void> {
 
 async function ensureMembershipTiersSchema(): Promise<void> {
   if (membershipTiersSchemaReady) {
+    return;
+  }
+  if (process.env.NODE_ENV === "production") {
+    membershipTiersSchemaReady = true;
     return;
   }
 
@@ -941,6 +950,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const express = await import("express");
   app.use("/uploads", express.default.static(uploadsDir));
+  app.get("/api/media/:filename", async (req, res) => {
+    try {
+      const image = await loadPersistentImage(req.params.filename);
+      if (!image) {
+        return res.status(404).type("text/plain").send("Image not found");
+      }
+      return res
+        .set("Cache-Control", "public, max-age=31536000, immutable")
+        .type(image.contentType)
+        .send(image.buffer);
+    } catch (error) {
+      console.error("[media] persistent image download failed");
+      return res.status(503).type("text/plain").send("Image temporarily unavailable");
+    }
+  });
 
   registerAdminAccessRoutes(app);
   registerAnalyticsRoutes(app);
@@ -3736,10 +3760,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/posts/:id", authenticateAdminPermission("content"), async (req, res) => {
     try {
       await ensurePostContentSchema();
+      const postId = Number(req.params.id);
+      if (!Number.isSafeInteger(postId) || postId <= 0) {
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
       const updates =
         req.body && typeof req.body === "object" ? { ...req.body } : {};
-      if ("category" in updates) {
-        const categoryName = String(updates.category ?? "").trim();
+      const validation = insertPostSchema.partial().safeParse(updates);
+      if (!validation.success) {
+        return res
+          .status(400)
+          .json({ error: fromZodError(validation.error).message });
+      }
+      const validatedUpdates = validation.data;
+      if ("category" in validatedUpdates) {
+        const categoryName = String(validatedUpdates.category ?? "").trim();
         if (!categoryName) {
           return res.status(400).json({ error: "Post category is required" });
         }
@@ -3754,29 +3789,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Choose a category that has been created before saving the post",
           });
         }
-        updates.category = category.name;
+        validatedUpdates.category = category.name;
       }
       const post = await storage.updatePost(
-        parseInt(req.params.id),
-        updates,
+        postId,
+        validatedUpdates,
       );
       if (!post) {
         return res.status(404).json({ error: "Post not found" });
       }
       res.json(post);
     } catch (error) {
+      console.error("Failed to update post:", error);
       res.status(500).json({ error: "Failed to update post" });
     }
   });
 
   app.delete("/api/posts/:id", authenticateAdminPermission("content"), async (req, res) => {
     try {
-      const success = await storage.deletePost(parseInt(req.params.id));
+      const postId = Number(req.params.id);
+      if (!Number.isSafeInteger(postId) || postId <= 0) {
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+      const success = await storage.deletePost(postId);
       if (!success) {
         return res.status(404).json({ error: "Post not found" });
       }
       res.json({ success: true });
     } catch (error) {
+      console.error("Failed to delete post:", error);
       res.status(500).json({ error: "Failed to delete post" });
     }
   });

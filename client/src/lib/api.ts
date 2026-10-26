@@ -69,7 +69,15 @@ export async function createAdminMember(data: Record<string, unknown>) {
 /** Admin: membership tiers from database (same ids used on public signup). */
 export async function getAdminMembershipTiers() {
   const response = await fetchWithAuth("/api/admin/membership-tiers");
-  return response.json();
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof json.error === "string"
+        ? json.error
+        : "Failed to load membership tiers",
+    );
+  }
+  return json;
 }
 
 export async function updateMember(id: number, data: any) {
@@ -90,7 +98,13 @@ export async function deleteMember(id: number) {
   const response = await fetchWithAuth(`/api/members/${id}`, {
     method: "DELETE",
   });
-  return response.json();
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof json.error === "string" ? json.error : "Failed to delete member",
+    );
+  }
+  return json;
 }
 
 export async function getPayments() {

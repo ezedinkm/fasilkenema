@@ -12,8 +12,13 @@ import {
   testIconicSmsConnection,
 } from "./iconicSms";
 import { storage } from "./storage";
+import { calculateDashboardRevenue } from "./revenueTotals";
 import { SMS_ICONIC_SETTING_KEYS } from "@shared/schema";
 import { upload } from "./middleware/multerConfig";
+import {
+  persistentImageUpload,
+  storePersistentImage,
+} from "./persistentMedia";
 import { getProcessMonitorMetrics } from "./serverMonitoring";
 
 type DashboardGrowthPoint = {
@@ -156,6 +161,10 @@ async function ensureWatchReviewsTableExists(): Promise<void> {
 
 async function ensureMembershipTiersSchema(): Promise<void> {
   if (membershipTiersSchemaReady) {
+    return;
+  }
+  if (process.env.NODE_ENV === "production") {
+    membershipTiersSchemaReady = true;
     return;
   }
 
@@ -647,7 +656,18 @@ export function registerAdminRoutes(app: Express): void {
         res.json(tiers.map(membershipTierAdminResponse));
       } catch (error) {
         console.error("[adminroute] membership tiers list", error);
-        res.status(500).json({ error: "Failed to fetch membership tiers" });
+        const code =
+          error && typeof error === "object" && "code" in error
+            ? String((error as { code?: unknown }).code)
+            : "";
+        res
+          .status(code === "42P01" || code === "42703" ? 503 : 500)
+          .json({
+            error:
+              code === "42P01" || code === "42703"
+                ? "Membership tier schema is unavailable. Apply the pending schema through the normal Publish flow."
+                : "Failed to fetch membership tiers",
+          });
       }
     },
   );
@@ -656,7 +676,7 @@ export function registerAdminRoutes(app: Express): void {
     "/api/admin/posts/upload-image",
     authenticateAdminPermission("content"),
     (req, res) => {
-      upload.single("image")(req, res, (error) => {
+      persistentImageUpload.single("image")(req, res, (error) => {
         if (error) {
           return res.status(400).json({
             error: error instanceof Error ? error.message : "Image upload failed",
@@ -665,9 +685,17 @@ export function registerAdminRoutes(app: Express): void {
         if (!req.file) {
           return res.status(400).json({ error: "No image uploaded" });
         }
-        return res.status(201).json({
-          imageUrl: `/uploads/${req.file.filename}`,
-        });
+        void storePersistentImage(req.file)
+          .then((imageUrl) => res.status(201).json({ imageUrl }))
+          .catch((uploadError: unknown) => {
+            console.error("[adminroute] persistent image upload failed");
+            res.status(503).json({
+              error:
+                uploadError instanceof Error
+                  ? uploadError.message
+                  : "Image storage is temporarily unavailable",
+            });
+          });
       });
     },
   );
@@ -1394,33 +1422,14 @@ export function registerAdminRoutes(app: Express): void {
         }
       }
 
-      const completedMembershipPayments = membershipPayments.filter(
-        (p) => p.type === "membership" || p.type === "membership_renewal",
-      );
-      const manualMembershipPayments = completedMembershipPayments.filter(
-        (payment) =>
-          (payment.metadata as Record<string, unknown> | null)?.source ===
-          "admin_manual_membership",
-      );
-
-      const membershipETB = completedMembershipPayments
-        .filter((p) => String(p.currency).toUpperCase() === "ETB")
-        .reduce((sum, p) => sum + p.amount, 0);
-      const membershipUSD = completedMembershipPayments
-        .filter((p) => String(p.currency).toUpperCase() === "USD")
-        .reduce((sum, p) => sum + p.amount, 0);
-      const manualMembershipETB = manualMembershipPayments
-        .filter((p) => String(p.currency).toUpperCase() === "ETB")
-        .reduce((sum, p) => sum + p.amount, 0);
-      const manualMembershipUSD = manualMembershipPayments
-        .filter((p) => String(p.currency).toUpperCase() === "USD")
-        .reduce((sum, p) => sum + p.amount, 0);
-      const donationETB = donations
-        .filter((d) => d.currency === "ETB")
-        .reduce((sum, d) => sum + d.amount, 0);
-      const donationUSD = donations
-        .filter((d) => d.currency === "USD")
-        .reduce((sum, d) => sum + d.amount, 0);
+      const {
+        membershipETB,
+        membershipUSD,
+        manualMembershipETB,
+        manualMembershipUSD,
+        donationETB,
+        donationUSD,
+      } = calculateDashboardRevenue(membershipPayments, donations);
 
       const totalMembersResult = await db.select().from(schema.members);
       const totalMembers = totalMembersResult.length;

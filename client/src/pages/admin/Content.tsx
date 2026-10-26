@@ -212,8 +212,13 @@ export default function AdminContent() {
       queryClient.invalidateQueries({ queryKey: ['/api/posts'] });
       toast({ title: "Post Deleted", description: "The content has been removed successfully." });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete post.",
+        variant: "destructive",
+      });
     },
   });
 

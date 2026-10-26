@@ -46,6 +46,7 @@ import {
 } from "@/lib/api";
 import type { Member } from "@shared/schema";
 import { matchesSearch } from "@shared/search";
+import { serializeMembersCsv } from "@/lib/memberCsv";
 
 type AdminTierRow = {
   id: string;
@@ -163,6 +164,7 @@ export default function AdminMembers() {
 
   const filteredMembers = useMemo(() => {
     return members.filter((m) => {
+      if (!m || typeof m !== "object") return false;
       if (
         membershipStatusFilter !== "all" &&
         m.status !== membershipStatusFilter
@@ -452,26 +454,20 @@ export default function AdminMembers() {
       toast({ title: "Success", description: "Member deleted successfully." });
       fetchMembers();
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to delete member";
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete member",
+        description: message,
       });
     }
   };
 
   const handleExport = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      "ID,Name,Phone,Tier,Status,Joined\n" +
-      members
-        .map(
-          (m) =>
-            `${m.membershipNumber},${m.fullName},${m.phone},${m.tier},${m.status},${new Date(m.joinedDate).toLocaleDateString()}`,
-        )
-        .join("\n");
-
-    const encodedUri = encodeURI(csvContent);
+    const encodedUri = `data:text/csv;charset=utf-8,${encodeURIComponent(
+      serializeMembersCsv(members),
+    )}`;
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
     link.setAttribute("download", "members_export.csv");
