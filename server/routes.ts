@@ -36,6 +36,7 @@ import {
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
 import { socialLinksSettingSchema } from "@shared/socialLinks";
+import { homepageSliderSettingSchema } from "@shared/homepageSlider";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import {
@@ -944,7 +945,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const bodyKey =
       req.body && typeof req.body.key === "string" ? req.body.key : "";
     const key = bodyKey || req.params.key || "";
-    const permission = key === "social.links" ? "social_links" : "settings";
+    const permission =
+      key === "social.links"
+        ? "social_links"
+        : key === "home.slider"
+          ? "content"
+          : "settings";
     return authenticateAdminPermission(permission)(req, res, next);
   };
 
@@ -4239,6 +4245,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({
           error: "Use the protected Resend configuration endpoint.",
         });
+      }
+
+      if (validation.data.key === "home.slider") {
+        const slider = homepageSliderSettingSchema.safeParse(
+          validation.data.value,
+        );
+        if (!slider.success) {
+          return res.status(400).json({
+            error: fromZodError(slider.error).message,
+          });
+        }
+        if (
+          slider.data.some((slide) => !isSafeTopNoticeLink(slide.imageUrl))
+        ) {
+          return res.status(400).json({
+            error: "Use a valid http(s) URL or a site path for every slide image.",
+          });
+        }
+        const setting = await storage.upsertSetting({
+          ...validation.data,
+          value: slider.data,
+          description: "Homepage hero slider content and display order",
+        });
+        return res.json(setting);
       }
 
       if (validation.data.key === TOP_NOTICE_SETTING_KEY) {

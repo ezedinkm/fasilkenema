@@ -2,59 +2,41 @@ import { useApp } from "@/lib/context";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import cityRunImage from "@/assets/banner/city-run.webp";
-import paradeImage from "@/assets/banner/gondar-parade.webp";
-import stadiumImage from "@/assets/banner/stadium-support.webp";
-import fanRunImage from "@/assets/banner/fan-run.webp";
-import teamCastleImage from "@/assets/banner/team-castle.webp";
-import teamArchiveImage from "@/assets/banner/team-archive-2009.webp";
-
-const HERO_IMAGES = [
-  cityRunImage,
-  paradeImage,
-  stadiumImage,
-  fanRunImage,
-  teamCastleImage,
-  teamArchiveImage,
-];
-
-const HERO_CONTENT = [
-  {
-    title: "We Are",
-    highlight: "FASIL S.C",
-    subtitle:
-      "Join the official FASIL S.C fan community and be part of Ethiopian football excellence.",
-  },
-  {
-    title: "Welcome To",
-    highlight: "Our Home",
-    subtitle:
-      "Experience the passion and excitement of Ethiopian football at its finest.",
-  },
-];
+import { getHomepageSlidesFromSettings } from "@/lib/homepageSlides";
 
 export default function Hero() {
   const { t } = useApp();
+  const { data: settings } = useQuery<unknown[]>({
+    queryKey: ["/api/public/settings"],
+  });
+  const slides = useMemo(
+    () => getHomepageSlidesFromSettings(settings),
+    [settings],
+  );
   const [currentSlide, setCurrentSlide] = useState(0);
-  const currentContent = HERO_CONTENT[currentSlide % HERO_CONTENT.length];
+  const activeSlide = slides[currentSlide] ?? slides[0];
 
   useEffect(() => {
-    // Preload banners so slide background switches feel instant.
-    HERO_IMAGES.forEach((image) => {
+    if (currentSlide >= slides.length) setCurrentSlide(0);
+  }, [currentSlide, slides.length]);
+
+  useEffect(() => {
+    slides.forEach((slide) => {
       const img = new Image();
-      img.src = image;
+      img.src = slide.imageUrl;
     });
-  }, []);
+  }, [slides]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
-  
+    if (slides.length < 2 || !activeSlide) return;
+    const timer = window.setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, activeSlide.durationSeconds * 1000);
+    return () => window.clearTimeout(timer);
+  }, [activeSlide, slides.length]);
 
   const goToSlide = (index: number) => {
     setCurrentSlide(index);
@@ -62,24 +44,25 @@ export default function Hero() {
 
   const prevSlide = () => {
     setCurrentSlide(
-      (prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length,
+      (prev) => (prev - 1 + slides.length) % slides.length,
     );
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % HERO_IMAGES.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   return (
     <div className="relative h-[85vh] w-full overflow-hidden bg-black pb-10">
-      {HERO_IMAGES.map((image, index) => (
+      {slides.map((slide, index) => (
         <motion.div
-          key={image}
+          key={slide.id}
           initial={false}
           animate={{ opacity: index === currentSlide ? 0.6 : 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${image})` }}
+          style={{ backgroundImage: `url(${slide.imageUrl})` }}
+          aria-hidden="true"
         />
       ))}
 
@@ -96,15 +79,12 @@ export default function Hero() {
             FASIL S.C sport Club
           </span>
 
-          <h1 className="font-heading text-4xl md:text-6xl lg:text-6xl font-black text-white leading-[0.85] mb-6 uppercase tracking-tighter">
-            {currentContent.title} <br />
-            <span className="text-red-600 drop-shadow-2xl">
-              {currentContent.highlight}
-            </span>
+          <h1 className="font-heading text-4xl md:text-6xl lg:text-6xl font-black text-white leading-[0.95] mb-6 uppercase tracking-tighter drop-shadow-2xl">
+            {activeSlide?.title}
           </h1>
 
           <p className="text-xl md:text-2xl lg:text-3xl text-gray-100 mb-10 max-w-3xl font-light border-l-4 border-red-600 pl-8 leading-relaxed">
-            {currentContent.subtitle}
+            {activeSlide?.description}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -145,9 +125,9 @@ export default function Hero() {
       </button>
 
       <div className="absolute bottom-28 left-1/2 -translate-x-1/2 flex gap-3 z-10">
-        {HERO_IMAGES.map((_, index) => (
+        {slides.map((slide, index) => (
           <button
-            key={index}
+            key={slide.id}
             onClick={() => goToSlide(index)}
             className={`w-3 h-3 rounded-full transition-all ${
               index === currentSlide

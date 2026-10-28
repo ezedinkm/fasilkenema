@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select';
 import type { Page, Post, PostCategory } from '@shared/schema';
 import ManagedPageSections from './ManagedPageSections';
+import HomeSliderManager from '@/components/admin/HomeSliderManager';
 
 type EditableBlogSection = BlogContentSection & { editorId: string };
 
@@ -1045,6 +1046,7 @@ export default function AdminContent() {
         <Tabs defaultValue="news" className="w-full min-w-0">
           <TabsList className="mb-4 flex h-auto w-full max-w-full flex-nowrap justify-start gap-1 overflow-x-auto p-1 sm:flex-wrap sm:overflow-visible">
             <TabsTrigger value="news">News & Blog</TabsTrigger>
+            <TabsTrigger value="home-slider">Homepage Slider</TabsTrigger>
             <TabsTrigger value="pages">Static Pages</TabsTrigger>
             <TabsTrigger value="managed-pages">Stadium &amp; Gondar</TabsTrigger>
             <TabsTrigger value="translations">Translations</TabsTrigger>
@@ -1109,6 +1111,10 @@ export default function AdminContent() {
                 </Card>
               ))
             )}
+          </TabsContent>
+
+          <TabsContent value="home-slider" className="space-y-4">
+            <HomeSliderManager />
           </TabsContent>
 
           <TabsContent value="pages" className="space-y-4">
