@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MEMBERSHIP_TIERS } from "@/lib/mockData";
 import { getSettingByKey } from "@/lib/api";
 import { Camera, Upload } from "lucide-react";
+import { isAllowedJpgPngAttachment } from "@shared/attachmentImagePolicy";
 
 interface MembershipTier {
   id: string;
@@ -45,12 +46,22 @@ export default function MembershipRegister() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!isAllowedJpgPngAttachment(file)) {
+        toast({
+          title: "Unsupported image format",
+          description: "Upload a JPG, JPEG, or PNG file.",
+          variant: "destructive",
+        });
+        e.target.value = "";
+        return;
+      }
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File too large",
           description: "Please select an image under 5MB",
           variant: "destructive",
         });
+        e.target.value = "";
         return;
       }
       setPhotoFile(file);
@@ -373,7 +384,7 @@ export default function MembershipRegister() {
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept="image/*"
+                           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                           onChange={handlePhotoChange}
                           className="hidden"
                           data-testid="input-photo"
@@ -390,8 +401,8 @@ export default function MembershipRegister() {
                           {photoFile ? "Change Photo" : "Upload Photo"}
                         </Button>
                         <p className="text-xs text-muted-foreground">
-                          This photo will appear on your digital membership
-                          card. Max 5MB.
+                          JPG, JPEG, or PNG only. Max 5MB. This photo will
+                          appear on your digital membership card.
                         </p>
                       </div>
                     </div>

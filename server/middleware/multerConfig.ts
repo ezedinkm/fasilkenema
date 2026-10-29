@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import multer from "multer";
+import { isAllowedJpgPngAttachment } from "@shared/attachmentImagePolicy";
 
 const root = process.cwd();
 
@@ -53,6 +54,24 @@ export const upload = multer({
   storage: generalStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: imageFileFilter,
+});
+
+/** Public membership profile photo uploads accept only JPG/JPEG and PNG. */
+export const membershipPhotoUpload = multer({
+  storage: generalStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    if (
+      isAllowedJpgPngAttachment({
+        name: file.originalname,
+        type: file.mimetype,
+      })
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error("Only JPG/JPEG and PNG files are allowed."));
+    }
+  },
 });
 
 /** Multipart image upload for admin team players (optional; JSON + base64 also supported). */

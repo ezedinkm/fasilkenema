@@ -1,5 +1,6 @@
 import type { Express, Request, RequestHandler } from "express";
 import { createServer, type Server } from "http";
+import { readFile, unlink } from "node:fs/promises";
 import { storage } from "./storage";
 import { db } from "./db";
 import bcrypt from "bcryptjs";
@@ -54,7 +55,12 @@ import {
   JWT_SECRET,
   authenticateAdminPermission,
 } from "./middleware/authMiddleware";
-import { upload, uploadsDir } from "./middleware/multerConfig";
+import {
+  membershipPhotoUpload,
+  upload,
+  uploadsDir,
+} from "./middleware/multerConfig";
+import { hasJpegOrPngSignature } from "@shared/attachmentImagePolicy";
 import { loadPersistentImage } from "./persistentMedia";
 import { registerTeamAdminRoutes } from "./teamAdminRoutes";
 import { registerAdminRoutes } from "./adminroute";
@@ -1036,16 +1042,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upload", upload.single("photo"), (req, res) => {
-    try {
+  app.post("/api/upload", (req, res) => {
+    membershipPhotoUpload.single("photo")(req, res, async (uploadError) => {
+      if (uploadError) {
+        return res.status(400).json({
+          error:
+            uploadError instanceof Error
+              ? uploadError.message
+              : "Only JPG/JPEG and PNG files are allowed.",
+        });
+      }
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
-      const photoUrl = `/uploads/${req.file.filename}`;
-      res.json({ photoUrl });
-    } catch (error) {
-      res.status(500).json({ error: "Upload failed" });
-    }
+
+      try {
+        const fileBytes = await readFile(req.file.path);
+        if (!hasJpegOrPngSignature(fileBytes, req.file.mimetype)) {
+          await unlink(req.file.path).catch(() => undefined);
+          return res.status(400).json({
+            error: "The uploaded file is not a valid JPG/JPEG or PNG image.",
+          });
+        }
+
+        const photoUrl = `/uploads/${req.file.filename}`;
+        return res.json({ photoUrl });
+      } catch {
+        await unlink(req.file.path).catch(() => undefined);
+        return res.status(500).json({ error: "Upload failed" });
+      }
+    });
   });
 
   app.get("/api/membership-tiers", async (_req, res) => {
