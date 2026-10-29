@@ -326,6 +326,14 @@ export default function Footer() {
             <br className="md:hidden" />
             <span className="text-slate-300">Built with passion for Ethiopian football</span>
           </p>
+          <a
+            href="https://tinamart.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-xs text-slate-400 transition-colors hover:text-red-600"
+          >
+            Powered by Tina Mart
+          </a>
         </motion.div>
       </div>
     </footer>
