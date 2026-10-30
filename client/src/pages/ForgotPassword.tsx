@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
-import { Phone, ArrowLeft, CheckCircle, KeyRound, Lock } from "lucide-react";
+import { Phone, Mail, ArrowLeft, CheckCircle, KeyRound, Lock } from "lucide-react";
 import {
   isValidEthiopianMobile,
   normalizeEthiopianMobileLocal,
@@ -57,6 +57,7 @@ function isOtpSentPayload(result: ParsedApiBody): boolean {
 export default function ForgotPassword() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [contactMethod, setContactMethod] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -98,18 +99,32 @@ export default function ForgotPassword() {
 
     if (!phone.trim()) {
       toast({
-        title: "Missing Phone",
-        description: "Please enter your phone number",
+        title: `Missing ${contactMethod === "phone" ? "phone number" : "email"}`,
+        description: `Please enter your ${contactMethod === "phone" ? "phone number" : "email address"}.`,
         variant: "destructive",
       });
       return;
     }
 
-    if (!isValidEthiopianMobile(phone)) {
+    if (
+      contactMethod === "phone" &&
+      !isValidEthiopianMobile(phone)
+    ) {
       toast({
         title: "Invalid phone number",
         description:
           "Use an Ethiopian mobile number: 09xxxxxxxx or 07xxxxxxxx (or +251…).",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      contactMethod === "email" &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(phone.trim())
+    ) {
+      toast({
+        title: "Invalid email address",
+        description: "Enter the email address used for your membership.",
         variant: "destructive",
       });
       return;
@@ -117,13 +132,15 @@ export default function ForgotPassword() {
 
     setIsLoading(true);
 
-    const phoneKey = normalizeEthiopianMobileLocal(phone.trim());
-    if (!phoneKey) {
+    const contactIdentifier =
+      contactMethod === "phone"
+        ? normalizeEthiopianMobileLocal(phone.trim())
+        : phone.trim().toLowerCase();
+    if (!contactIdentifier) {
       setIsLoading(false);
       toast({
-        title: "Invalid phone number",
-        description:
-          "Use an Ethiopian mobile number: 09xxxxxxxx or 07xxxxxxxx (or +251…).",
+        title: `Invalid ${contactMethod === "phone" ? "phone number" : "email address"}`,
+        description: "Check the contact information and try again.",
         variant: "destructive",
       });
       return;
@@ -133,7 +150,8 @@ export default function ForgotPassword() {
       const { response, result, rawText, looksLikeHtml } = await postJson(
         "/api/member/forgot-password",
         {
-          phone: phoneKey,
+          method: contactMethod,
+          identifier: contactIdentifier,
         },
       );
 
@@ -156,7 +174,7 @@ export default function ForgotPassword() {
           title: "Code sent",
           description:
             (typeof result.message === "string" && result.message) ||
-            "Enter the verification code from your SMS below.",
+            `Enter the verification code sent to your ${contactMethod}.`,
         });
         return;
       }
@@ -172,7 +190,7 @@ export default function ForgotPassword() {
                 : "We could not complete that request. Please try again.";
         const title =
           response.status === 502
-            ? "Could not send SMS"
+            ? `Could not send ${contactMethod === "phone" ? "SMS" : "email"}`
             : response.status === 400
               ? "Invalid request"
               : "Something went wrong";
@@ -184,7 +202,7 @@ export default function ForgotPassword() {
         title: "No code sent",
         description:
           (typeof result.message === "string" && result.message) ||
-          "This number is not registered as a member, so no SMS was sent. Use the number you signed up with or contact the club office.",
+          `If an account matches, a code will be sent to your ${contactMethod}.`,
       });
     } catch {
       toast({
@@ -204,7 +222,7 @@ export default function ForgotPassword() {
     if (!code) {
       toast({
         title: "Missing code",
-        description: "Enter the verification code from your SMS.",
+        description: `Enter the verification code from your ${contactMethod}.`,
         variant: "destructive",
       });
       return;
@@ -213,17 +231,20 @@ export default function ForgotPassword() {
     if (!/^\d{6}$/.test(code)) {
       toast({
         title: "Invalid code",
-        description: "Enter the 6-digit code sent by SMS.",
+      description: `Enter the 6-digit code sent to your ${contactMethod}.`,
         variant: "destructive",
       });
       return;
     }
 
-    const phoneKey = normalizeEthiopianMobileLocal(phone.trim());
-    if (!phoneKey) {
+    const contactIdentifier =
+      contactMethod === "phone"
+        ? normalizeEthiopianMobileLocal(phone.trim())
+        : phone.trim().toLowerCase();
+    if (!contactIdentifier) {
       toast({
-        title: "Invalid phone number",
-        description: "Go back and enter your phone number again.",
+        title: "Invalid contact",
+        description: `Go back and enter your ${contactMethod} again.`,
         variant: "destructive",
       });
       setStep("phone");
@@ -236,7 +257,8 @@ export default function ForgotPassword() {
       const { response, result, looksLikeHtml } = await postJson(
         "/api/member/forgot-password/verify-otp",
         {
-          phone: phoneKey,
+          method: contactMethod,
+          identifier: contactIdentifier,
           otp: code,
         },
       );
@@ -258,7 +280,7 @@ export default function ForgotPassword() {
           description:
             typeof result.error === "string"
               ? result.error
-              : "The code is wrong or expired. Use Resend to get a new SMS code.",
+              : "The code is wrong or expired. Request a new verification code.",
           variant: "destructive",
         });
         return;
@@ -327,11 +349,14 @@ export default function ForgotPassword() {
       return;
     }
 
-    const phoneKey = normalizeEthiopianMobileLocal(phone.trim());
-    if (!phoneKey) {
+    const contactIdentifier =
+      contactMethod === "phone"
+        ? normalizeEthiopianMobileLocal(phone.trim())
+        : phone.trim().toLowerCase();
+    if (!contactIdentifier) {
       toast({
-        title: "Invalid phone number",
-        description: "Start over from the phone step.",
+        title: "Invalid contact",
+        description: `Start over from the ${contactMethod} step.`,
         variant: "destructive",
       });
       setStep("phone");
@@ -344,7 +369,8 @@ export default function ForgotPassword() {
       const { response, result, looksLikeHtml } = await postJson(
         "/api/member/reset-password",
         {
-          phone: phoneKey,
+          method: contactMethod,
+          identifier: contactIdentifier,
           otp: code,
           newPassword,
         },
@@ -385,7 +411,7 @@ export default function ForgotPassword() {
         description:
           typeof result.message === "string"
             ? result.message
-            : "You can sign in with your new password. You may receive a short confirmation SMS shortly.",
+            : "You can sign in with your new password.",
       });
       setStep("done");
     } catch {
@@ -401,9 +427,9 @@ export default function ForgotPassword() {
 
   const stepSubtitle =
     step === "phone"
-      ? "Enter your phone number to receive a verification code"
+      ? `Enter your ${contactMethod === "phone" ? "phone number" : "email address"} to receive a verification code`
       : step === "otp"
-        ? "Enter the verification code sent to your phone"
+        ? `Enter the verification code sent to your ${contactMethod}`
         : step === "password"
           ? "Choose a new password for your account"
           : "Your password has been reset";
@@ -417,11 +443,14 @@ export default function ForgotPassword() {
           ? "Enter verification code"
           : "Set new password";
 
-  const phoneTail = phone.replace(/\D/g, "").slice(-4);
-  const phoneHint =
-    phoneTail.length >= 2
-      ? `Code sent to your number ending in ····${phoneTail}`
-      : null;
+  const contactHint =
+    contactMethod === "phone"
+      ? phone.replace(/\D/g, "").slice(-4).length >= 2
+        ? `Code sent to your number ending in ····${phone.replace(/\D/g, "").slice(-4)}`
+        : null
+      : phone.includes("@")
+        ? `Code sent to ${phone.trim().replace(/^(.).+(@.+)$/, "$1••••$2")}`
+        : null;
 
   return (
     <PublicLayout>
@@ -437,12 +466,12 @@ export default function ForgotPassword() {
               {cardTitle}
             </CardTitle>
             <p className="text-muted-foreground mt-2">{stepSubtitle}</p>
-            {step === "otp" && phoneHint ? (
+            {step === "otp" && contactHint ? (
               <p
                 className="text-sm font-medium text-foreground mt-3"
                 data-testid="text-otp-sent-hint"
               >
-                {phoneHint}
+                {contactHint}
               </p>
             ) : null}
           </CardHeader>
@@ -460,8 +489,7 @@ export default function ForgotPassword() {
                 </h3>
                 <p className="text-muted-foreground text-sm">
                   Your password has been updated. You can sign in with your new
-                  password. If SMS is enabled, you may get a short confirmation
-                  text on your phone.
+                  password. A confirmation was sent to your {contactMethod}.
                 </p>
                 <div className="pt-4">
                   <Button
@@ -476,19 +504,47 @@ export default function ForgotPassword() {
             ) : step === "phone" ? (
               <>
                 <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      ስልክ ቁጥር / Phone Number
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium block">
+                      Recover using
+                    </label>
+                    <select
+                      value={contactMethod}
+                      onChange={(e) => {
+                        setContactMethod(e.target.value as "phone" | "email");
+                        setPhone("");
+                      }}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      data-testid="select-reset-method"
+                    >
+                      <option value="phone">Phone number</option>
+                      <option value="email">Email address</option>
+                    </select>
+                    <label className="text-sm font-medium block">
+                      {contactMethod === "phone"
+                        ? "ስልክ ቁጥር / Phone Number"
+                        : "Email address"}
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      {contactMethod === "phone" ? (
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      )}
                       <Input
-                        type="tel"
-                        placeholder="09xxxxxxxx"
+                        type={contactMethod === "phone" ? "tel" : "email"}
+                        autoComplete={
+                          contactMethod === "phone" ? "tel" : "email"
+                        }
+                        placeholder={
+                          contactMethod === "phone"
+                            ? "09xxxxxxxx"
+                            : "you@example.com"
+                        }
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         className="pl-10"
-                        data-testid="input-reset-phone"
+                        data-testid="input-reset-contact"
                       />
                     </div>
                   </div>
@@ -523,7 +579,9 @@ export default function ForgotPassword() {
                       className="text-sm font-medium block"
                       htmlFor="forgot-password-otp"
                     >
-                      SMS verification code
+                      {contactMethod === "phone"
+                        ? "SMS verification code"
+                        : "Email verification code"}
                     </label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -565,7 +623,7 @@ export default function ForgotPassword() {
                     disabled={isLoading}
                     data-testid="button-resend-otp"
                   >
-                    Resend SMS code
+                    Resend {contactMethod === "phone" ? "SMS" : "email"} code
                   </Button>
                 </form>
 
@@ -588,7 +646,7 @@ export default function ForgotPassword() {
                 >
                   <p className="text-sm text-muted-foreground">
                     Enter your new password twice. Fields are cleared after you
-                    verify the SMS code.
+                    verify the {contactMethod} code.
                   </p>
                   <div>
                     <label

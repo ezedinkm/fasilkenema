@@ -30,7 +30,12 @@ export default function MembershipRegister() {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [contactMethod, setContactMethod] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [contactVerified, setContactVerified] = useState(false);
   const [rank, setRank] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
@@ -112,10 +117,11 @@ export default function MembershipRegister() {
   }, [setLocation]);
 
   const handleSubmit = async () => {
+    const identifier = contactMethod === "phone" ? phone.trim() : email.trim();
     if (
       !firstName ||
       !lastName ||
-      !phone ||
+      !identifier ||
       !dateOfBirth ||
       !city ||
       !country ||
@@ -129,11 +135,23 @@ export default function MembershipRegister() {
       return;
     }
 
-    if (!isValidEthiopianMobile(phone)) {
+    if (contactMethod === "phone" && !isValidEthiopianMobile(phone)) {
       toast({
         title: "Invalid phone number",
         description:
           "Use an Ethiopian mobile number: 09xxxxxxxx or 07xxxxxxxx (or +251 9x / 7x with country code).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      contactMethod === "email" &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+    ) {
+      toast({
+        title: "Invalid email address",
+        description: "Enter a valid email address.",
         variant: "destructive",
       });
       return;
@@ -169,6 +187,55 @@ export default function MembershipRegister() {
     setIsSubmitting(true);
 
     try {
+      if (!verificationSent) {
+        const response = await fetch("/api/member/registration/send-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method: contactMethod, identifier }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || "Could not send the verification code.");
+        }
+        setVerificationSent(true);
+        setVerificationCode("");
+        toast({
+          title: "Verification code sent",
+          description: `Check your ${contactMethod} for the six-digit code.`,
+        });
+        return;
+      }
+
+      if (!contactVerified) {
+        if (!/^\d{6}$/.test(verificationCode.trim())) {
+          toast({
+            title: "Enter the verification code",
+            description: "The code must contain six digits.",
+            variant: "destructive",
+          });
+          return;
+        }
+        const response = await fetch("/api/member/registration/verify-code", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            method: contactMethod,
+            identifier,
+            code: verificationCode.trim(),
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.error || "Could not verify your contact.");
+        }
+        setContactVerified(true);
+        toast({
+          title: "Contact verified",
+          description: "Continue to payment to finish membership signup.",
+        });
+        return;
+      }
+
       let photoUrl = null;
 
       if (photoFile) {
@@ -196,7 +263,12 @@ export default function MembershipRegister() {
         currency: currency.toUpperCase(),
         firstName,
         lastName,
-        phone: normalizeEthiopianMobileLocal(phone)!,
+        method: contactMethod,
+        phone:
+          contactMethod === "phone"
+            ? normalizeEthiopianMobileLocal(phone)!
+            : null,
+        email: contactMethod === "email" ? email.trim().toLowerCase() : null,
         password,
         // rank,
         gender,
@@ -220,6 +292,10 @@ export default function MembershipRegister() {
       const result = await response.json().catch(() => ({}));
 
       if (result.error) {
+        if (result.error.includes("Verify your phone or email")) {
+          setVerificationSent(false);
+          setContactVerified(false);
+        }
         toast({
           title: response.status === 409 ? "Already a member" : "Error",
           description: result.error,
@@ -239,7 +315,10 @@ export default function MembershipRegister() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to process registration. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to process registration. Please try again.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -317,25 +396,66 @@ export default function MembershipRegister() {
                       data-testid="input-last-name"
                     />
                   </div>
-                  <div>
-                    <Input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="09xxxxxxxx or +251 9x xxx xxxx *"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      onBlur={() => {
-                        const n = normalizeEthiopianMobileLocal(phone);
-                        if (n) setPhone(n);
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium block">
+                      Sign up using
+                    </label>
+                    <select
+                      value={contactMethod}
+                      onChange={(e) => {
+                        setContactMethod(e.target.value as "phone" | "email");
+                        setVerificationSent(false);
+                        setContactVerified(false);
+                        setVerificationCode("");
                       }}
-                      data-testid="input-phone"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1.5">
-                      Ethiopian mobile (09 or 07). Same number is used for login
-                      and is sent to Chapa in the correct format for checkout.
-                      Edit here before paying if needed.
-                    </p>
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      data-testid="select-contact-method"
+                    >
+                      <option value="phone">Phone number</option>
+                      <option value="email">Email address</option>
+                    </select>
+                    {contactMethod === "phone" ? (
+                      <>
+                        <Input
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          placeholder="09xxxxxxxx or +251 9x xxx xxxx *"
+                          value={phone}
+                          onChange={(e) => {
+                            setPhone(e.target.value);
+                            setVerificationSent(false);
+                            setContactVerified(false);
+                          }}
+                          onBlur={() => {
+                            const n = normalizeEthiopianMobileLocal(phone);
+                            if (n) setPhone(n);
+                          }}
+                          data-testid="input-phone"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          This number will be verified and used to sign in.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <Input
+                          type="email"
+                          autoComplete="email"
+                          placeholder="Email address *"
+                          value={email}
+                          onChange={(e) => {
+                            setEmail(e.target.value);
+                            setVerificationSent(false);
+                            setContactVerified(false);
+                          }}
+                          data-testid="input-email"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1.5">
+                          This email will be verified and used to sign in.
+                        </p>
+                      </>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -453,9 +573,33 @@ export default function MembershipRegister() {
                   registration.
                 </p>
                 <div className="space-y-4">
+                  {verificationSent && (
+                    <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Enter the six-digit code sent to your {contactMethod}.
+                      </p>
+                      <Input
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        placeholder="Verification code"
+                        value={verificationCode}
+                        onChange={(e) =>
+                          setVerificationCode(e.target.value.replace(/\D/g, ""))
+                        }
+                        data-testid="input-registration-code"
+                      />
+                      {contactVerified && (
+                        <p className="text-sm font-medium text-green-700">
+                          Contact verified.
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <Input
                     placeholder="Password *"
                     type="password"
+                    autoComplete="new-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     data-testid="input-password"
@@ -463,13 +607,14 @@ export default function MembershipRegister() {
                   <Input
                     placeholder="Confirm Password *"
                     type="password"
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     data-testid="input-confirm-password"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Password must be at least 6 characters. You will login with
-                    your phone number.
+                    Password must be at least 6 characters. You will sign in
+                    with your selected {contactMethod}.
                   </p>
                 </div>
               </div>
@@ -483,7 +628,11 @@ export default function MembershipRegister() {
                 >
                   {isSubmitting
                     ? "Processing..."
-                    : `Proceed to Payment - ${price}`}
+                    : !verificationSent
+                      ? "Send Verification Code"
+                      : !contactVerified
+                        ? "Verify Contact"
+                        : `Proceed to Payment - ${price}`}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-4">
                   You will be redirected to secure Chapa payment gateway

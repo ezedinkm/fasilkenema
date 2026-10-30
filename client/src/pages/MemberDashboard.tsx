@@ -16,7 +16,7 @@ interface MemberData {
   id: number;
   membershipNumber: string;
   fullName: string;
-  phone: string;
+  phone: string | null;
   rank: string | null;
   gender: string | null;
   address: string | null;

@@ -17,7 +17,7 @@ interface MemberData {
   gender: string | null;
   address: string | null;
   division: string | null;
-  phone: string;
+  phone: string | null;
   tier: string;
   photoUrl: string | null;
   joinedDate: string;
@@ -280,7 +280,7 @@ export default function DigitalCard() {
                     <span className="text-yellow-300 text-[10px]">★</span>
                     <p className="text-[10px] text-white drop-shadow-sm">
                       <span className="text-white/70">ስልክ / Phone:</span>{" "}
-                      <span className="font-semibold">{member.phone}</span>
+                      <span className="font-semibold">{member.phone || "—"}</span>
                     </p>
                   </div>
                   <div className="mt-2 text-left text-[10px] font-extrabold leading-tight text-white drop-shadow-md">

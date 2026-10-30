@@ -68,7 +68,7 @@ interface MemberData {
   id: number;
   membershipNumber: string;
   fullName: string;
-  phone: string;
+  phone: string | null;
   rank: string | null;
   gender: string | null;
   address: string | null;
@@ -776,7 +776,7 @@ export default function MemberDashboard() {
                         <div>
                           <p className="text-red-600 text-[8px] sm:text-[10px]">ስልክ / Phone</p>
                           <p className="text-[11px] sm:text-sm leading-tight">
-                            {member.phone}
+                            {member.phone || "—"}
                           </p>
                         </div>
                         <div className="mt-2.5 text-left font-extrabold leading-tight text-white drop-shadow-md">

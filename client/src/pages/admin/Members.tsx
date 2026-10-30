@@ -302,7 +302,7 @@ export default function AdminMembers() {
         : "";
     setFormData({
       fullName: member.fullName,
-      phone: member.phone,
+      phone: member.phone ?? "",
       email: member.email ?? "",
       password: "",
       dateOfBirth: member.dateOfBirth,

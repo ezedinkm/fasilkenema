@@ -6,11 +6,12 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Phone } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 
 export default function MemberLogin() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [contactMethod, setContactMethod] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -21,7 +22,7 @@ export default function MemberLogin() {
     if (!phone || !password) {
       toast({
         title: "Missing Information",
-        description: "Please enter your phone number and password",
+        description: `Please enter your ${contactMethod === "phone" ? "phone number" : "email address"} and password`,
         variant: "destructive",
       });
       return;
@@ -35,7 +36,12 @@ export default function MemberLogin() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ phone, password }),
+          body: JSON.stringify({
+            method: contactMethod,
+            identifier:
+              contactMethod === "phone" ? phone : phone.trim().toLowerCase(),
+            password,
+          }),
       });
 
       const result = await response.json();
@@ -96,17 +102,40 @@ export default function MemberLogin() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  ስልክ ቁጥር / Phone Number
+                  Sign in using
+                </label>
+                <select
+                  value={contactMethod}
+                  onChange={(e) =>
+                    setContactMethod(e.target.value as "phone" | "email")
+                  }
+                  className="mb-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  data-testid="select-login-method"
+                >
+                  <option value="phone">Phone number</option>
+                  <option value="email">Email address</option>
+                </select>
+                <label className="text-sm font-medium mb-2 block">
+                  {contactMethod === "phone"
+                    ? "ስልክ ቁጥር / Phone Number"
+                    : "Email address"}
                 </label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  {contactMethod === "phone" ? (
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  )}
                   <Input
-                    type="tel"
-                    placeholder="09xxxxxxxx"
+                    type={contactMethod === "phone" ? "tel" : "email"}
+                    autoComplete={contactMethod === "phone" ? "tel" : "email"}
+                    placeholder={
+                      contactMethod === "phone" ? "09xxxxxxxx" : "you@example.com"
+                    }
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="pl-10"
-                    data-testid="input-phone"
+                    data-testid="input-login-identifier"
                   />
                 </div>
               </div>
@@ -116,6 +145,7 @@ export default function MemberLogin() {
                 </label>
                 <Input
                   type="password"
+                  autoComplete="current-password"
                   placeholder="Enter password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

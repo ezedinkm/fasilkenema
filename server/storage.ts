@@ -1,4 +1,4 @@
-import { eq, desc, and, gte, lte, count } from "drizzle-orm";
+import { eq, desc, and, gte, gt, lte, count, sql } from "drizzle-orm";
 import { db } from "./db";
 import * as schema from "@shared/schema";
 import {
@@ -153,6 +153,12 @@ export interface IStorage {
   ): Promise<OtpVerification | undefined>;
   markOtpVerified(id: number): Promise<void>;
   deleteOtpsForPhoneAndPurpose(phone: string, purpose: string): Promise<void>;
+  hasRecentOtp(
+    phone: string,
+    purpose: string,
+    since: Date,
+  ): Promise<boolean>;
+  consumeVerifiedOtp(phone: string, purpose: string): Promise<boolean>;
   deleteExpiredOtps(): Promise<void>;
 }
 
@@ -199,7 +205,8 @@ export class DbStorage implements IStorage {
     const result = await db
       .select()
       .from(schema.members)
-      .where(eq(schema.members.email, email));
+      .where(sql`lower(${schema.members.email}) = ${email.trim().toLowerCase()}`)
+      .limit(1);
     return result[0];
   }
 
@@ -764,6 +771,40 @@ export class DbStorage implements IStorage {
           eq(schema.otpVerifications.purpose, purpose),
         ),
       );
+  }
+
+  async hasRecentOtp(
+    phone: string,
+    purpose: string,
+    since: Date,
+  ): Promise<boolean> {
+    const result = await db
+      .select({ id: schema.otpVerifications.id })
+      .from(schema.otpVerifications)
+      .where(
+        and(
+          eq(schema.otpVerifications.phone, phone),
+          eq(schema.otpVerifications.purpose, purpose),
+          gt(schema.otpVerifications.createdAt, since),
+        ),
+      )
+      .limit(1);
+    return result.length > 0;
+  }
+
+  async consumeVerifiedOtp(phone: string, purpose: string): Promise<boolean> {
+    const result = await db
+      .delete(schema.otpVerifications)
+      .where(
+        and(
+          eq(schema.otpVerifications.phone, phone),
+          eq(schema.otpVerifications.purpose, purpose),
+          eq(schema.otpVerifications.verified, true),
+          gt(schema.otpVerifications.expiresAt, new Date()),
+        ),
+      )
+      .returning({ id: schema.otpVerifications.id });
+    return result.length > 0;
   }
 
   async deleteExpiredOtps(): Promise<void> {

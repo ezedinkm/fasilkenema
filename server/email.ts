@@ -133,7 +133,10 @@ export async function sendEmail(
     const toAddresses = Array.isArray(to) ? to : [to];
     const config = await getResendEmailConfig();
 
-    console.log("Sending email via Resend:", { to: toAddresses, subject });
+    console.log("Sending email via Resend:", {
+      recipientCount: toAddresses.length,
+      subject,
+    });
 
     const result = await resendRequest("/emails", {
       from: formatFromAddress(config),

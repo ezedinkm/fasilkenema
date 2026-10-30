@@ -148,7 +148,7 @@ export const members = pgTable("members", {
   membershipNumber: text("membership_number").notNull().unique(),
   fullName: text("full_name").notNull(),
   email: text("email"),
-  phone: text("phone").notNull().unique(),
+  phone: text("phone").unique(),
   password: text("password"),
   idNumber: text("id_number"),
   rank: text("rank"),
@@ -164,7 +164,11 @@ export const members = pgTable("members", {
   joinedDate: timestamp("joined_date").defaultNow().notNull(),
   expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("members_email_lower_unique")
+    .on(sql`lower(${table.email})`)
+    .where(sql`${table.email} IS NOT NULL`),
+]);
 
 export const insertMemberSchema = createInsertSchema(members).omit({
   id: true,
@@ -591,7 +595,7 @@ export const pendingMemberApplications = pgTable(
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     email: text("email"),
-    phone: text("phone").notNull(),
+    phone: text("phone"),
     password: text("password"),
     idNumber: text("id_number"),
     rank: text("rank"),

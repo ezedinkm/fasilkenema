@@ -71,6 +71,7 @@ import { recordAdminAuditEvent } from "./adminAudit";
 import { isAdminRole } from "@shared/adminAccess";
 import {
   getResendEmailConfig,
+  sendEmail,
   sendResendTestEmail,
   sendAdminPasswordResetEmail,
 } from "./email";
@@ -93,6 +94,31 @@ function generateMembershipNumber(): string {
 
 /** Must match `deliverOtpSms` / `/api/otp/send` body `purpose` (delivery uses `deliverOtpSmsWithRetry`). */
 type OtpPurpose = "registration" | "password_reset";
+type MemberContactMethod = "phone" | "email";
+
+function normalizeMemberContact(
+  method: unknown,
+  value: unknown,
+): { method: MemberContactMethod; identifier: string } | null {
+  if (method === "phone") {
+    const identifier = normalizeEthiopianMobileLocal(String(value ?? "").trim());
+    return identifier ? { method, identifier } : null;
+  }
+  if (method === "email") {
+    const identifier = String(value ?? "").trim().toLowerCase();
+    return z.string().email().safeParse(identifier).success
+      ? { method, identifier }
+      : null;
+  }
+  return null;
+}
+
+function memberOtpPurpose(
+  method: MemberContactMethod,
+  action: "registration" | "password_reset",
+): string {
+  return method === "phone" ? action : `${action}_email`;
+}
 
 const topNoticeSettingSchema = z.object({
   enabled: z.boolean(),
@@ -811,7 +837,7 @@ async function finalizeChapaReturnMembership(
   const memberData = {
     membershipNumber,
     fullName: `${application.firstName} ${application.lastName}`,
-    email: null,
+    email: application.email,
     phone: application.phone,
     password: application.password || null,
     idNumber,
@@ -839,14 +865,18 @@ async function finalizeChapaReturnMembership(
     });
     await storage.deletePendingMemberApplication(txRef);
     sendPaymentNotifications("membership", payment.amount, payment.currency);
-    void sendMembershipWelcomeSms(
-      member.phone,
-      member.fullName,
-      member.membershipNumber,
-    ).catch((err) => console.error("Membership welcome SMS:", err));
+    if (member.phone) {
+      void sendMembershipWelcomeSms(
+        member.phone,
+        member.fullName,
+        member.membershipNumber,
+      ).catch((err) => console.error("Membership welcome SMS:", err));
+    }
     return "success";
   } catch (e) {
-    const existingMember = await storage.getMemberByPhone(application.phone);
+    const existingMember = application.phone
+      ? await storage.getMemberByPhone(application.phone)
+      : undefined;
     if (existingMember) {
       await createMembershipTransactionIfMissing({
         memberId: existingMember.id,
@@ -937,12 +967,14 @@ async function finalizeChapaReturnRenewal(
   });
 
   sendPaymentNotifications("membership", payment.amount, payment.currency);
-  queueMemberRenewalThankYouSms(
-    member.phone,
-    payment.amount,
-    payment.currency,
-    renewalExpiryDate,
-  );
+  if (member.phone) {
+    queueMemberRenewalThankYouSms(
+      member.phone,
+      payment.amount,
+      payment.currency,
+      renewalExpiryDate,
+    );
+  }
   return "success";
 }
 
@@ -1463,17 +1495,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/member/login", async (req, res) => {
+  app.post("/api/member/registration/send-code", async (req, res) => {
     try {
-      const { phone, password } = req.body;
-
-      if (!phone || !password) {
-        return res
-          .status(400)
-          .json({ error: "Phone number and password are required" });
+      const contact = normalizeMemberContact(req.body?.method, req.body?.identifier);
+      if (!contact) {
+        return res.status(400).json({
+          error:
+            "Choose phone or email and enter a valid contact address.",
+        });
       }
 
-      const member = await storage.getMemberByPhone(phone);
+      const existing =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
+      if (existing) {
+        return res.status(409).json({
+          error: "An account already uses this contact. Please sign in instead.",
+        });
+      }
+
+      const purpose = memberOtpPurpose(contact.method, "registration");
+      if (
+        await storage.hasRecentOtp(
+          contact.identifier,
+          purpose,
+          new Date(Date.now() - 60_000),
+        )
+      ) {
+        return res.status(429).json({
+          error: "Please wait one minute before requesting another code.",
+        });
+      }
+
+      const code = String(crypto.randomInt(100000, 1000000));
+      const expiresAt = new Date(Date.now() + 5 * 60_000);
+      await storage.createOtp(contact.identifier, code, purpose, expiresAt);
+
+      const delivery =
+        contact.method === "phone"
+          ? await deliverOtpSmsWithRetry(contact.identifier, code, "registration")
+          : await sendEmail(
+              contact.identifier,
+              "Verify your Fasil Kenema membership",
+              `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1f2937"><h2>Verify your email</h2><p>Enter this verification code to continue your membership registration:</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>This code expires in 5 minutes. If you did not request it, you can ignore this email.</p></div>`,
+            );
+
+      if (!delivery.success) {
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
+        return res.status(502).json({
+          error:
+            delivery.error ||
+            `Could not send a verification code to your ${contact.method}.`,
+        });
+      }
+
+      return res.json({
+        success: true,
+        sent: true,
+        message: `A verification code was sent to your ${contact.method}.`,
+      });
+    } catch (error) {
+      console.error("Member registration code send failed:", error);
+      return res.status(500).json({
+        error: "Could not send the verification code. Please try again.",
+      });
+    }
+  });
+
+  app.post("/api/member/registration/verify-code", async (req, res) => {
+    try {
+      const contact = normalizeMemberContact(req.body?.method, req.body?.identifier);
+      const code = String(req.body?.code ?? "").trim();
+      if (!contact || !/^\d{6}$/.test(code)) {
+        return res.status(400).json({
+          error: "Enter a valid phone or email and the six-digit code.",
+        });
+      }
+
+      const purpose = memberOtpPurpose(contact.method, "registration");
+      const otp = await storage.getValidOtp(contact.identifier, code, purpose);
+      if (!otp) {
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
+        return res.status(400).json({
+          error: "The code is incorrect or expired. Request a new code.",
+        });
+      }
+
+      await storage.markOtpVerified(otp.id);
+      return res.json({ success: true, message: "Contact verified." });
+    } catch (error) {
+      console.error("Member registration code verification failed:", error);
+      return res.status(500).json({
+        error: "Could not verify the code. Please try again.",
+      });
+    }
+  });
+
+  app.post("/api/member/login", async (req, res) => {
+    try {
+      const method = req.body?.method ?? "phone";
+      const identifierValue = req.body?.identifier ?? req.body?.phone;
+      const contact = normalizeMemberContact(method, identifierValue);
+      const password = req.body?.password;
+
+      if (!contact || !password) {
+        return res
+          .status(400)
+          .json({ error: "A valid phone or email and password are required." });
+      }
+
+      const member =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
 
       if (!member) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -1632,70 +1767,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/member/forgot-password", async (req, res) => {
     try {
-      const { phone } = req.body;
-
-      if (!phone) {
-        return res.status(400).json({ error: "Phone number is required" });
-      }
-
-      const phoneKey = normalizeEthiopianMobileLocal(String(phone).trim());
-      if (!phoneKey) {
+      const contact = normalizeMemberContact(
+        req.body?.method ?? "phone",
+        req.body?.identifier ?? req.body?.phone,
+      );
+      if (!contact) {
         return res.status(400).json({
-          error:
-            "Enter a valid Ethiopian mobile number (09xxxxxxxx, 07xxxxxxxx, or +251…).",
+          error: "Enter a valid phone number or email address.",
         });
       }
 
-      const member = await storage.getMemberByPhone(phoneKey);
+      const purpose = memberOtpPurpose(contact.method, "password_reset");
+      const member =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
 
+      // Keep account existence private; the same response is returned either way.
       if (!member) {
         return res.json({
           success: true,
-          sent: false,
-          message:
-            "If this number is registered to a member account, you will receive an SMS with a reset code. Otherwise, no message was sent.",
+          sent: true,
+          message: "If an account matches, a verification code will be sent.",
+        });
+      }
+      if (await storage.hasRecentOtp(contact.identifier, purpose, new Date(Date.now() - 60_000))) {
+        return res.json({
+          success: true,
+          sent: true,
+          message: "If an account matches, a verification code will be sent.",
         });
       }
 
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-      try {
-        await storage.createOtp(phoneKey, code, "password_reset", expiresAt);
-      } catch (dbErr) {
-        console.error("[forgot-password] createOtp:", dbErr);
-        return res.status(500).json({
-          success: false,
-          sent: false,
-          error:
-            "Could not save your verification code. Please try again in a moment.",
-        });
-      }
-
-      if (process.env.DEV_LOG_OTP === "1") {
-        console.warn(
-          `[forgot-password] OTP for ${phoneKey}: ${code} (DEV_LOG_OTP=1 — remove in shared environments)`,
-        );
-      }
-
-      const smsResult = await deliverOtpSmsWithRetry(
-        phoneKey,
+      const code = String(crypto.randomInt(100000, 1000000));
+      await storage.createOtp(
+        contact.identifier,
         code,
-        "password_reset",
+        purpose,
+        new Date(Date.now() + 5 * 60_000),
       );
-      if (!smsResult.success) {
-        await storage.deleteOtpsForPhoneAndPurpose(phoneKey, "password_reset");
-        console.error("[forgot-password] SMS send failed:", smsResult.error);
+
+      const delivery =
+        contact.method === "phone"
+          ? await deliverOtpSmsWithRetry(contact.identifier, code, "password_reset")
+          : await sendEmail(
+              contact.identifier,
+              "Reset your Fasil Kenema member password",
+              `<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1f2937"><h2>Password reset</h2><p>Enter this verification code to reset your member password:</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>This code expires in 5 minutes. If you did not request a reset, you can ignore this email.</p></div>`,
+            );
+
+      if (!delivery.success) {
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
+        console.error("Member password reset code delivery failed:", delivery.error);
         return res.status(502).json({
           success: false,
           sent: false,
-          error: userFacingSmsFailureMessage(smsResult.error),
+          error:
+            contact.method === "phone"
+              ? userFacingSmsFailureMessage(delivery.error)
+              : delivery.error || "Could not send the reset email.",
         });
       }
 
       return res.json({
         success: true,
         sent: true,
-        message: "A verification code was sent to your phone by SMS.",
+        message: `If an account matches, a verification code was sent to your ${contact.method}.`,
       });
     } catch (error) {
       console.error("Forgot password error:", error);
@@ -1705,43 +1842,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  /** Check SMS code before showing the new-password step. Wrong code invalidates the stored OTP. */
+  /** Check the SMS/email code before showing the new-password step. */
   app.post("/api/member/forgot-password/verify-otp", async (req, res) => {
     try {
-      const { phone, otp } = req.body;
-      if (!phone || otp == null || String(otp).trim() === "") {
+      const contact = normalizeMemberContact(
+        req.body?.method ?? "phone",
+        req.body?.identifier ?? req.body?.phone,
+      );
+      const otpCode = String(req.body?.otp ?? "").replace(/\s/g, "");
+      if (!contact || !/^\d{6}$/.test(otpCode)) {
         return res
           .status(400)
-          .json({ error: "Phone and verification code are required." });
+          .json({ error: "Enter a valid contact and six-digit verification code." });
       }
 
-      const phoneKey = normalizeEthiopianMobileLocal(String(phone).trim());
-      if (!phoneKey) {
-        return res.status(400).json({
-          error:
-            "Enter a valid Ethiopian mobile number (09xxxxxxxx, 07xxxxxxxx, or +251…).",
-        });
-      }
-
-      const member = await storage.getMemberByPhone(phoneKey);
+      const purpose = memberOtpPurpose(contact.method, "password_reset");
+      const member =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
       if (!member) {
-        return res
-          .status(404)
-          .json({ error: "No member account found for this number." });
+        return res.status(400).json({ error: "The code is incorrect or expired." });
       }
 
-      const otpCode = String(otp).replace(/\s/g, "");
       const otpRecord = await storage.getValidOtp(
-        phoneKey,
+        contact.identifier,
         otpCode,
-        "password_reset",
+        purpose,
       );
 
       if (!otpRecord) {
-        await storage.deleteOtpsForPhoneAndPurpose(phoneKey, "password_reset");
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
         return res.status(400).json({
-          error:
-            "That code does not match or has expired. Tap “Resend SMS code” to get a new one.",
+          error: "That code does not match or has expired. Request a new code.",
         });
       }
 
@@ -1759,20 +1892,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/member/reset-password", async (req, res) => {
     try {
-      const { phone, otp, newPassword } = req.body;
-
-      if (!phone || !otp || !newPassword) {
+      const contact = normalizeMemberContact(
+        req.body?.method ?? "phone",
+        req.body?.identifier ?? req.body?.phone,
+      );
+      const otpCode = String(req.body?.otp ?? "").replace(/\s/g, "");
+      const newPassword = req.body?.newPassword;
+      if (!contact || !/^\d{6}$/.test(otpCode) || !newPassword) {
         return res
           .status(400)
-          .json({ error: "Phone, OTP code, and new password are required" });
+          .json({ error: "Contact, verification code, and new password are required." });
       }
-
-      const phoneKey = normalizeEthiopianMobileLocal(String(phone).trim());
-      if (!phoneKey) {
-        return res.status(400).json({ error: "Invalid phone number format." });
-      }
-
-      const otpCode = String(otp).replace(/\s/g, "");
 
       if (newPassword.length < 6) {
         return res
@@ -1780,38 +1910,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Password must be at least 6 characters" });
       }
 
-      const otpRecord = await storage.getValidOtp(
-        phoneKey,
-        otpCode,
-        "password_reset",
-      );
+      const purpose = memberOtpPurpose(contact.method, "password_reset");
+      const otpRecord = await storage.getValidOtp(contact.identifier, otpCode, purpose);
 
       if (!otpRecord) {
-        await storage.deleteOtpsForPhoneAndPurpose(phoneKey, "password_reset");
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
         return res.status(422).json({
-          error:
-            "Invalid or expired code. Request a new SMS code and try again.",
+          error: "Invalid or expired code. Request a new verification code.",
         });
       }
 
-      const member = await storage.getMemberByPhone(phoneKey);
+      const member =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
       if (!member) {
-        await storage.deleteOtpsForPhoneAndPurpose(phoneKey, "password_reset");
+        await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
         return res.status(404).json({ error: "Member not found" });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await storage.updateMember(member.id, { password: hashedPassword });
-      await storage.deleteOtpsForPhoneAndPurpose(phoneKey, "password_reset");
-
-      void sendPasswordResetSuccessSms(phoneKey).catch((e) =>
-        console.error("Password reset confirmation SMS:", e),
-      );
+      await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
+      if (contact.method === "phone") {
+        void sendPasswordResetSuccessSms(contact.identifier).catch((e) =>
+          console.error("Password reset confirmation SMS:", e),
+        );
+      } else {
+        void sendEmail(
+          contact.identifier,
+          "Your Fasil Kenema password was changed",
+          "<div style=\"font-family:Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1f2937\"><h2>Password changed</h2><p>Your Fasil Kenema member password was changed. If you did not make this change, contact the club immediately.</p></div>",
+        ).catch((e) => console.error("Password reset confirmation email:", e));
+      }
 
       res.json({
         success: true,
-        message:
-          "Password has been reset successfully. You can sign in with your new password. You may receive a short confirmation SMS.",
+        message: "Password reset successfully. You can sign in with your new password.",
       });
     } catch (error) {
       console.error("Reset password error:", error);
@@ -2021,7 +2156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: member.email || null,
         first_name: firstName || "Member",
         last_name: lastName,
-        phone_number: checkoutPhone,
+        ...(checkoutPhone ? { phone_number: checkoutPhone } : {}),
         tx_ref: txRef,
         callback_url: resolveChapaCallbackUrl(chapaConfig.webhookUrl, baseUrl),
         return_url: buildChapaReturnUrl(baseUrl, txRef, "renewal"),
@@ -2633,17 +2768,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName,
         lastName,
         phone,
+        email,
+        method,
         chapaPhone,
         dateOfBirth,
         city,
         country,
         membershipTier,
       } = req.body;
-      console.log("Request body this is :", req.body);
       if (
         !firstName ||
         !lastName ||
-        !phone ||
         !dateOfBirth ||
         !city ||
         !country ||
@@ -2652,21 +2787,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const phoneNormalized = normalizeEthiopianMobileLocal(
-        String(phone).trim(),
+      const contact = normalizeMemberContact(
+        method,
+        method === "phone" ? phone : email,
       );
-      if (!phoneNormalized) {
+      if (!contact) {
         return res.status(400).json({
-          error:
-            "Enter a valid Ethiopian mobile number (10 digits: 09xxxxxxxx or 07xxxxxxxx, or +251 9x xxx xxxx).",
+          error: "Enter a valid phone number or email address for your account.",
         });
       }
+      const phoneNormalized =
+        contact.method === "phone" ? contact.identifier : null;
+      const emailNormalized =
+        contact.method === "email" ? contact.identifier : null;
 
-      const existingMember = await storage.getMemberByPhone(phoneNormalized);
+      const existingMember =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
       if (existingMember) {
         return res.status(409).json({
           error:
-            "You already have a membership account using this phone number. Please sign in with your existing account instead of registering again.",
+            `You already have a membership account using this ${contact.method}. Please sign in instead of registering again.`,
         });
       }
 
@@ -2713,11 +2855,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { rank, gender, address, division } = req.body;
 
+      const registrationPurpose = memberOtpPurpose(
+        contact.method,
+        "registration",
+      );
+      if (
+        !(await storage.consumeVerifiedOtp(
+          contact.identifier,
+          registrationPurpose,
+        ))
+      ) {
+        return res.status(400).json({
+          error: "Verify your phone or email before continuing to payment.",
+        });
+      }
+
       const applicationData = {
         transactionId: txRef,
         firstName,
         lastName,
-        email: null,
+        email: emailNormalized,
         phone: phoneNormalized,
         password: hashedPassword,
         idNumber: null,
@@ -2797,16 +2954,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
       }
 
-      const checkoutPhone = sanitizeChapaPhone(chapaPhone, phoneNormalized);
-      console.log("Checkout phone this is :", checkoutPhone);
+      const checkoutPhone = phoneNormalized
+        ? sanitizeChapaPhone(chapaPhone, phoneNormalized)
+        : "";
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: paymentCurrency,
-        // email: `${phone.replace(/\D/g, '')}@member.mechalfc.com`,
-        email: null,
+        email: emailNormalized,
         first_name: firstName,
         last_name: lastName,
-        phone_number: checkoutPhone,
+        ...(checkoutPhone ? { phone_number: checkoutPhone } : {}),
         tx_ref: txRef,
         callback_url: resolveChapaCallbackUrl(
           chapaConfig.webhookUrl,
@@ -2818,11 +2975,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: "Join FASIL S.C",
         },
       };
-      console.log(
-        "Chapa payload this is :",
-        JSON.stringify(chapaPayload, null, 2),
-      );
-
       const chapaResponse = await fetch(
         "https://api.chapa.co/v1/transaction/initialize",
         {
@@ -3011,7 +3163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const memberData = {
                 membershipNumber,
                 fullName: `${application.firstName} ${application.lastName}`,
-                email: null,
+                email: application.email,
                 phone: application.phone,
                 password: application.password || null,
                 idNumber,
@@ -3043,16 +3195,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 payment.amount,
                 payment.currency,
               );
-              void sendMembershipWelcomeSms(
-                createdMember.phone,
-                createdMember.fullName,
-                createdMember.membershipNumber,
-              ).catch((err) => console.error("Membership welcome SMS:", err));
+              if (createdMember.phone) {
+                void sendMembershipWelcomeSms(
+                  createdMember.phone,
+                  createdMember.fullName,
+                  createdMember.membershipNumber,
+                ).catch((err) => console.error("Membership welcome SMS:", err));
+              }
             } catch (e) {
               // If member already exists (race between callback and verify), keep payment completed and clean pending data.
-              const existingMember = await storage.getMemberByPhone(
-                application.phone,
-              );
+              const existingMember = application.phone
+                ? await storage.getMemberByPhone(application.phone)
+                : undefined;
               if (existingMember) {
                 await createMembershipTransactionIfMissing({
                   memberId: existingMember.id,
@@ -3121,12 +3275,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               payment.amount,
               payment.currency,
             );
-            queueMemberRenewalThankYouSms(
-              member.phone,
-              payment.amount,
-              payment.currency,
-              renewalExpiryDate,
-            );
+            if (member.phone) {
+              queueMemberRenewalThankYouSms(
+                member.phone,
+                payment.amount,
+                payment.currency,
+                renewalExpiryDate,
+              );
+            }
           }
         }
 
@@ -3264,7 +3420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const memberData = {
             membershipNumber,
             fullName: `${application.firstName} ${application.lastName}`,
-            email: null,
+            email: application.email,
             phone: application.phone,
             password: application.password || null,
             idNumber,
@@ -3320,16 +3476,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               payment.amount,
               payment.currency,
             );
-            void sendMembershipWelcomeSms(
-              member.phone,
-              member.fullName,
-              member.membershipNumber,
-            ).catch((err) => console.error("Membership welcome SMS:", err));
+            if (member.phone) {
+              void sendMembershipWelcomeSms(
+                member.phone,
+                member.fullName,
+                member.membershipNumber,
+              ).catch((err) => console.error("Membership welcome SMS:", err));
+            }
           } catch (e) {
             // If member already exists (race with callback), treat as completed and clean pending application.
-            const existingMember = await storage.getMemberByPhone(
-              application.phone,
-            );
+            const existingMember = application.phone
+              ? await storage.getMemberByPhone(application.phone)
+              : undefined;
             if (existingMember) {
               await createMembershipTransactionIfMissing({
                 memberId: existingMember.id,
@@ -3532,12 +3690,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       sendPaymentNotifications("membership", payment.amount, payment.currency);
-      queueMemberRenewalThankYouSms(
-        member.phone,
-        payment.amount,
-        payment.currency,
-        renewalExpiryDate,
-      );
+      if (member.phone) {
+        queueMemberRenewalThankYouSms(
+          member.phone,
+          payment.amount,
+          payment.currency,
+          renewalExpiryDate,
+        );
+      }
       return res.json({
         success: true,
         status: "success",
