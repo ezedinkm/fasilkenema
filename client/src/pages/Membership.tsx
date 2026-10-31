@@ -51,7 +51,7 @@ export default function Membership() {
             Join The Family
           </h1>
           <p className="text-xl max-w-3xl mx-auto text-white/90 leading-relaxed">
-            Support Mechal FC directly and enjoy exclusive benefits. Choose your
+            Support Fasil Kenema SC directly and enjoy exclusive benefits. Choose your
             tier, grow with the club, and power success on and off the pitch.
           </p>
         </div>
