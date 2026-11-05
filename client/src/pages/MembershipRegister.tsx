@@ -184,6 +184,19 @@ export default function MembershipRegister() {
       return;
     }
 
+    if (
+      verificationSent &&
+      !contactVerified &&
+      !/^\d{6}$/.test(verificationCode.trim())
+    ) {
+      toast({
+        title: "Enter the verification code",
+        description: "The code must contain six digits.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -207,14 +220,6 @@ export default function MembershipRegister() {
       }
 
       if (!contactVerified) {
-        if (!/^\d{6}$/.test(verificationCode.trim())) {
-          toast({
-            title: "Enter the verification code",
-            description: "The code must contain six digits.",
-            variant: "destructive",
-          });
-          return;
-        }
         const response = await fetch("/api/member/registration/verify-code", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -231,9 +236,8 @@ export default function MembershipRegister() {
         setContactVerified(true);
         toast({
           title: "Contact verified",
-          description: "Continue to payment to finish membership signup.",
+          description: "Opening secure payment to finish membership signup.",
         });
-        return;
       }
 
       let photoUrl = null;
@@ -301,7 +305,6 @@ export default function MembershipRegister() {
           description: result.error,
           variant: "destructive",
         });
-        setIsSubmitting(false);
       } else if (result.success && result.checkoutUrl) {
         window.location.href = result.checkoutUrl;
       } else {
@@ -310,7 +313,6 @@ export default function MembershipRegister() {
           description: "Failed to initialize payment. Please try again.",
           variant: "destructive",
         });
-        setIsSubmitting(false);
       }
     } catch (error) {
       toast({
@@ -321,6 +323,7 @@ export default function MembershipRegister() {
             : "Failed to process registration. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -627,12 +630,14 @@ export default function MembershipRegister() {
                   data-testid="button-proceed-payment"
                 >
                   {isSubmitting
-                    ? "Processing..."
+                    ? !verificationSent
+                      ? "Sending verification code..."
+                      : !contactVerified
+                        ? "Verifying code..."
+                        : "Processing payment..."
                     : !verificationSent
                       ? "Send Verification Code"
-                      : !contactVerified
-                        ? "Verify Contact"
-                        : `Proceed to Payment - ${price}`}
+                      : `Proceed to Payment - ${price}`}
                 </Button>
                 <p className="text-xs text-muted-foreground text-center mt-4">
                   You will be redirected to secure Chapa payment gateway
