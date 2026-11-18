@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { getPosts } from "@/lib/api";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   getBlogContentText,
   parseBlogContentSections,
@@ -52,6 +53,7 @@ function normalizeApiPost(raw: any): NormalizedNewsPost {
 
 export default function BlogPost() {
   const [, params] = useRoute("/blog/:slug");
+  const { toast } = useToast();
   const slug = params?.slug;
   const [post, setPost] = useState<NormalizedNewsPost | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,6 +121,31 @@ export default function BlogPost() {
   }
 
   const contentSections = parseBlogContentSections(post.content);
+  const sharePost = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: post.title,
+          text: post.excerpt,
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: "Link copied",
+        description: "Share the link to show this news preview.",
+      });
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      toast({
+        title: "Could not share the link",
+        description: "Copy this page's address and share it instead.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <PublicLayout>
@@ -165,7 +192,12 @@ export default function BlogPost() {
                 <p className="text-xs text-muted-foreground">Official Source</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => void sharePost()}
+            >
               <Share2 className="h-4 w-4" /> Share
             </Button>
           </div>

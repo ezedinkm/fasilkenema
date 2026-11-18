@@ -326,10 +326,12 @@ export default function AdminContent() {
     sections: [makeEditableBlogSection()],
     category: '',
     imageUrl: '',
+    shareImageUrl: '',
     isFeatured: false,
     notifySubscribers: false,
   });
   const postImageInputRef = useRef<HTMLInputElement>(null);
+  const shareImageInputRef = useRef<HTMLInputElement>(null);
   const sectionImageInputsRef = useRef<
     Record<string, HTMLInputElement | null>
   >({});
@@ -348,7 +350,10 @@ export default function AdminContent() {
     }));
   };
 
-  const handlePostImageUpload = async (file?: File) => {
+  const handlePostImageUpload = async (
+    file?: File,
+    target: 'imageUrl' | 'shareImageUrl' = 'imageUrl',
+  ) => {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       toast({
@@ -379,10 +384,13 @@ export default function AdminContent() {
       if (!response.ok || typeof result.imageUrl !== 'string') {
         throw new Error(result.error || 'Could not upload the image.');
       }
-      setFormData((current) => ({ ...current, imageUrl: result.imageUrl }));
+      setFormData((current) => ({ ...current, [target]: result.imageUrl }));
       toast({
         title: 'Image uploaded',
-        description: 'The image will be saved with the post.',
+        description:
+          target === 'shareImageUrl'
+            ? 'The image will appear in shared-link previews.'
+            : 'The image will be saved with the post.',
       });
     } catch (error) {
       toast({
@@ -486,6 +494,7 @@ export default function AdminContent() {
         parseBlogContentSections(post.contentEn).map(makeEditableBlogSection),
       category: post.category || '',
       imageUrl: post.imageUrl || '',
+      shareImageUrl: post.shareImageUrl || '',
       isFeatured: post.isFeatured ?? false,
       notifySubscribers: false,
     });
@@ -500,6 +509,7 @@ export default function AdminContent() {
       sections: [makeEditableBlogSection()],
       category: '',
       imageUrl: '',
+      shareImageUrl: '',
       isFeatured: false,
       notifySubscribers: false,
     });
@@ -549,6 +559,7 @@ export default function AdminContent() {
           contentEn,
           category: formData.category,
           imageUrl: formData.imageUrl.trim() || null,
+          shareImageUrl: formData.shareImageUrl.trim() || null,
           isFeatured: formData.isFeatured,
         },
       });
@@ -560,6 +571,7 @@ export default function AdminContent() {
           contentEn,
           category: formData.category,
           imageUrl: formData.imageUrl || undefined,
+          shareImageUrl: formData.shareImageUrl.trim() || null,
           isFeatured: formData.isFeatured,
           status: 'published',
         },
@@ -740,7 +752,7 @@ export default function AdminContent() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>Post image</Label>
+                  <Label>Article cover image</Label>
                   <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
                     <div className="flex aspect-video w-full max-w-48 items-center justify-center overflow-hidden rounded-md bg-zinc-100">
                       {formData.imageUrl ? (
@@ -794,6 +806,73 @@ export default function AdminContent() {
                           }
                         >
                           Remove image
+                        </Button>
+                      )}
+                      <p className="w-full text-xs text-muted-foreground">
+                        JPG, PNG, WebP, or GIF. Maximum 5 MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Shared-link preview image</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Shown when this news link is shared. If you leave it blank,
+                    the post image is used.
+                  </p>
+                  <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+                    <div className="flex aspect-video w-full max-w-48 items-center justify-center overflow-hidden rounded-md bg-zinc-100">
+                      {formData.shareImageUrl ? (
+                        <img
+                          src={formData.shareImageUrl}
+                          alt="Shared-link preview"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-zinc-300" />
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        ref={shareImageInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        aria-label="Upload shared-link preview image"
+                        data-testid="input-post-share-image-file"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = '';
+                          void handlePostImageUpload(file, 'shareImageUrl');
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={postImageUploading}
+                        onClick={() => shareImageInputRef.current?.click()}
+                        data-testid="button-upload-post-share-image"
+                      >
+                        {postImageUploading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                        )}
+                        {postImageUploading ? 'Uploading…' : 'Upload preview image'}
+                      </Button>
+                      {formData.shareImageUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={postImageUploading}
+                          onClick={() =>
+                            setFormData((current) => ({
+                              ...current,
+                              shareImageUrl: '',
+                            }))
+                          }
+                        >
+                          Remove preview
                         </Button>
                       )}
                       <p className="w-full text-xs text-muted-foreground">
@@ -856,7 +935,8 @@ export default function AdminContent() {
                     <div>
                       <Label>Article sections</Label>
                       <p className="text-xs text-muted-foreground">
-                        Sections appear in order. Add text and multiple images to each one.
+                        Sections appear in order. Add images after section text
+                        to place them between article sections.
                       </p>
                     </div>
                     <Button

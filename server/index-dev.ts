@@ -6,6 +6,7 @@ import type { Express } from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 
 import runApp from "./app";
+import { injectBlogShareMetadata } from "./blogShareMetadata";
 
 import viteConfig from "../vite.config";
 
@@ -49,7 +50,11 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      const pageWithMetadata = await injectBlogShareMetadata(page, req);
+      res
+        .status(200)
+        .set({ "Content-Type": "text/html" })
+        .end(pageWithMetadata);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

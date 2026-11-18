@@ -321,6 +321,7 @@ export const posts = pgTable("posts", {
   contentOr: text("content_or"),
   contentSo: text("content_so"),
   imageUrl: text("image_url"),
+  shareImageUrl: text("share_image_url"),
   category: text("category").notNull(),
   isFeatured: boolean("is_featured").notNull().default(false),
   status: text("status").notNull().default("draft"),
