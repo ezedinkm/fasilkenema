@@ -41,6 +41,8 @@ import AdminWatchReview from "@/pages/admin/WatchReview";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminAuditLogs from "@/pages/admin/AdminAuditLogs";
 import MemberLogin from "@/pages/MemberLogin";
+import MemberAccountMembers from "@/pages/MemberAccountMembers";
+import MemberAccountRegister from "@/pages/MemberAccountRegister";
 import MemberDashboard from "@/pages/MemberDashboard2";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
@@ -128,9 +130,11 @@ function Router() {
       
       {/* Member Routes */}
       <Route path="/member/login" component={MemberLogin} />
+      <Route path="/member/account/register" component={MemberAccountRegister} />
       <Route path="/member/forgot-password" component={ForgotPassword} />
       <Route path="/member/reset-password" component={ResetPassword} />
       <Route path="/member/dashboard" component={MemberDashboard} />
+      <Route path="/member/members" component={MemberAccountMembers} />
       <Route path="/women-fasil" component={WomenFasil} />
       <Route path="/junior-fasil" component={JuniorFasil} />
       <Route path="/meetings-events" component={MeetingsEvents} />

@@ -83,6 +83,7 @@ export default function MemberDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [member, setMember] = useState<MemberData | null>(null);
+  const [accountHasNoMembership, setAccountHasNoMembership] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const { data: membershipTierRows = [] } = useQuery<MembershipTier[]>({
     queryKey: ["/api/membership-tiers"],
@@ -108,14 +109,24 @@ export default function MemberDashboard() {
   const cardBackRef = useRef<HTMLDivElement>(null);
 
   const refreshMemberData = useCallback(async (token: string) => {
-    const meRes = await fetch("/api/member/me", {
+    const selectedMemberId = new URLSearchParams(window.location.search).get("memberId");
+    const meRes = await fetch(
+      `/api/member/me${selectedMemberId ? `?memberId=${encodeURIComponent(selectedMemberId)}` : ""}`,
+      {
       headers: { Authorization: `Bearer ${token}` },
-    });
+      },
+    );
     if (!meRes.ok) {
       throw new Error("Failed to refresh member data");
     }
     const me = await meRes.json();
-    setMember(me);
+    if (me.hasMembership === false) {
+      setMember(null);
+      setAccountHasNoMembership(true);
+    } else {
+      setMember(me);
+      setAccountHasNoMembership(false);
+    }
     localStorage.setItem("memberData", JSON.stringify(me));
     return me;
   }, []);
@@ -388,11 +399,15 @@ export default function MemberDashboard() {
       }
 
       try {
-        const response = await fetch("/api/member/me", {
+        const selectedMemberId = new URLSearchParams(window.location.search).get("memberId");
+        const response = await fetch(
+          `/api/member/me${selectedMemberId ? `?memberId=${encodeURIComponent(selectedMemberId)}` : ""}`,
+          {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+          },
+        );
 
         if (!response.ok) {
           localStorage.removeItem("memberToken");
@@ -407,7 +422,13 @@ export default function MemberDashboard() {
         }
 
         const data = await response.json();
-        setMember(data);
+        if (data.hasMembership === false) {
+          setMember(null);
+          setAccountHasNoMembership(true);
+        } else {
+          setMember(data);
+          setAccountHasNoMembership(false);
+        }
         localStorage.setItem("memberData", JSON.stringify(data));
       } catch {
         localStorage.removeItem("memberToken");
@@ -435,9 +456,14 @@ export default function MemberDashboard() {
     const searchParams = new URLSearchParams(window.location.search);
     const renewal = searchParams.get("renewal");
     if (renewal !== "success" && renewal !== "failed" && renewal !== "pending") return;
+    const selectedMemberId = searchParams.get("memberId");
 
     const token = localStorage.getItem("memberToken");
-    window.history.replaceState({}, "", `${window.location.origin}/member/dashboard`);
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.origin}/member/dashboard${selectedMemberId ? `?memberId=${encodeURIComponent(selectedMemberId)}` : ""}`,
+    );
 
     if (!token) {
       setLocation("/member/login");
@@ -469,6 +495,7 @@ export default function MemberDashboard() {
   }, [setLocation, toast, refreshMemberData]);
 
   const handleRenewMembership = async () => {
+    if (!member) return;
     if (!renewTier) {
       toast({ title: "Select membership tier", variant: "destructive" });
       return;
@@ -491,6 +518,7 @@ export default function MemberDashboard() {
           membershipTier: renewTier,
           currency: renewCurrency,
           billingCycle: "annual",
+          memberId: member.id,
           chapaPhone: renewPhone.trim() || String(member?.phone || "").trim(),
         }),
       });
@@ -680,6 +708,25 @@ export default function MemberDashboard() {
   const frontCardBackgroundUrl =
     selectedCardTier?.frontBackgroundUrl || selectedTemplateUrl;
 
+  if (!member && accountHasNoMembership) {
+    return (
+      <PublicLayout>
+        <main className="container mx-auto flex min-h-[55vh] max-w-3xl flex-col items-center justify-center px-4 py-12 text-center">
+          <h1 className="text-2xl font-bold text-red-700">Membership account</h1>
+          <p className="mt-3 max-w-xl text-muted-foreground">
+            This account does not have a personal membership yet. Add yourself or another person to begin a separate annual membership.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Button className="bg-red-700 hover:bg-red-800" onClick={() => setLocation("/member/members")}>
+              Manage memberships
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>Log out</Button>
+          </div>
+        </main>
+      </PublicLayout>
+    );
+  }
+
   if (!member) {
     return (
       <PublicLayout>
@@ -706,13 +753,22 @@ export default function MemberDashboard() {
               Member Dashboard
             </p>
           </div>
-          <Button
-            variant="ghost"
-            className="text-red-600 hover:bg-red-50 shrink-0 self-start sm:self-auto"
-            onClick={handleLogout}
-          >
-            <LogOut className="w-4 h-4 mr-2" /> ውጣ
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="shrink-0"
+              onClick={() => setLocation("/member/members")}
+            >
+              <User className="mr-2 h-4 w-4" /> Manage memberships
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-red-600 hover:bg-red-50 shrink-0"
+              onClick={handleLogout}
+            >
+              <LogOut className="w-4 h-4 mr-2" /> ውጣ
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col items-center justify-center w-full min-w-0">

@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   pgTable,
+  type AnyPgColumn,
   text,
   varchar,
   serial,
@@ -143,9 +144,37 @@ export const adminAuditLogs = pgTable(
   ],
 );
 
+export const memberAccounts = pgTable(
+  "member_accounts",
+  {
+    id: serial("id").primaryKey(),
+    fullName: text("full_name").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    password: text("password").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("member_accounts_email_lower_unique")
+      .on(sql`lower(${table.email})`)
+      .where(sql`${table.email} IS NOT NULL`),
+    uniqueIndex("member_accounts_phone_unique")
+      .on(table.phone)
+      .where(sql`${table.phone} IS NOT NULL`),
+  ],
+);
+export type MemberAccount = typeof memberAccounts.$inferSelect;
+
 export const members = pgTable("members", {
   id: serial("id").primaryKey(),
   membershipNumber: text("membership_number").notNull().unique(),
+  accountId: integer("account_id").references(() => memberAccounts.id, {
+    onDelete: "set null",
+  }),
+  accountOwnerMemberId: integer("account_owner_member_id").references(
+    (): AnyPgColumn => members.id,
+    { onDelete: "set null" },
+  ),
   fullName: text("full_name").notNull(),
   email: text("email"),
   phone: text("phone").unique(),
@@ -165,6 +194,8 @@ export const members = pgTable("members", {
   expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
+  index("members_account_id_idx").on(table.accountId),
+  index("members_account_owner_member_id_idx").on(table.accountOwnerMemberId),
   uniqueIndex("members_email_lower_unique")
     .on(sql`lower(${table.email})`)
     .where(sql`${table.email} IS NOT NULL`),
@@ -592,6 +623,13 @@ export const pendingMemberApplications = pgTable(
   {
     id: serial("id").primaryKey(),
     transactionId: text("transaction_id").notNull().unique(),
+    accountId: integer("account_id").references(() => memberAccounts.id, {
+      onDelete: "set null",
+    }),
+    accountOwnerMemberId: integer("account_owner_member_id").references(
+      (): AnyPgColumn => members.id,
+      { onDelete: "set null" },
+    ),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     email: text("email"),

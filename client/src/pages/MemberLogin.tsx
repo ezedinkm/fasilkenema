@@ -64,11 +64,14 @@ export default function MemberLogin() {
       }
 
       localStorage.setItem("memberToken", result.token);
-      localStorage.setItem("memberData", JSON.stringify(result.member));
+      localStorage.setItem(
+        "memberData",
+        JSON.stringify(result.member || result.account || null),
+      );
 
       toast({
         title: "Welcome Back!",
-        description: `Logged in as ${result.member.fullName}`,
+        description: `Logged in as ${result.member?.fullName || result.account?.fullName || "membership account"}`,
       });
 
       setLocation("/member/dashboard");
@@ -180,6 +183,15 @@ export default function MemberLogin() {
                   className="text-primary hover:underline"
                 >
                   Join Now
+                </Link>
+              </p>
+              <p className="mt-3 text-muted-foreground">
+                Managing memberships for others?{" "}
+                <Link
+                  href="/member/account/register"
+                  className="text-primary hover:underline"
+                >
+                  Create an account
                 </Link>
               </p>
             </div>

@@ -23,6 +23,7 @@ import {
   posts,
   passwordResetTokens,
   members,
+  memberAccounts,
   payments,
   membershipTiers,
   donationTiers,
@@ -36,6 +37,7 @@ import {
   SMS_ICONIC_SETTING_KEYS,
 } from "@shared/schema";
 import { normalizeEthiopianMobileLocal } from "@shared/ethiopianPhone";
+import { memberBelongsToAccount } from "@shared/memberAccountAccess";
 import { socialLinksSettingSchema } from "@shared/socialLinks";
 import { homepageSliderSettingSchema } from "@shared/homepageSlider";
 import { fromZodError } from "zod-validation-error";
@@ -836,6 +838,8 @@ async function finalizeChapaReturnMembership(
 
   const memberData = {
     membershipNumber,
+    accountId: application.accountId,
+    accountOwnerMemberId: application.accountOwnerMemberId,
     fullName: `${application.firstName} ${application.lastName}`,
     email: application.email,
     phone: application.phone,
@@ -1514,6 +1518,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: "An account already uses this contact. Please sign in instead.",
         });
       }
+      const existingAccount = await db
+        .select({ id: memberAccounts.id })
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
+      if (existingAccount[0]) {
+        return res.status(409).json({
+          error: "An account already uses this contact. Please sign in instead.",
+        });
+      }
 
       const purpose = memberOtpPurpose(contact.method, "registration");
       if (
@@ -1592,6 +1610,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/member/account/register", async (req, res) => {
+    try {
+      const fullName = String(req.body?.fullName ?? "").trim();
+      const password = String(req.body?.password ?? "");
+      const contact = normalizeMemberContact(
+        req.body?.method,
+        req.body?.identifier,
+      );
+      if (fullName.length < 2 || !contact || password.length < 6) {
+        return res.status(400).json({
+          error: "Enter your name, a valid phone or email, and a password of at least 6 characters.",
+        });
+      }
+
+      const existingAccount = await db
+        .select({ id: memberAccounts.id })
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
+      if (existingAccount[0]) {
+        return res.status(409).json({
+          error: "An account already uses this contact. Please sign in.",
+        });
+      }
+
+      const existingMember =
+        contact.method === "phone"
+          ? await storage.getMemberByPhone(contact.identifier)
+          : await storage.getMemberByEmail(contact.identifier);
+      if (existingMember) {
+        return res.status(409).json({
+          error: "This contact already belongs to a membership. Please sign in with that membership account.",
+        });
+      }
+
+      const purpose = memberOtpPurpose(contact.method, "registration");
+      if (
+        !(await storage.consumeVerifiedOtp(contact.identifier, purpose))
+      ) {
+        return res.status(400).json({
+          error: "Verify your phone or email before creating the account.",
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const inserted = await db
+        .insert(memberAccounts)
+        .values({
+          fullName,
+          email: contact.method === "email" ? contact.identifier : null,
+          phone: contact.method === "phone" ? contact.identifier : null,
+          password: hashedPassword,
+        })
+        .returning();
+      const account = inserted[0];
+      const token = jwt.sign(
+        { id: account.id, accountId: account.id, type: "member" },
+        JWT_SECRET,
+        { expiresIn: "30d" },
+      );
+      return res.json({
+        success: true,
+        token,
+        account: {
+          id: account.id,
+          fullName: account.fullName,
+          email: account.email,
+          phone: account.phone,
+        },
+      });
+    } catch (error) {
+      console.error("Member account registration failed:", error);
+      return res.status(500).json({
+        error: "Could not create your account. Please try again.",
+      });
+    }
+  });
+
   app.post("/api/member/login", async (req, res) => {
     try {
       const method = req.body?.method ?? "phone";
@@ -1603,6 +1703,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(400)
           .json({ error: "A valid phone or email and password are required." });
+      }
+
+      const accountRows = await db
+        .select()
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
+      const account = accountRows[0];
+      if (account) {
+        const validPassword = await bcrypt.compare(password, account.password);
+        if (!validPassword) {
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
+        const token = jwt.sign(
+          {
+            id: account.id,
+            accountId: account.id,
+            type: "member",
+          },
+          JWT_SECRET,
+          { expiresIn: "30d" },
+        );
+        return res.json({
+          token,
+          account: {
+            id: account.id,
+            fullName: account.fullName,
+            email: account.email,
+            phone: account.phone,
+          },
+          member: null,
+        });
       }
 
       const member =
@@ -1636,6 +1772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = jwt.sign(
         {
           id: member.id,
+          accountOwnerMemberId: member.accountOwnerMemberId ?? member.id,
           membershipNumber: member.membershipNumber,
           type: "member",
         },
@@ -1778,13 +1915,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const purpose = memberOtpPurpose(contact.method, "password_reset");
+      const accountRows = await db
+        .select({ id: memberAccounts.id })
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
       const member =
         contact.method === "phone"
           ? await storage.getMemberByPhone(contact.identifier)
           : await storage.getMemberByEmail(contact.identifier);
 
       // Keep account existence private; the same response is returned either way.
-      if (!member) {
+      if (!member && !accountRows[0]) {
         return res.json({
           success: true,
           sent: true,
@@ -1857,11 +2003,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const purpose = memberOtpPurpose(contact.method, "password_reset");
+      const accountRows = await db
+        .select({ id: memberAccounts.id })
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
       const member =
         contact.method === "phone"
           ? await storage.getMemberByPhone(contact.identifier)
           : await storage.getMemberByEmail(contact.identifier);
-      if (!member) {
+      if (!member && !accountRows[0]) {
         return res.status(400).json({ error: "The code is incorrect or expired." });
       }
 
@@ -1924,13 +2079,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contact.method === "phone"
           ? await storage.getMemberByPhone(contact.identifier)
           : await storage.getMemberByEmail(contact.identifier);
-      if (!member) {
+      const accountRows = await db
+        .select({ id: memberAccounts.id })
+        .from(memberAccounts)
+        .where(
+          contact.method === "phone"
+            ? eq(memberAccounts.phone, contact.identifier)
+            : sql`lower(${memberAccounts.email}) = ${contact.identifier}`,
+        )
+        .limit(1);
+      const account = accountRows[0];
+      if (!member && !account) {
         await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
-        return res.status(404).json({ error: "Member not found" });
+        return res.status(404).json({ error: "Account not found" });
       }
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await storage.updateMember(member.id, { password: hashedPassword });
+      if (account) {
+        await db
+          .update(memberAccounts)
+          .set({ password: hashedPassword })
+          .where(eq(memberAccounts.id, account.id));
+      } else if (member) {
+        await storage.updateMember(member.id, { password: hashedPassword });
+      }
       await storage.deleteOtpsForPhoneAndPurpose(contact.identifier, purpose);
       if (contact.method === "phone") {
         void sendPasswordResetSuccessSms(contact.identifier).catch((e) =>
@@ -1966,6 +2138,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as {
           id: number;
+          accountOwnerMemberId?: number;
+          accountId?: number;
           membershipNumber: string;
           type: string;
         };
@@ -1974,10 +2148,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ error: "Invalid token type" });
         }
 
-        let member = await storage.getMemberById(decoded.id);
+        if (Number(decoded.accountId) > 0) {
+          const accountRows = await db
+            .select()
+            .from(memberAccounts)
+            .where(eq(memberAccounts.id, Number(decoded.accountId)))
+            .limit(1);
+          const account = accountRows[0];
+          if (!account) {
+            return res.status(404).json({ error: "Membership account not found" });
+          }
+          const accountMembers = (await storage.getMembers()).filter(
+            (row) => row.accountId === account.id,
+          );
+          const requestedMemberId =
+            Number(req.query.memberId) || accountMembers[0]?.id;
+          if (!requestedMemberId) {
+            return res.json({
+              hasMembership: false,
+              accountId: account.id,
+              accountName: account.fullName,
+              members: [],
+            });
+          }
+          let member = accountMembers.find((row) => row.id === requestedMemberId);
+          if (!member) {
+            return res.status(403).json({ error: "Member is not in this account" });
+          }
+          if (member.expiryDate) {
+            const expiryDate = new Date(member.expiryDate);
+            if (!Number.isNaN(expiryDate.getTime())) {
+              const expectedStatus = getMemberStatusByExpiry(expiryDate);
+              if (member.status !== expectedStatus) {
+                member = (await storage.updateMember(member.id, {
+                  status: expectedStatus,
+                })) || member;
+              }
+            }
+          }
+          return res.json({
+            hasMembership: true,
+            accountId: account.id,
+            accountName: account.fullName,
+            id: member.id,
+            accountOwnerMemberId: null,
+            membershipNumber: member.membershipNumber,
+            fullName: member.fullName,
+            phone: member.phone,
+            idNumber: member.idNumber,
+            rank: member.rank,
+            gender: member.gender,
+            address: member.address,
+            division: member.division,
+            tier: member.tier,
+            photoUrl: member.photoUrl,
+            joinedDate: member.joinedDate,
+            expiryDate: member.expiryDate,
+            status: member.status,
+          });
+        }
+
+        const accountOwnerMemberId =
+          Number(decoded.accountOwnerMemberId) || Number(decoded.id);
+        const requestedMemberId = Number(req.query.memberId) || accountOwnerMemberId;
+        let member = await storage.getMemberById(requestedMemberId);
 
         if (!member) {
           return res.status(404).json({ error: "Member not found" });
+        }
+        if (!memberBelongsToAccount(member, null, accountOwnerMemberId)) {
+          return res.status(403).json({ error: "Member is not in this account" });
         }
 
         // Keep member status aligned with expiry date.
@@ -1998,6 +2238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({
           id: member.id,
+          accountOwnerMemberId,
           membershipNumber: member.membershipNumber,
           fullName: member.fullName,
           phone: member.phone,
@@ -2021,6 +2262,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/member/managed-members", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "Sign in to manage memberships." });
+      }
+      const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET) as {
+        id: number;
+        accountOwnerMemberId?: number;
+        accountId?: number;
+        type: string;
+      };
+      if (decoded.type !== "member") {
+        return res.status(403).json({ error: "Invalid token type" });
+      }
+      const accountOwnerMemberId =
+        Number(decoded.accountOwnerMemberId) || Number(decoded.id);
+      const rows = await storage.getMembers();
+      const managedMembers = rows
+        .filter(
+          (member) =>
+            memberBelongsToAccount(
+              member,
+              Number(decoded.accountId) > 0 ? Number(decoded.accountId) : null,
+              accountOwnerMemberId,
+            ),
+        )
+        .map((member) => ({
+          id: member.id,
+          membershipNumber: member.membershipNumber,
+          fullName: member.fullName,
+          gender: member.gender,
+          tier: member.tier,
+          photoUrl: member.photoUrl,
+          status: member.status,
+          joinedDate: member.joinedDate,
+          expiryDate: member.expiryDate,
+          isAccountOwner:
+            Number(decoded.accountId) > 0
+              ? false
+              : member.id === accountOwnerMemberId,
+        }));
+      return res.json({ members: managedMembers });
+    } catch (error) {
+      console.error("Managed member list failed:", error);
+      return res.status(401).json({ error: "Invalid or expired session." });
+    }
+  });
+
   app.post("/api/auth/register", (_req, res) =>
     res.status(410).json({
       error: "Public administrator registration is disabled. Use User Management.",
@@ -2038,6 +2328,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = authHeader.split(" ")[1];
       const decoded = jwt.verify(token, JWT_SECRET) as {
         id: number;
+        accountOwnerMemberId?: number;
+        accountId?: number;
         membershipNumber: string;
         type: string;
       };
@@ -2045,9 +2337,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Invalid token type" });
       }
 
-      const member = await storage.getMemberById(decoded.id);
+      const accountOwnerMemberId =
+        Number(decoded.accountOwnerMemberId) || Number(decoded.id);
+      const requestedMemberId =
+        Number(req.body?.memberId) ||
+        (Number(decoded.accountId) > 0 ? 0 : accountOwnerMemberId);
+      if (!requestedMemberId) {
+        return res.status(400).json({ error: "Select a membership to renew." });
+      }
+      const member = await storage.getMemberById(requestedMemberId);
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
+      }
+      if (
+        !memberBelongsToAccount(
+          member,
+          Number(decoded.accountId) > 0 ? Number(decoded.accountId) : null,
+          accountOwnerMemberId,
+        )
+      ) {
+        return res.status(403).json({ error: "Member is not in this account" });
+      }
+      let payerEmail = member.email;
+      let payerPhone = member.phone;
+      if (Number(decoded.accountId) > 0) {
+        const accountRows = await db
+          .select({ email: memberAccounts.email, phone: memberAccounts.phone })
+          .from(memberAccounts)
+          .where(eq(memberAccounts.id, Number(decoded.accountId)))
+          .limit(1);
+        payerEmail = payerEmail || accountRows[0]?.email || null;
+        payerPhone = payerPhone || accountRows[0]?.phone || null;
+      } else if (member.id !== accountOwnerMemberId) {
+        const ownerMember = await storage.getMemberById(accountOwnerMemberId);
+        payerEmail = payerEmail || ownerMember?.email || null;
+        payerPhone = payerPhone || ownerMember?.phone || null;
       }
 
       const { currency, membershipTier, chapaPhone } =
@@ -2130,7 +2454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .trim()
         .split(/\s+/);
       const lastName = restName.join(" ") || "Member";
-      const checkoutPhone = sanitizeChapaPhone(chapaPhone, member.phone);
+      const checkoutPhone = sanitizeChapaPhone(chapaPhone, payerPhone);
       const baseUrl = await getPublicBaseUrlFromRequest(req);
       const chapaConfig = await getChapaConfig();
       if (!chapaConfig.secretKey) {
@@ -2153,7 +2477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: paymentCurrency,
-        email: member.email || null,
+        email: payerEmail || null,
         first_name: firstName || "Member",
         last_name: lastName,
         ...(checkoutPhone ? { phone_number: checkoutPhone } : {}),
@@ -2763,6 +3087,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let payment: any = null;
     let txRef: string | null = null;
     try {
+      let accountOwner: Awaited<ReturnType<typeof storage.getMemberById>> =
+        undefined;
+      let memberAccount: typeof memberAccounts.$inferSelect | undefined;
+      let accountOwnerMemberId: number | null = null;
+      let accountId: number | null = null;
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith("Bearer ")) {
+        try {
+          const decoded = jwt.verify(authHeader.slice(7), JWT_SECRET) as {
+            id: number;
+            accountOwnerMemberId?: number;
+            accountId?: number;
+            type: string;
+          };
+          if (decoded.type !== "member") {
+            return res.status(403).json({ error: "Invalid token type" });
+          }
+          if (Number(decoded.accountId) > 0) {
+            accountId = Number(decoded.accountId);
+            const accountRows = await db
+              .select()
+              .from(memberAccounts)
+              .where(eq(memberAccounts.id, accountId))
+              .limit(1);
+            memberAccount = accountRows[0];
+            if (!memberAccount) {
+              return res.status(401).json({ error: "Account not found." });
+            }
+          } else {
+            accountOwnerMemberId =
+              Number(decoded.accountOwnerMemberId) || Number(decoded.id);
+            accountOwner = await storage.getMemberById(accountOwnerMemberId);
+            if (!accountOwner) {
+              return res.status(401).json({ error: "Account owner not found." });
+            }
+          }
+        } catch {
+          return res.status(401).json({ error: "Invalid or expired session." });
+        }
+      }
       const {
         currency,
         firstName,
@@ -2787,28 +3151,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const contact = normalizeMemberContact(
-        method,
-        method === "phone" ? phone : email,
-      );
-      if (!contact) {
+      const isManagedAccount = Boolean(accountOwner || memberAccount);
+      const contact = isManagedAccount
+        ? null
+        : normalizeMemberContact(method, method === "phone" ? phone : email);
+      if (!contact && !isManagedAccount) {
         return res.status(400).json({
           error: "Enter a valid phone number or email address for your account.",
         });
       }
       const phoneNormalized =
-        contact.method === "phone" ? contact.identifier : null;
+        contact?.method === "phone" ? contact.identifier : null;
       const emailNormalized =
-        contact.method === "email" ? contact.identifier : null;
+        contact?.method === "email" ? contact.identifier : null;
+      let profilePhoneNormalized = phoneNormalized;
+      let profileEmailNormalized = emailNormalized;
+      if (isManagedAccount) {
+        const rawMemberPhone = String(req.body?.memberPhone ?? "").trim();
+        const rawMemberEmail = String(req.body?.memberEmail ?? "").trim();
+        const memberPhoneContact = rawMemberPhone
+          ? normalizeMemberContact("phone", rawMemberPhone)
+          : null;
+        const memberEmailContact = rawMemberEmail
+          ? normalizeMemberContact("email", rawMemberEmail)
+          : null;
+        if (
+          (rawMemberPhone && !memberPhoneContact) ||
+          (rawMemberEmail && !memberEmailContact)
+        ) {
+          return res.status(400).json({
+            error: "Enter a valid member phone number or email address.",
+          });
+        }
+        if (memberPhoneContact) {
+          if (await storage.getMemberByPhone(memberPhoneContact.identifier)) {
+            return res.status(409).json({
+              error: "That phone number is already on another member profile.",
+            });
+          }
+          profilePhoneNormalized = memberPhoneContact.identifier;
+        }
+        if (memberEmailContact) {
+          if (await storage.getMemberByEmail(memberEmailContact.identifier)) {
+            return res.status(409).json({
+              error: "That email address is already on another member profile.",
+            });
+          }
+          profileEmailNormalized = memberEmailContact.identifier;
+        }
+      }
 
-      const existingMember =
-        contact.method === "phone"
+      const existingMember = contact
+        ? contact.method === "phone"
           ? await storage.getMemberByPhone(contact.identifier)
-          : await storage.getMemberByEmail(contact.identifier);
+          : await storage.getMemberByEmail(contact.identifier)
+        : undefined;
       if (existingMember) {
         return res.status(409).json({
           error:
-            `You already have a membership account using this ${contact.method}. Please sign in instead of registering again.`,
+            `You already have a membership account using this ${contact?.method || "contact"}. Please sign in instead of registering again.`,
         });
       }
 
@@ -2845,37 +3246,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { photoUrl, password } = req.body;
 
-      if (!password || password.length < 6) {
+      if (!isManagedAccount && (!password || password.length < 6)) {
         return res
           .status(400)
           .json({ error: "Password must be at least 6 characters" });
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword =
+        !isManagedAccount && password ? await bcrypt.hash(password, 10) : null;
 
       const { rank, gender, address, division } = req.body;
 
-      const registrationPurpose = memberOtpPurpose(
-        contact.method,
-        "registration",
-      );
-      if (
-        !(await storage.consumeVerifiedOtp(
-          contact.identifier,
-          registrationPurpose,
-        ))
-      ) {
-        return res.status(400).json({
-          error: "Verify your phone or email before continuing to payment.",
-        });
+      if (contact) {
+        const registrationPurpose = memberOtpPurpose(
+          contact.method,
+          "registration",
+        );
+        if (
+          !(await storage.consumeVerifiedOtp(
+            contact.identifier,
+            registrationPurpose,
+          ))
+        ) {
+          return res.status(400).json({
+            error: "Verify your phone or email before continuing to payment.",
+          });
+        }
       }
 
       const applicationData = {
         transactionId: txRef,
+        accountId,
+        accountOwnerMemberId,
         firstName,
         lastName,
-        email: emailNormalized,
-        phone: phoneNormalized,
+        email: profileEmailNormalized,
+        phone: profilePhoneNormalized,
         password: hashedPassword,
         idNumber: null,
         rank: rank || null,
@@ -2916,6 +3322,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: {
           userId: pendingApplication.id,
           billingCycle: normalizedBillingCycle,
+          accountId,
+          accountOwnerMemberId,
         },
       };
 
@@ -2954,13 +3362,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
       }
 
-      const checkoutPhone = phoneNormalized
-        ? sanitizeChapaPhone(chapaPhone, phoneNormalized)
+      const accountPhone = accountOwner?.phone || memberAccount?.phone || null;
+      const checkoutPhone = phoneNormalized || accountPhone
+        ? sanitizeChapaPhone(chapaPhone, phoneNormalized || accountPhone || "")
         : "";
       const chapaPayload = {
         amount: amountNum.toString(),
         currency: paymentCurrency,
-        email: emailNormalized,
+        email: emailNormalized || accountOwner?.email || memberAccount?.email || null,
         first_name: firstName,
         last_name: lastName,
         ...(checkoutPhone ? { phone_number: checkoutPhone } : {}),
@@ -3030,8 +3439,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.redirect(302, `${base}/donate/success?payment=${outcome}`);
     const redirectMembership = (outcome: "success" | "failed" | "pending") =>
       res.redirect(302, `${base}/membership/success?payment=${outcome}`);
-    const redirectRenewal = (outcome: "success" | "failed" | "pending") =>
-      res.redirect(302, `${base}/member/dashboard?renewal=${outcome}`);
+    const redirectManagedMembership = (
+      outcome: "success" | "failed" | "pending",
+    ) => res.redirect(302, `${base}/member/members?payment=${outcome}`);
+    const redirectRenewal = (
+      outcome: "success" | "failed" | "pending",
+      memberId?: number,
+    ) =>
+      res.redirect(
+        302,
+        `${base}/member/dashboard?renewal=${outcome}${memberId ? `&memberId=${memberId}` : ""}`,
+      );
 
     try {
       const token = String(req.query.token || "");
@@ -3053,12 +3471,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return redirectDonation(outcome);
       }
       if (kind === "membership") {
+        const pendingApplication =
+          await storage.getPendingMemberApplicationByTxId(txRef);
+        const completedPayment = await storage.getPaymentByTransactionId(txRef);
+        const isManagedMembership = Boolean(
+          pendingApplication?.accountId ||
+            pendingApplication?.accountOwnerMemberId ||
+            (completedPayment?.metadata as any)?.accountId ||
+            (completedPayment?.metadata as any)?.accountOwnerMemberId,
+        );
         const outcome = await finalizeChapaReturnMembership(txRef);
-        return redirectMembership(outcome);
+        return isManagedMembership
+          ? redirectManagedMembership(outcome)
+          : redirectMembership(outcome);
       }
       if (kind === "renewal") {
+        const renewalPayment = await storage.getPaymentByTransactionId(txRef);
+        const renewedMemberId = Number((renewalPayment?.metadata as any)?.userId);
         const outcome = await finalizeChapaReturnRenewal(txRef);
-        return redirectRenewal(outcome);
+        return redirectRenewal(
+          outcome,
+          Number.isFinite(renewedMemberId) && renewedMemberId > 0
+            ? renewedMemberId
+            : undefined,
+        );
       }
       return redirectDonation("failed");
     } catch (e) {
@@ -3162,6 +3598,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
               const memberData = {
                 membershipNumber,
+                accountId: application.accountId,
+                accountOwnerMemberId: application.accountOwnerMemberId,
                 fullName: `${application.firstName} ${application.lastName}`,
                 email: application.email,
                 phone: application.phone,
