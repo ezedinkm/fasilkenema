@@ -2539,6 +2539,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const members = await storage.getMembers();
       res.json(members);
     } catch (error) {
+      const databaseError =
+        error && typeof error === "object"
+          ? (error as { code?: unknown; message?: unknown })
+          : undefined;
+      console.error("[api/members] Failed to fetch members:", {
+        code:
+          typeof databaseError?.code === "string"
+            ? databaseError.code.slice(0, 32)
+            : undefined,
+        message:
+          typeof databaseError?.message === "string"
+            ? databaseError.message.slice(0, 300)
+            : "Unknown database error",
+      });
       res.status(500).json({ error: "Failed to fetch members" });
     }
   });
